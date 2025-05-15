@@ -5,6 +5,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
     "paths": {
       "@components/*": ["components/*"],
@@ -12,7 +13,8 @@
       "@hooks/*": ["hooks/*"],
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"]
-    }
+    },
+    "types": ["react", "react-dom", "react-icons"]
   },
   "include": ["src"],
   "exclude": ["node_modules"]
