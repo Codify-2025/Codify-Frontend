@@ -3,13 +3,21 @@ export default {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      colors: {
+        primary: '#3498db',
+        secondary: '#2ecc71',
+        danger: '#e74c3c',
+        gray: '#333333',
+        black: '#000000',
+        white: '#ffffff',
+      },
       fontFamily: {
         sans: ['Pretendard', 'Arial', 'sans-serif'],
         heading: ['Pretendard', 'Arial', 'sans-serif'],
       },
       fontSize: {
         heading: ['24px', '32px'],
-        subtitle: ['20px', '20px'],
+        subtitle: ['20px', '28px'],
         body: ['16px', '24px'],
         caption: ['12px', '16px'],
       },

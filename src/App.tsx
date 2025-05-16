@@ -1,17 +1,28 @@
 import React from 'react';
 import './index.css';
+import Layout from './components/Layout';
+import Button from './components/Button';
+import Text from './components/Text';
+import { FiCheck } from 'react-icons/fi';
 
 const App: React.FC = () => {
   return (
-    <div className="font-sans p-6 space-y-4">
-      <h1 className="font-heading text-2xl font-bold">폰트 적용 예제</h1>
-      <p className="font-sans text-lg">
-        이 문장은 Pretendard 폰트를 사용합니다.
-      </p>
-      <p className="font-heading text-sm">
-        이 문장도 Pretendard 폰트를 사용합니다.
-      </p>
-    </div>
+    <Layout
+      title="Welcome to Codify"
+      description="Upload files to analyze for similarity."
+    >
+      <div className="space-y-4">
+        <Text variant="body" weight="medium" color="primary">
+          Please upload your source code files to begin the analysis.
+        </Text>
+
+        <div className="flex space-x-4">
+          <Button text="분석 시작" variant="primary" />
+          <Button text="결과 보러가기" variant="secondary" icon={<FiCheck />} />
+          <Button text="표절로 저장" variant="danger" />
+        </div>
+      </div>
+    </Layout>
   );
 };
 

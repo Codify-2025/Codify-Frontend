@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 body {
-  @apply font-sans;
+  font-family: 'Pretendard', Arial, sans-serif;
 }
 
 .loader {

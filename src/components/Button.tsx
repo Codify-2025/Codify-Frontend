@@ -4,21 +4,21 @@ import classNames from 'classnames';
 interface ButtonProps {
   text: string;
   loadingText?: string;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'custom';
   size?: 'small' | 'medium' | 'large';
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   isLoading?: boolean;
   disabled?: boolean;
+  className?: string;
   onClick?: () => void;
 }
 
-type VariantType = 'primary' | 'secondary' | 'danger';
-
-const VARIANT_STYLES: Record<VariantType, string> = {
+const VARIANT_STYLES: Record<string, string> = {
   primary: 'bg-blue-500 hover:bg-blue-600 text-white',
   secondary: 'bg-gray-500 hover:bg-gray-600 text-white',
   danger: 'bg-red-500 hover:bg-red-600 text-white',
+  custom: '',
 };
 
 const SIZE_STYLES: Record<string, string> = {
@@ -36,6 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   isLoading = false,
   disabled = false,
+  className = '',
   onClick,
 }) => {
   const buttonClass = classNames(
@@ -44,7 +45,8 @@ const Button: React.FC<ButtonProps> = ({
     SIZE_STYLES[size],
     {
       'opacity-50 cursor-not-allowed': disabled || isLoading,
-    }
+    },
+    className
   );
 
   return (
@@ -54,9 +56,7 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled || isLoading}
     >
       {isLoading ? (
-        <span className="loader">
-          {loadingText ? loadingText : 'Loading...'}
-        </span>
+        <span>{loadingText ? loadingText : 'Loading...'}</span>
       ) : (
         <>
           {icon && iconPosition === 'left' && (

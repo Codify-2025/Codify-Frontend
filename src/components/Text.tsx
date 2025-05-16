@@ -4,7 +4,7 @@ import classNames from 'classnames';
 interface TextProps {
   variant?: 'heading' | 'subtitle' | 'body' | 'caption';
   weight?: 'regular' | 'medium' | 'bold';
-  color?: 'primary' | 'secondary' | 'danger' | 'gray';
+  color?: 'primary' | 'secondary' | 'danger' | 'gray' | 'white';
   children: React.ReactNode;
   className?: string;
 }
@@ -13,7 +13,8 @@ const COLOR_STYLES: Record<string, string> = {
   primary: 'text-blue-500',
   secondary: 'text-gray-500',
   danger: 'text-red-500',
-  gray: 'text-gray-700',
+  gray: 'text-gray-500',
+  white: 'text-white',
 };
 
 const VARIANT_STYLES: Record<string, string> = {
