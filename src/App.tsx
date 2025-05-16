@@ -1,39 +1,16 @@
 import React from 'react';
-import Button from './components/Button';
-import { FiCheck, FiX } from 'react-icons/fi';
 import './index.css';
 
 const App: React.FC = () => {
   return (
-    <div className="p-6 space-y-4">
-      <Button
-        text="분석 시작"
-        variant="secondary"
-        loadingText="분석 중..."
-        isLoading={false}
-      />
-
-      <Button
-        text="결과 보러가기"
-        variant="primary"
-        icon={<FiCheck />}
-        iconPosition="left"
-      />
-
-      <Button
-        text="표절로 저장"
-        variant="danger"
-        icon={<FiX />}
-        iconPosition="right"
-        onClick={() => alert('표절로 저장됨')}
-      />
-
-      <Button
-        text="검사 계속하기"
-        variant="primary"
-        loadingText="검사 중..."
-        isLoading={true}
-      />
+    <div className="font-sans p-6 space-y-4">
+      <h1 className="font-heading text-2xl font-bold">폰트 적용 예제</h1>
+      <p className="font-sans text-lg">
+        이 문장은 Pretendard 폰트를 사용합니다.
+      </p>
+      <p className="font-heading text-sm">
+        이 문장도 Pretendard 폰트를 사용합니다.
+      </p>
     </div>
   );
 };
