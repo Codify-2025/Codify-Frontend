@@ -3,11 +3,25 @@ import Layout from '@components/Layout';
 import FileUpload from './FileUpload';
 import Text from '@components/Text';
 import Button from '@components/Button';
+import { useAssignmentStore } from '@stores/assignmentStore';
 
 const UploadPage: React.FC = () => {
+  const { name, week } = useAssignmentStore();
+
   return (
     <Layout>
       <div className="flex flex-col items-center p-8 space-y-4">
+        {/* 과제 정보 표시 */}
+        <Text
+          variant="caption"
+          weight="bold"
+          className="text-black text-lg text-center"
+        >
+          <span className="text-blue-500">{name}</span>
+          <span className="text-gray">{week ? ` (${week}주차)` : ''}</span> 과제
+          파일 유사도 검사
+        </Text>
+
         {/* 메인 타이틀 */}
         <Text variant="heading" weight="bold" className="text-gray-700">
           검사를 진행할 파일을 업로드 해주세요
