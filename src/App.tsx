@@ -1,8 +1,9 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import UploadPage from '@features/Upload/UploadPage';
 import AssignmentNamePage from '@features/Assignment/AssignmentNamePage';
 import AssignmentWeekPage from '@features/Assignment/AssignmentWeekPage';
+import SimilarityLoadingPage from '@features/Similarity/SimilarityLoadingPage';
+import SimilarityCompletePage from '@features/Similarity/SimilarityCompletePage';
 import './index.css';
 
 const App: React.FC = () => {
@@ -10,8 +11,11 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         <Route path="/" element={<AssignmentNamePage />} />
+        <Route path="/assignment/name" element={<AssignmentNamePage />} />
         <Route path="/assignment/week" element={<AssignmentWeekPage />} />
         <Route path="/upload" element={<UploadPage />} />
+        <Route path="/analysis/loading" element={<SimilarityLoadingPage />} />
+        <Route path="/analysis/complete" element={<SimilarityCompletePage />} />
       </Routes>
     </Router>
   );
