@@ -4,9 +4,15 @@ import FileUpload from './FileUpload';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import { useAssignmentStore } from '@stores/assignmentStore';
+import { useNavigate } from 'react-router-dom';
 
 const UploadPage: React.FC = () => {
+  const navigate = useNavigate();
   const { name, week } = useAssignmentStore();
+
+  const handleStartAnalysis = () => {
+    navigate('/analysis/loading');
+  };
 
   return (
     <Layout>
@@ -42,7 +48,12 @@ const UploadPage: React.FC = () => {
         <FileUpload />
 
         {/* 분석 시작 버튼 */}
-        <Button text="분석 시작" variant="primary" className="mt-4" />
+        <Button
+          text="분석 시작"
+          variant="primary"
+          className="mt-4"
+          onClick={handleStartAnalysis}
+        />
       </div>
     </Layout>
   );
