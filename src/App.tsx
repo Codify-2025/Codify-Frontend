@@ -4,6 +4,7 @@ import AssignmentNamePage from '@features/Assignment/AssignmentNamePage';
 import AssignmentWeekPage from '@features/Assignment/AssignmentWeekPage';
 import SimilarityLoadingPage from '@features/Similarity/SimilarityLoadingPage';
 import SimilarityCompletePage from '@features/Similarity/SimilarityCompletePage';
+import ResultPage from '@features/Result/ResultPage';
 import './index.css';
 
 const App: React.FC = () => {
@@ -16,6 +17,7 @@ const App: React.FC = () => {
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/analysis/loading" element={<SimilarityLoadingPage />} />
         <Route path="/analysis/complete" element={<SimilarityCompletePage />} />
+        <Route path="/result" element={<ResultPage />} />
       </Routes>
     </Router>
   );
