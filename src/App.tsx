@@ -6,6 +6,8 @@ import SimilarityLoadingPage from '@features/Similarity/SimilarityLoadingPage';
 import SimilarityCompletePage from '@features/Similarity/SimilarityCompletePage';
 import ResultPage from '@features/Result/ResultPage';
 import './index.css';
+import 'react-tooltip/dist/react-tooltip.css';
+import ComparePage from '@features/Compare/\bComparePage';
 
 const App: React.FC = () => {
   return (
@@ -18,6 +20,7 @@ const App: React.FC = () => {
         <Route path="/analysis/loading" element={<SimilarityLoadingPage />} />
         <Route path="/analysis/complete" element={<SimilarityCompletePage />} />
         <Route path="/result" element={<ResultPage />} />
+        <Route path="/compare/:from/:to" element={<ComparePage />} />
       </Routes>
     </Router>
   );

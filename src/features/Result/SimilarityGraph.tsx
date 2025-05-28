@@ -18,6 +18,7 @@ interface Props {
   edges: FileEdge[];
   onNodeHover?: (node: FileNode) => void;
   onEdgeHover?: (edge: FileEdge) => void;
+  onEdgeClick?: (edge: FileEdge) => void; // ✅ 추가
   interactionOptions?: {
     dragNodes?: boolean;
     zoomView?: boolean;
@@ -30,6 +31,7 @@ const SimilarityGraph: React.FC<Props> = ({
   edges,
   onNodeHover,
   onEdgeHover,
+  onEdgeClick, // ✅ props로 받기
   interactionOptions,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -88,9 +90,9 @@ const SimilarityGraph: React.FC<Props> = ({
           hover: true,
           tooltipDelay: 200,
           zoomView: interactionOptions?.zoomView ?? true,
-          dragView: false,
-          dragNodes: false,
-          selectable: false,
+          dragView: interactionOptions?.dragView ?? false,
+          dragNodes: interactionOptions?.dragNodes ?? false,
+          selectable: true,
         },
       }
     );
@@ -101,6 +103,7 @@ const SimilarityGraph: React.FC<Props> = ({
       if (node && onNodeHover) onNodeHover(node);
     });
 
+    // 엣지 호버
     network.on('hoverEdge', (params) => {
       const [fromId, toId] = params.edge.split('-');
       const matchedEdge = edges.find(
@@ -114,10 +117,30 @@ const SimilarityGraph: React.FC<Props> = ({
       }
     });
 
+    // 엣지 클릭
+    network.on('click', (params) => {
+      console.log('✅ 클릭 이벤트 발생', params); // ← 이거 추가
+
+      if (params.edges.length > 0 && onEdgeClick) {
+        const edgeId = params.edges[0];
+        const [fromId, toId] = edgeId.split('-');
+        const matchedEdge = edges.find(
+          (e) =>
+            (e.from === fromId && e.to === toId) ||
+            (e.from === toId && e.to === fromId)
+        );
+
+        if (matchedEdge) {
+          console.log('🎯 엣지 매칭 성공', matchedEdge); // ← 이거도 추가
+          onEdgeClick(matchedEdge);
+        }
+      }
+    });
+
     return () => {
       network.destroy();
     };
-  }, [nodes, edges, onNodeHover, onEdgeHover, interactionOptions]);
+  }, [nodes, edges, onNodeHover, onEdgeHover, onEdgeClick, interactionOptions]);
 
   return <div ref={containerRef} style={{ height: '500px', width: '100%' }} />;
 };
