@@ -8,54 +8,28 @@ import SimilarityGraph from './SimilarityGraph';
 import { useAssignmentStore } from '@stores/assignmentStore';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useNavigate } from 'react-router-dom';
-
-interface FileNode {
-  id: string;
-  label: string;
-  submittedAt: string;
-}
+import { dummyFiles } from '@stores/dummyFiles';
 
 const ResultPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
   const navigate = useNavigate();
   const { setFiles, setSelectedFiles } = useSelectedFileStore();
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
-  const [hoveredFiles, setHoveredFiles] = useState<FileNode[]>([]);
+  const [hoveredFiles, setHoveredFiles] = useState<typeof dummyFiles>([]);
 
-  // nodes를 useMemo로 고정
-  const nodes: FileNode[] = useMemo(
-    () =>
-      Array.from({ length: 10 }, (_, i) => ({
-        id: `${i + 1}`,
-        label: `학생${i + 1}.cpp`,
-        submittedAt: `2025-03-29 17:${(i + 10).toString().padStart(2, '0')}`,
-      })),
-    []
-  );
-
+  const nodes = useMemo(() => dummyFiles, []);
   const edges = useMemo(
     () => [
       { id: '1-2', from: '1', to: '2', similarity: 92 },
       { id: '1-3', from: '1', to: '3', similarity: 87 },
-      { id: '2-4', from: '2', to: '4', similarity: 64 },
-      { id: '5-6', from: '5', to: '6', similarity: 45 },
-      { id: '6-7', from: '6', to: '7', similarity: 78 },
-      { id: '8-9', from: '8', to: '9', similarity: 88 },
-      { id: '3-10', from: '3', to: '10', similarity: 59 },
+      { id: '2-3', from: '2', to: '3', similarity: 75 },
     ],
     []
   );
 
-  // 전역 상태에 파일 목록 저장 (한 번만 실행되도록)
   useEffect(() => {
-    setFiles(
-      nodes.map((node) => ({
-        ...node,
-        content: [], // 추후 서버로부터 받아올 내용
-        similarMap: {},
-      }))
-    );
-  }, [setFiles, nodes]);
+    setFiles(dummyFiles);
+  }, [setFiles]);
 
   return (
     <Layout>
@@ -71,11 +45,11 @@ const ResultPage: React.FC = () => {
         <div className="grid grid-cols-2 gap-8 mb-12">
           <div className="bg-white p-4 rounded shadow">
             <SimilarityPieChart
-              passedCount={6}
-              failedCount={4}
+              passedCount={2}
+              failedCount={1}
               onHover={(segment) => {
                 const target =
-                  segment === '기준 초과' ? nodes.slice(0, 6) : nodes.slice(6);
+                  segment === '기준 초과' ? nodes.slice(0, 2) : nodes.slice(2);
                 setHoveredFiles(target);
               }}
             />
@@ -134,12 +108,7 @@ const ResultPage: React.FC = () => {
                 const fileA = nodes.find((n) => n.id === edge.from);
                 const fileB = nodes.find((n) => n.id === edge.to);
                 if (fileA && fileB) {
-                  setSelectedFiles(
-                    { ...fileA, content: [], similarMap: {} },
-                    { ...fileB, content: [], similarMap: {} }
-                  );
-                  console.log('fileA', fileA);
-                  console.log('fileB', fileB);
+                  setSelectedFiles(fileA, fileB);
                   navigate(`/compare/${fileA.id}/${fileB.id}`);
                 }
               }}
@@ -147,7 +116,7 @@ const ResultPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 설명 영역 */}
+        {/* 설명 */}
         <div className="bg-blue-50 text-blue-700 p-4 rounded text-lg whitespace-pre-line shadow mb-8">
           {hoverInfo ||
             '그래프에서 노드(파일)나 엣지(유사도)를 선택하면 상세 정보가 여기에 표시됩니다.'}

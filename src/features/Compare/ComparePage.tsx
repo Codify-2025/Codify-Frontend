@@ -8,13 +8,11 @@ import Select from '@components/Select';
 import Tooltip from '@components/Tooltip';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 
-const getLineStyle = (line: string) => {
-  if (line.includes('유사한 코드')) return 'bg-red-100';
-  if (line.includes('구조가 유사한 코드')) return 'bg-green-100';
+const getLineStyleBySimilarity = (similar: string[]): string => {
+  if (similar.length >= 2) return 'bg-red-100'; // 유사한 코드 (다수)
+  if (similar.length === 1) return 'bg-green-100'; // 구조 유사 코드 (단일)
   return '';
 };
-
-console.log('✅ ComparePage 렌더됨');
 
 const ComparePage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +43,8 @@ const ComparePage: React.FC = () => {
           <Button
             text="이전으로"
             variant="secondary"
+            icon={<span className="text-lg">←</span>}
+            iconPosition="left"
             onClick={() => navigate('/result')}
           />
         </div>
@@ -97,25 +97,43 @@ const ComparePage: React.FC = () => {
                 {[
                   { line: lineA, similar: similarA },
                   { line: lineB, similar: similarB },
-                ].map(({ line, similar }, i) => (
-                  <div
-                    key={i}
-                    className={`py-2 px-3 ${getLineStyle(line)} border-r ${
-                      i === 1 ? 'border-r-0' : ''
-                    }`}
-                  >
-                    <Tooltip
-                      content={
-                        similar.length > 0
-                          ? `유사한 다른 제출자: ${similar.join(', ')}`
-                          : '유사한 제출자 없음'
-                      }
+                ].map(({ line, similar }, i) => {
+                  const otherFileNames = [
+                    selectedFileA.label,
+                    selectedFileB.label,
+                  ];
+                  const filteredSimilar = similar.filter(
+                    (name) => !otherFileNames.includes(name)
+                  );
+
+                  return (
+                    <div
+                      key={i}
+                      className={`py-2 px-3 ${getLineStyleBySimilarity(filteredSimilar)} border-r ${
+                        i === 1 ? 'border-r-0' : ''
+                      }`}
                     >
-                      <span className="text-gray-500 mr-2">{idx + 1}</span>
-                    </Tooltip>
-                    {line}
-                  </div>
-                ))}
+                      <Tooltip
+                        content={
+                          filteredSimilar.length > 0
+                            ? `유사한 다른 제출자: ${filteredSimilar.join(', ')}`
+                            : '유사한 제출자 없음'
+                        }
+                      >
+                        <span
+                          className={`text-gray-500 mr-2 ${
+                            filteredSimilar.length > 0
+                              ? 'text-blue-500 font-semibold underline decoration-dotted'
+                              : ''
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                      </Tooltip>
+                      {line}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
