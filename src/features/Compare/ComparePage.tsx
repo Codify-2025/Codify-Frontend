@@ -146,7 +146,19 @@ const ComparePage: React.FC = () => {
             variant="secondary"
             onClick={() => navigate('/')}
           />
-          <Button text="결과 저장하기" variant="primary" />
+          <Button
+            text="결과 저장하기"
+            variant="primary"
+            onClick={() => {
+              navigate('/decision', {
+                state: {
+                  fileA: selectedFileA,
+                  fileB: selectedFileB,
+                  similarity: 0.95, // 임시. 나중엔 비교 결과에서 실제 유사도 계산 결과로 대체
+                },
+              });
+            }}
+          />
         </div>
       </div>
     </Layout>

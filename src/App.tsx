@@ -8,6 +8,7 @@ import ResultPage from '@features/Result/ResultPage';
 import './index.css';
 import 'react-tooltip/dist/react-tooltip.css';
 import ComparePage from '@features/Compare/\bComparePage';
+import PlagiarismDecisionPage from '@features/Result/PlagiarismDecisionPage';
 
 const App: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ const App: React.FC = () => {
         <Route path="/analysis/complete" element={<SimilarityCompletePage />} />
         <Route path="/result" element={<ResultPage />} />
         <Route path="/compare/:from/:to" element={<ComparePage />} />
+        <Route path="/decision" element={<PlagiarismDecisionPage />} />
       </Routes>
     </Router>
   );
