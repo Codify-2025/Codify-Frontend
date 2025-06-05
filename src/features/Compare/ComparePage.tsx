@@ -56,28 +56,38 @@ const ComparePage: React.FC = () => {
 
         {/* 파일 선택창 */}
         <div className="grid grid-cols-2 gap-8">
-          {[selectedFileA, selectedFileB].map((file, idx) => (
-            <div key={file.id}>
-              <Select
-                options={files.map((f) => ({ label: f.label, value: f.id }))}
-                value={file.id}
-                onChange={(val) => {
-                  const newFile = files.find((f) => f.id === val);
-                  if (!newFile) return;
-                  const other = idx === 0 ? selectedFileB : selectedFileA;
-                  if (!other) return;
-                  if (idx === 0) {
-                    setSelectedFiles(newFile, other);
-                  } else {
-                    setSelectedFiles(other, newFile);
-                  }
-                }}
-              />
-              <p className="text-sm text-gray-600 mt-1">
-                제출 시간: {file.submittedAt}
-              </p>
-            </div>
-          ))}
+          {[selectedFileA, selectedFileB].map((file, idx) => {
+            const other = idx === 0 ? selectedFileB : selectedFileA;
+
+            const options = files
+              .filter((f) => f.id !== other?.id)
+              .map((f) => ({ label: f.label, value: f.id }));
+
+            return (
+              <div key={file.id}>
+                <Select
+                  options={options}
+                  value={file.id}
+                  onChange={(val) => {
+                    // 같은 파일 선택 방지 (예외 방어)
+                    if (val === other?.id) return;
+
+                    const newFile = files.find((f) => f.id === val);
+                    if (!newFile) return;
+
+                    if (idx === 0) {
+                      setSelectedFiles(newFile, other);
+                    } else {
+                      setSelectedFiles(other, newFile);
+                    }
+                  }}
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  제출 시간: {file.submittedAt}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         {/* 코드 비교 뷰어 */}
