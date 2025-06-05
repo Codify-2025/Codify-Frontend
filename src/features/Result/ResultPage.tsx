@@ -73,7 +73,7 @@ const ResultPage: React.FC = () => {
               nodes={nodes}
               edges={edges}
               interactionOptions={{
-                zoomView: true,
+                zoomView: false,
                 dragView: false,
                 dragNodes: false,
               }}
