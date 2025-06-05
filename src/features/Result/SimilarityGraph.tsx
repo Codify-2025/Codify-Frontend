@@ -89,7 +89,7 @@ const SimilarityGraph: React.FC<Props> = ({
         interaction: {
           hover: true,
           tooltipDelay: 200,
-          zoomView: interactionOptions?.zoomView ?? true,
+          zoomView: interactionOptions?.zoomView ?? false,
           dragView: interactionOptions?.dragView ?? false,
           dragNodes: interactionOptions?.dragNodes ?? false,
           selectable: true,

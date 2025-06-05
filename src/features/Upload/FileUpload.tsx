@@ -104,11 +104,7 @@ const FileUpload: React.FC = () => {
 
     setTimeout(() => {
       setFiles((prev) =>
-        prev.map((f) =>
-          f.id === newFile.id
-            ? { ...f, status: Math.random() > 0.5 ? 'success' : 'error' }
-            : f
-        )
+        prev.map((f) => (f.id === newFile.id ? { ...f, status: 'success' } : f))
       );
     }, 3000);
   };
