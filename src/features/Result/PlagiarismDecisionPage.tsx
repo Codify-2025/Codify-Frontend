@@ -35,7 +35,7 @@ const PlagiarismDecisionPage: React.FC = () => {
       fileBId: fileB.id,
       isPlagiarism,
     });
-    navigate('/result'); // 판단 후 결과 페이지로 복귀
+    navigate('/result/save'); // 판단 후 결과 저장 완료 페이지로 이동
   };
 
   return (
