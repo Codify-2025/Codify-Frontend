@@ -35,12 +35,7 @@ const PlagiarismDecisionPage: React.FC = () => {
       fileBId: fileB.id,
       isPlagiarism,
     });
-
-    if (isPlagiarism) {
-      navigate('/result/save'); // 저장 완료 화면으로 이동
-    } else {
-      navigate('/result'); // 그냥 결과 화면으로 복귀
-    }
+    navigate('/result/save'); // 판단 후 결과 저장 완료 페이지로 이동
   };
 
   return (
