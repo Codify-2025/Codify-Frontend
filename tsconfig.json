@@ -13,7 +13,9 @@
       "@stores/*": ["stores/*"],
       "@hooks/*": ["hooks/*"],
       "@services/*": ["services/*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"]
     },
     "types": ["react", "react-dom", "react-icons"]
   },

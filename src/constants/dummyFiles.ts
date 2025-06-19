@@ -1,4 +1,4 @@
-import { FileData } from './useSelectedFileStore';
+import { FileData } from '../stores/useSelectedFileStore';
 
 export const dummyFiles: FileData[] = [
   {

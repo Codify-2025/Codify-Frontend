@@ -1,8 +1,11 @@
 import React from 'react';
 import Button from '../Button';
 import Text from '../Text';
+import { useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <header className="bg-white p-4 flex justify-between items-center">
       {/* Logo */}
@@ -23,6 +26,7 @@ const Header: React.FC = () => {
           text="대시보드"
           variant="custom"
           className="bg-black text-white border border-black px-4 py-2 rounded-lg"
+          onClick={() => navigate('/dashboard')}
         />
       </div>
     </header>

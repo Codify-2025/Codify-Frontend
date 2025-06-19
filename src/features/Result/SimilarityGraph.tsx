@@ -1,17 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Network, DataSet } from 'vis-network/standalone/esm/vis-network';
-
-interface FileNode {
-  id: string;
-  label: string;
-  submittedAt: string;
-}
-
-interface FileEdge {
-  from: string;
-  to: string;
-  similarity: number;
-}
+import { FileNode, FileEdge } from '@types/similarity';
 
 interface Props {
   nodes: FileNode[];

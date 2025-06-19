@@ -7,6 +7,9 @@ import Button from '@components/Button';
 import Select from '@components/Select';
 import Tooltip from '@components/Tooltip';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useSavedRecordStore } from '@stores/useSavedRecordStore';
 
 const getLineStyleBySimilarity = (similar: string[]): string => {
   if (similar.length >= 2) return 'bg-red-100'; // 유사한 코드 (다수)
@@ -18,6 +21,22 @@ const ComparePage: React.FC = () => {
   const navigate = useNavigate();
   const { files, selectedFileA, selectedFileB, setSelectedFiles } =
     useSelectedFileStore();
+
+  const location = useLocation();
+  const fromSaved = location.state?.fromSaved;
+  const recordId = location.state?.recordId;
+
+  useEffect(() => {
+    if (fromSaved && recordId) {
+      useSavedRecordStore.getState().selectRecordById(recordId);
+      const selected = useSavedRecordStore.getState().selectedRecord;
+      if (selected && selected.type === 'pair' && selected.fileB) {
+        useSelectedFileStore
+          .getState()
+          .setSelectedFiles(selected.fileA, selected.fileB);
+      }
+    }
+  }, [fromSaved, recordId]);
 
   if (!selectedFileA || !selectedFileB) {
     return (
