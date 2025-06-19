@@ -11,6 +11,7 @@ interface FileEdge {
   from: string;
   to: string;
   similarity: number;
+  count?: number;
 }
 
 interface Props {

@@ -1,4 +1,3 @@
-// src/features/Result/ResultPage.tsx
 import React, { useEffect, useState, useMemo } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
@@ -8,7 +7,7 @@ import SimilarityGraph from './SimilarityGraph';
 import { useAssignmentStore } from '@stores/assignmentStore';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useNavigate } from 'react-router-dom';
-import { dummyFiles } from '@stores/dummyFiles';
+import { dummyFiles } from '@constants/dummyFiles';
 
 const ResultPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
