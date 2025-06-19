@@ -8,6 +8,7 @@ type SortOption = 'latest' | 'similarity';
 
 const SavedAnalysisSection: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
+  const [search, setSearch] = useState('');
 
   // 정렬된 리스트
   const sorted = useMemo(() => {
@@ -25,16 +26,26 @@ const SavedAnalysisSection: React.FC = () => {
     }
   }, [sortOption]);
 
+  // 검색어 필터링
+  const filtered = useMemo(() => {
+    return sorted.filter((record) => {
+      const lower = search.toLowerCase();
+      const target =
+        `${record.assignmentName} ${'fileA' in record ? record.fileA.label : ''} ${'fileB' in record ? record.fileB.label : ''}`.toLowerCase();
+      return target.includes(lower);
+    });
+  }, [sorted, search]);
+
   // 주차별로 그룹핑
   const groupedByWeek = useMemo(() => {
     const map = new Map<number, SavedAnalysisRecord[]>();
-    sorted.forEach((record) => {
+    filtered.forEach((record) => {
       const week = record.week;
       if (!map.has(week)) map.set(week, []);
       map.get(week)!.push(record);
     });
     return Array.from(map.entries()).sort((a, b) => a[0] - b[0]); // week 오름차순
-  }, [sorted]);
+  }, [filtered]);
 
   return (
     <section className="mt-12">
@@ -42,29 +53,45 @@ const SavedAnalysisSection: React.FC = () => {
         저장된 분석 기록
       </Text>
 
-      {/* 정렬 탭 */}
-      <div className="flex gap-4 mb-6 text-sm">
-        <button
-          onClick={() => setSortOption('latest')}
-          className={`${
-            sortOption === 'latest'
-              ? 'text-blue-600 font-semibold'
-              : 'text-gray-500'
-          }`}
-        >
-          최신순
-        </button>
-        <span className="text-gray-300">|</span>
-        <button
-          onClick={() => setSortOption('similarity')}
-          className={`${
-            sortOption === 'similarity'
-              ? 'text-blue-600 font-semibold'
-              : 'text-gray-500'
-          }`}
-        >
-          유사도 높은 순
-        </button>
+      {/* 정렬 & 검색 */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-4 text-sm">
+          <button
+            onClick={() => setSortOption('latest')}
+            className={`${
+              sortOption === 'latest'
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-500'
+            }`}
+          >
+            최신순
+          </button>
+          <span className="text-gray-300">|</span>
+          <button
+            onClick={() => setSortOption('similarity')}
+            className={`${
+              sortOption === 'similarity'
+                ? 'text-blue-600 font-semibold'
+                : 'text-gray-500'
+            }`}
+          >
+            유사도 높은 순
+          </button>
+        </div>
+
+        {/* 검색 입력창 */}
+        <div className="relative w-60">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="과제/학생/주차별로 검색하기"
+            className="p-1 w-full pr-8 border-0 border-b border-gray-400 focus:outline-none focus:ring-0 focus:border-black placeholder-gray-400 text-sm"
+          />
+          <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500">
+            🔍
+          </span>
+        </div>
       </div>
 
       {/* 주차별 출력 */}
@@ -81,6 +108,11 @@ const SavedAnalysisSection: React.FC = () => {
             </div>
           </div>
         ))}
+        {groupedByWeek.length === 0 && (
+          <div className="text-center text-gray-400 py-20 text-sm">
+            검색 결과가 없습니다.
+          </div>
+        )}
       </div>
     </section>
   );
