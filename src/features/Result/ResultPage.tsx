@@ -8,6 +8,8 @@ import { useAssignmentStore } from '@stores/assignmentStore';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useNavigate } from 'react-router-dom';
 import { dummyFiles } from '@constants/dummyFiles';
+import { useLocation } from 'react-router-dom';
+import { useSavedRecordStore } from '@stores/useSavedRecordStore';
 
 const ResultPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
@@ -26,9 +28,25 @@ const ResultPage: React.FC = () => {
     []
   );
 
+  const location = useLocation();
+  const fromSaved = location.state?.fromSaved;
+  const recordId = location.state?.recordId;
+
   useEffect(() => {
-    setFiles(dummyFiles);
-  }, [setFiles]);
+    if (fromSaved && recordId) {
+      useSavedRecordStore.getState().selectRecordById(recordId);
+      const selected = useSavedRecordStore.getState().selectedRecord;
+      if (selected && selected.type === 'network') {
+        useSelectedFileStore.getState().setFiles(selected.nodes ?? []);
+      }
+    }
+  }, [fromSaved, recordId]);
+
+  useEffect(() => {
+    if (!fromSaved) {
+      setFiles(dummyFiles);
+    }
+  }, [fromSaved, setFiles]);
 
   return (
     <Layout>
@@ -108,7 +126,7 @@ const ResultPage: React.FC = () => {
                 const fileB = nodes.find((n) => n.id === edge.to);
                 if (fileA && fileB) {
                   setSelectedFiles(fileA, fileB);
-                  navigate(`/compare/${fileA.id}/${fileB.id}`);
+                  navigate(`/compare/${String(fileA.id)}/${String(fileB.id)}`);
                 }
               }}
             />

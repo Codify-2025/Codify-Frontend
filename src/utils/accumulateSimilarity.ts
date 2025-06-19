@@ -1,14 +1,4 @@
-export interface FileNode {
-  id: string;
-  label: string;
-  submittedAt: string;
-}
-
-export interface FileEdge {
-  from: string;
-  to: string;
-  similarity: number; // 해당 과제에서의 유사도 (1회 기준)
-}
+import { FileNode, FileEdge } from '@types/similarity';
 
 export interface AssignmentSimilarity {
   assignmentId: string;

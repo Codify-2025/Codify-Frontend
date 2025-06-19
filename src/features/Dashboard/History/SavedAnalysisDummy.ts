@@ -14,10 +14,12 @@ export const savedAnalysisRecords: SavedAnalysisRecord[] = [
     week: 1,
     type: 'pair',
     fileA: {
+      id: '3',
       label: '학생3',
       submittedAt: '2025-03-29 17:00',
     },
     fileB: {
+      id: '4',
       label: '학생4',
       submittedAt: '2025-03-29 17:01',
     },
@@ -37,10 +39,12 @@ export const savedAnalysisRecords: SavedAnalysisRecord[] = [
     week: 2,
     type: 'pair',
     fileA: {
+      id: '3',
       label: '학생3',
       submittedAt: '2025-04-01 17:00',
     },
     fileB: {
+      id: '4',
       label: '학생4',
       submittedAt: '2025-04-01 17:01',
     },

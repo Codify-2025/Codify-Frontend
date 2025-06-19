@@ -37,9 +37,12 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       <div
         className="cursor-pointer border rounded p-4 hover:shadow transition w-full h-64 flex flex-col justify-between"
         onClick={() => {
-          navigate(`/compare/${record.fileA.label}/${record.fileB.label}`, {
-            state: { fromSaved: true, recordId: record.id },
-          });
+          navigate(
+            `/compare/${String(record.fileA.id)}/${String(record.fileB?.id)}`,
+            {
+              state: { fromSaved: true, recordId: record.id },
+            }
+          );
         }}
       >
         {/* 상단: 유사도 표시 */}

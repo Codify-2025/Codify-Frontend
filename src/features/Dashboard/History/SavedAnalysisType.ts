@@ -15,10 +15,12 @@ export interface GroupAnalysisRecord extends BaseAnalysisRecord {
 export interface PairAnalysisRecord extends BaseAnalysisRecord {
   type: 'pair';
   fileA: {
+    id: string;
     label: string;
     submittedAt: string;
   };
   fileB: {
+    id: string;
     label: string;
     submittedAt: string;
   };

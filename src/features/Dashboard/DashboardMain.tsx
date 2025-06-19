@@ -3,9 +3,16 @@ import Text from '@components/Text';
 import { useSubjectStore } from '@stores/subjectStore';
 import AccumulatedSimilarityGraph from './AccumulatedSimilarityGraph';
 import SavedAnalysisSection from './History/SavedAnalysisSection';
+import { useEffect } from 'react';
+import { dummySavedRecords } from '@constants/dummySavedRecords';
+import { useSavedRecordStore } from '@stores/useSavedRecordStore';
 
 const DashboardMain: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
+
+  useEffect(() => {
+    useSavedRecordStore.getState().setRecords(dummySavedRecords);
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-4">

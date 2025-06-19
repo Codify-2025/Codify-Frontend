@@ -14,7 +14,8 @@
       "@hooks/*": ["hooks/*"],
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"],
-      "@constants/*": ["constants/*"]
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"]
     },
     "types": ["react", "react-dom", "react-icons"]
   },
