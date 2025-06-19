@@ -2,6 +2,7 @@ import React from 'react';
 import Text from '@components/Text';
 import { useSubjectStore } from '@stores/subjectStore';
 import AccumulatedSimilarityGraph from './AccumulatedSimilarityGraph';
+import SavedAnalysisSection from './History/SavedAnalysisSection';
 
 const DashboardMain: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
@@ -30,7 +31,7 @@ const DashboardMain: React.FC = () => {
 
           {/* 누적 네트워크 토폴로지 */}
           <section>
-            <Text variant="heading" weight="bold" className="text-lg mb-4">
+            <Text variant="heading" weight="bold" className="text-xl mb-4">
               누적 네트워크 토폴로지
             </Text>
             <AccumulatedSimilarityGraph />
@@ -38,12 +39,7 @@ const DashboardMain: React.FC = () => {
 
           {/* 저장된 분석 기록 */}
           <section>
-            <Text variant="heading" weight="bold" className="text-lg mb-4">
-              저장된 분석 기록
-            </Text>
-            <div className="h-48 border rounded-lg flex items-center justify-center text-gray-400">
-              (Saved Analysis Placeholder for {selectedSubject.name})
-            </div>
+            <SavedAnalysisSection />
           </section>
         </div>
       )}
