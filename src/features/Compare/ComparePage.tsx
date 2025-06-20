@@ -31,7 +31,7 @@ const ComparePage: React.FC = () => {
 
   const handleSave = () => {
     if (!isLoggedIn) {
-      navigate('/login', { state: { fromResultPage: true } });
+      navigate('/login', { state: { from: 'result' } });
       return;
     } else {
       navigate('/decision', {

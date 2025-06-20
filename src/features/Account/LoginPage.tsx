@@ -10,23 +10,34 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const fromResultPage = location.state?.fromResultPage ?? false;
+  // ResultPage, Dashboard 등에서 넘어온 경우 구분
+  const from = location.state?.from ?? '/';
+  const fromResultPage = from === 'result' || from === 'compare';
+  const fromDashboard = from === '/dashboard';
 
+  // 상황별 문구 지정
   const headline = fromResultPage
     ? '로그인하여 분석 결과 저장하기'
-    : 'Codify 로그인';
+    : fromDashboard
+      ? '대시보드 이용을 위해 로그인해주세요'
+      : 'Codify 로그인';
+
   const subtext = fromResultPage
     ? '로그인이 필요한 서비스입니다.'
-    : '더 많은 서비스를 위해 로그인해주세요.';
+    : fromDashboard
+      ? '분석 기록과 대시보드를 보기 위해 로그인하세요.'
+      : '더 많은 서비스를 위해 로그인해주세요.';
 
   const handleLogin = () => {
     console.log('로그인 시도:', { email, password });
 
+    // 로그인 성공 시 원래 경로로 이동
     if (fromResultPage) {
-      navigate(-1); // 바로 이전 페이지로 이동 (ex. ResultPage 또는 ComparePage)
+      navigate(-1); // Result 또는 Compare 페이지로
     } else {
-      navigate('/'); // 기본 홈 또는 대시보드로 이동
+      navigate(from, { replace: true }); // 대시보드 or 홈 등
     }
+
     // TODO: 실제 로그인 API 연동
   };
 
@@ -42,7 +53,6 @@ const LoginPage: React.FC = () => {
             {headline}
           </Text>
 
-          {/* 이메일 입력 */}
           <input
             type="email"
             placeholder="이메일을 입력하세요"
@@ -51,7 +61,6 @@ const LoginPage: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          {/* 비밀번호 입력 */}
           <input
             type="password"
             placeholder="비밀번호를 입력하세요"
@@ -60,17 +69,14 @@ const LoginPage: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {/* 로그인 버튼 */}
           <Button
             text="계속"
             onClick={handleLogin}
             className="w-full max-w-sm mt-2 bg-black text-white"
           />
 
-          {/* 구분선 */}
           <div className="my-3 w-full max-w-sm border-t" />
 
-          {/* 회원가입 / 비번 찾기 */}
           <div className="text-xs text-gray-600 text-center space-y-2">
             <div>
               계정이 없으신가요?{' '}
@@ -89,7 +95,7 @@ const LoginPage: React.FC = () => {
         {/* 우측: 이미지 영역 */}
         <div className="hidden md:flex flex-1 justify-center items-center bg-white">
           <img
-            src="/login-visual.png" // public에 login-visual.png로 저장
+            src="/login-visual.png"
             alt="login visual"
             className="max-w-md"
           />

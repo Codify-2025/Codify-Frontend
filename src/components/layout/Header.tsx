@@ -44,6 +44,11 @@ const Header: React.FC = () => {
           text="대시보드"
           variant="custom"
           className="bg-black text-white border border-black px-4 py-2 rounded-lg"
+          // onClick={() =>
+          //   isLoggedIn
+          //     ? navigate('/dashboard')
+          //     : navigate('/login', { state: { from: '/dashboard' } })
+          // }
           onClick={() => navigate('/dashboard')}
         />
       </div>
