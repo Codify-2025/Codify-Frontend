@@ -12,12 +12,13 @@ import PlagiarismDecisionPage from '@features/Result/PlagiarismDecisionPage';
 import ResultSaveCompletePage from '@features/Result/ResultSaveCompletePage';
 import DashboardPage from '@features/Dashboard/DashboardPage';
 import LoginPage from '@features/Account/LoginPage';
+import HomePage from '@features/Home/HomePage';
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<AssignmentNamePage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/assignment/name" element={<AssignmentNamePage />} />
         <Route path="/assignment/week" element={<AssignmentWeekPage />} />
         <Route path="/upload" element={<UploadPage />} />

@@ -11,7 +11,10 @@ const Header: React.FC = () => {
   return (
     <header className="bg-white p-4 flex justify-between items-center">
       {/* Logo */}
-      <div className="flex items-center space-x-2">
+      <div
+        className="flex items-center space-x-2 cursor-pointer"
+        onClick={() => navigate('/')}
+      >
         <Text variant="heading" weight="bold" color="gray">
           Codify
         </Text>
@@ -31,7 +34,10 @@ const Header: React.FC = () => {
             text="로그아웃"
             variant="custom"
             className="bg-gray-200 text-black px-4 py-2 rounded-lg"
-            onClick={() => logout()}
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
           />
         )}
         <Button
