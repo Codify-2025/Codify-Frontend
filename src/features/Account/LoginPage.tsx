@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import Layout from '@components/Layout';
@@ -8,6 +8,7 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   const fromResultPage = location.state?.fromResultPage ?? false;
 
@@ -20,6 +21,12 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = () => {
     console.log('로그인 시도:', { email, password });
+
+    if (fromResultPage) {
+      navigate(-1); // 바로 이전 페이지로 이동 (ex. ResultPage 또는 ComparePage)
+    } else {
+      navigate('/'); // 기본 홈 또는 대시보드로 이동
+    }
     // TODO: 실제 로그인 API 연동
   };
 
