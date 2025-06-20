@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { dummyFiles } from '@constants/dummyFiles';
 import { useLocation } from 'react-router-dom';
 import { useSavedRecordStore } from '@stores/useSavedRecordStore';
+import { useAuthStore } from '@stores/useAuthStore';
 
 const ResultPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
@@ -31,6 +32,18 @@ const ResultPage: React.FC = () => {
   const location = useLocation();
   const fromSaved = location.state?.fromSaved;
   const recordId = location.state?.recordId;
+
+  const { isLoggedIn } = useAuthStore();
+
+  const handleSave = () => {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { fromResultPage: true } });
+      return;
+    }
+
+    // TODO: 실제 저장 로직
+    console.log('결과 저장 진행');
+  };
 
   useEffect(() => {
     if (fromSaved && recordId) {
@@ -140,7 +153,7 @@ const ResultPage: React.FC = () => {
         </div>
 
         <div className="flex justify-end">
-          <Button text="결과 저장하기" variant="primary" />
+          <Button text="결과 저장하기" variant="primary" onClick={handleSave} />
         </div>
       </div>
     </Layout>
