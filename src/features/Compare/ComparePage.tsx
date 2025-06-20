@@ -10,6 +10,7 @@ import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSavedRecordStore } from '@stores/useSavedRecordStore';
+import { useAuthStore } from '@stores/useAuthStore';
 
 const getLineStyleBySimilarity = (similar: string[]): string => {
   if (similar.length >= 2) return 'bg-red-100'; // 유사한 코드 (다수)
@@ -25,6 +26,26 @@ const ComparePage: React.FC = () => {
   const location = useLocation();
   const fromSaved = location.state?.fromSaved;
   const recordId = location.state?.recordId;
+
+  const { isLoggedIn } = useAuthStore();
+
+  const handleSave = () => {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: 'result' } });
+      return;
+    } else {
+      navigate('/decision', {
+        state: {
+          fileA: selectedFileA,
+          fileB: selectedFileB,
+          similarity: 0.95, // 임시. 나중엔 비교 결과에서 실제 유사도 계산 결과로 대체
+        },
+      });
+    }
+
+    // TODO: 실제 저장 로직
+    console.log('저장 진행...');
+  };
 
   useEffect(() => {
     if (fromSaved && recordId) {
@@ -175,19 +196,7 @@ const ComparePage: React.FC = () => {
             variant="secondary"
             onClick={() => navigate('/')}
           />
-          <Button
-            text="결과 저장하기"
-            variant="primary"
-            onClick={() => {
-              navigate('/decision', {
-                state: {
-                  fileA: selectedFileA,
-                  fileB: selectedFileB,
-                  similarity: 0.95, // 임시. 나중엔 비교 결과에서 실제 유사도 계산 결과로 대체
-                },
-              });
-            }}
-          />
+          <Button text="결과 저장하기" variant="primary" onClick={handleSave} />
         </div>
       </div>
     </Layout>

@@ -11,12 +11,15 @@ import ComparePage from '@features/Compare/\bComparePage';
 import PlagiarismDecisionPage from '@features/Result/PlagiarismDecisionPage';
 import ResultSaveCompletePage from '@features/Result/ResultSaveCompletePage';
 import DashboardPage from '@features/Dashboard/DashboardPage';
+import LoginPage from '@features/Account/LoginPage';
+import HomePage from '@features/Home/HomePage';
+import SignupPage from '@features/Account/SignupPage';
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<AssignmentNamePage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/assignment/name" element={<AssignmentNamePage />} />
         <Route path="/assignment/week" element={<AssignmentWeekPage />} />
         <Route path="/upload" element={<UploadPage />} />
@@ -26,8 +29,9 @@ const App: React.FC = () => {
         <Route path="/result/save" element={<ResultSaveCompletePage />} />
         <Route path="/compare/:from/:to" element={<ComparePage />} />
         <Route path="/decision" element={<PlagiarismDecisionPage />} />
-
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
       </Routes>
     </Router>
   );
