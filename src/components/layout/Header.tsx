@@ -21,6 +21,7 @@ const Header: React.FC = () => {
           text="로그인"
           variant="custom"
           className="bg-gray-800 text-black px-4 py-2 rounded-lg"
+          onClick={() => navigate('/login')}
         />
         <Button
           text="대시보드"
