@@ -1,4 +1,4 @@
-import { FileNode, FileEdge } from '@types/similarity';
+import { FileNode, FileEdge } from 'types/similarity';
 
 export interface AssignmentSimilarity {
   assignmentId: string;

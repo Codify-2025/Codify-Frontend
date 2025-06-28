@@ -1,5 +1,5 @@
 import { FileData } from '@stores/useSelectedFileStore';
-import { FileEdge } from '@types/similarity';
+import { FileEdge } from 'types/similarity';
 
 export interface SavedRecord {
   id: string;

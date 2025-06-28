@@ -6,7 +6,7 @@ import StepBirth from './StepBirth';
 import StepCredentials from './StepCredentials';
 import StepSuccess from './StepSuccess';
 import ProgressBar from './ProgressBar';
-import { SignupFormData } from '@types/signup'; // 타입 import
+import { SignupFormData } from 'types/signup'; // 타입 import
 
 const SignupPage: React.FC = () => {
   const [step, setStep] = useState(0);
