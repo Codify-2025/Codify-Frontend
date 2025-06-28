@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { SignupFormData } from '@types/signup';
+import { SignupFormData } from 'types/signup';
 
 interface StepNicknameProps {
   onNext: () => void;

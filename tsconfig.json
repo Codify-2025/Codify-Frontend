@@ -14,11 +14,11 @@
       "@hooks/*": ["hooks/*"],
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"],
-      "@constants/*": ["constants/*"],
-      "@types/*": ["types/*"]
+      "@constants/*": ["constants/*"]
     },
-    "types": ["react", "react-dom", "react-icons"]
+    "types": ["react", "react-dom", "vite/client"],
+    "skipLibCheck": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "include": ["src", "node_modules/react-icons"],
+  "files": ["src/types/react-icons.d.ts"]
 }
