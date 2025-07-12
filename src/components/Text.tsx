@@ -1,7 +1,10 @@
 import React from 'react';
 import classNames from 'classnames';
 
+type ElementTag = keyof JSX.IntrinsicElements;
+
 interface TextProps {
+  as?: ElementTag;
   variant?: 'heading' | 'subtitle' | 'body' | 'caption';
   weight?: 'regular' | 'medium' | 'bold';
   color?: 'primary' | 'secondary' | 'danger' | 'gray' | 'white';
@@ -31,6 +34,7 @@ const WEIGHT_STYLES: Record<string, string> = {
 };
 
 const Text: React.FC<TextProps> = ({
+  as: Component = 'p',
   variant = 'body',
   weight = 'regular',
   color = 'gray',
@@ -44,7 +48,7 @@ const Text: React.FC<TextProps> = ({
     className
   );
 
-  return <p className={textClass}>{children}</p>;
+  return <Component className={textClass}>{children}</Component>;
 };
 
 export default Text;

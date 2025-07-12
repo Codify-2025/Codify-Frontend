@@ -19,11 +19,11 @@ body {
 
 @layer utilities {
   .text-heading {
-    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl;
+    @apply text-xl sm:text-2xl md:text-3xl;
   }
 
   .text-subtitle {
-    @apply text-xl sm:text-2xl md:text-3xl;
+    @apply text-lg sm:text-xl md:text-2xl;
   }
 
   .text-body {
@@ -31,7 +31,7 @@ body {
   }
 
   .text-caption {
-    @apply text-sm sm:text-base md:text-lg;
+    @apply text-xs sm:text-sm md:text-base;
   }
 }
 
