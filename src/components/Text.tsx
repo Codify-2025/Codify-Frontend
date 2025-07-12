@@ -34,6 +34,7 @@ const WEIGHT_STYLES: Record<string, string> = {
 };
 
 const Text: React.FC<TextProps> = ({
+  as: Component = 'p',
   variant = 'body',
   weight = 'regular',
   color = 'gray',
@@ -47,7 +48,7 @@ const Text: React.FC<TextProps> = ({
     className
   );
 
-  return <p className={textClass}>{children}</p>;
+  return <Component className={textClass}>{children}</Component>;
 };
 
 export default Text;
