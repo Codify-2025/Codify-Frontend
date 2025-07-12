@@ -3,24 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import Layout from '@components/Layout';
+import { useAuthStore } from '@stores/useAuthStore';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   return (
     <Layout contentClassName="bg-gradient-to-b from-blue-100 via-white to-white">
       <div className="min-h-screen">
-        <div className="max-w-6xl mx-auto px-6 py-20 space-y-32">
+        <div className="max-w-6xl mx-auto px-6 py-20 space-y-40">
           {/* Hero Section */}
-          <section className="text-center space-y-6">
+          <section className="text-center space-y-10 sm:space-y-14">
             <Text
               variant="heading"
               weight="bold"
-              className="text-5xl text-black"
+              className="text-4xl sm:text-5xl md:text-6xl text-black"
             >
               🚀 Codify
             </Text>
-            <Text variant="body" className="text-xl text-gray-700">
+            <Text variant="body" weight="medium">
               제출된 코드 간 유사도를 시각화하고
               <br />
               표절 가능성을 쉽게 파악할 수 있는 스마트한 분석 도구입니다.
@@ -29,7 +31,7 @@ const HomePage: React.FC = () => {
               <Button
                 text="유사도 분석 시작하기"
                 variant="primary"
-                className="text-lg px-10 py-5 text-white text-2xl rounded-lg shadow-lg"
+                className="text-lg font-semibold px-12 py-4 text-white text-2xl !rounded-full shadow-lg"
                 onClick={() => navigate('/assignment/name')}
               />
             </div>
@@ -56,31 +58,43 @@ const HomePage: React.FC = () => {
             ].map((item) => (
               <div
                 key={item.title}
-                className="bg-white rounded-xl shadow p-8 hover:shadow-md transition"
+                className="bg-white rounded-2xl shadow-md p-10 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
-                <div className="text-4xl mb-3">{item.icon}</div>
-                <h3 className="font-bold text-xl text-gray-800 mb-1">
+                <div className="flex justify-center items-center w-16 h-16 mx-auto mb-5 rounded-full bg-blue-100 text-3xl">
+                  {item.icon}
+                </div>
+                <Text
+                  as="h3"
+                  variant="subtitle"
+                  weight="medium"
+                  color="gray"
+                  className="mb-1"
+                >
                   {item.title}
-                </h3>
-                <p className="text-sm text-gray-600">{item.desc}</p>
+                </Text>
+                <Text as="p" variant="caption" color="gray">
+                  {item.desc}
+                </Text>
               </div>
             ))}
           </section>
 
           {/* Call to Action */}
-          <section className="text-center">
-            <Text variant="heading" weight="bold" className="text-xl mb-2">
-              지금 바로 Codify를 사용해보세요
-            </Text>
-            <div className="flex justify-center gap-4 mt-4">
-              <Button text="로그인" onClick={() => navigate('/login')} />
-              <Button
-                text="회원가입"
-                onClick={() => navigate('/signup')}
-                variant="secondary"
-              />
-            </div>
-          </section>
+          {!isLoggedIn && (
+            <section className="text-center space-y-5 sm:space-y-10">
+              <Text variant="heading" weight="bold" className="text-xl mb-2">
+                지금 바로 Codify를 사용해보세요
+              </Text>
+              <div className="flex justify-center gap-4 mt-4">
+                <Button text="로그인" onClick={() => navigate('/login')} />
+                <Button
+                  text="회원가입"
+                  onClick={() => navigate('/signup')}
+                  variant="secondary"
+                />
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </Layout>

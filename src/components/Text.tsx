@@ -1,7 +1,10 @@
 import React from 'react';
 import classNames from 'classnames';
 
+type ElementTag = keyof JSX.IntrinsicElements;
+
 interface TextProps {
+  as?: ElementTag;
   variant?: 'heading' | 'subtitle' | 'body' | 'caption';
   weight?: 'regular' | 'medium' | 'bold';
   color?: 'primary' | 'secondary' | 'danger' | 'gray' | 'white';
