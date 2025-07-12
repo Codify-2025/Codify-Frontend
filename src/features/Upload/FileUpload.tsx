@@ -2,8 +2,10 @@ import React, { useState, useRef } from 'react';
 import JSZip from 'jszip';
 import FileItem from './FileItem';
 import Button from '@components/Button';
+import Text from '@components/Text';
 import Notification from '@components/Notification';
 import FileCompareModal from './FileCompareModal';
+import { FiUploadCloud } from 'react-icons/fi';
 
 interface FileData {
   id: string;
@@ -154,7 +156,7 @@ const FileUpload: React.FC = () => {
   };
 
   return (
-    <div className="flex gap-6 px-4 py-8 w-full max-w-screen-lg mx-auto">
+    <div className="flex gap-10 px-6 py-1 w-full max-w-screen-lg mx-auto">
       {duplicateFile && existingFile && (
         <FileCompareModal
           existingFile={existingFile}
@@ -166,13 +168,13 @@ const FileUpload: React.FC = () => {
 
       {/* 파일 업로드 영역 */}
       <div
-        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-100 cursor-pointer aspect-square
-                w-1/2 md:w-2/5 lg:w-1/3"
+        className="flex flex-col h-[350px] items-center justify-center border border-dotted border-gray rounded-xl bg-lightGray hover:bg-blue-50 transition p-6 cursor-pointer"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <p className="text-gray-500 text-center">
+        <FiUploadCloud size={40} className="text-primary mb-2" />
+        <p className="text-gray text-center text-base">
           이곳에 파일을 드래그하거나 <br />
           클릭하여 업로드하세요
         </p>
@@ -187,47 +189,59 @@ const FileUpload: React.FC = () => {
       </div>
 
       {/* 파일 목록 영역 */}
-      <div className="flex flex-col w-1/2 md:w-3/5 lg:w-2/3 space-y-4">
+      <div className="flex flex-col w-1/2 md:w-3/5 lg:w-2/3 ">
         {notification && <Notification message={notification} type="warning" />}
-
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <input
-              type="checkbox"
-              checked={
-                selectedFiles.length === files.length && files.length > 0
-              }
-              onChange={handleSelectAll}
-              className="mr-2"
+        <div className="flex justify-between items-center mb-3">
+          <Text variant="caption" weight="medium" color="primary">
+            파일 목록 ({files.length})
+          </Text>
+          <div className="flex gap-5 items-center">
+            <div>
+              <input
+                type="checkbox"
+                checked={
+                  selectedFiles.length === files.length && files.length > 0
+                }
+                onChange={handleSelectAll}
+                className="mr-2"
+              />
+              전체 선택
+            </div>
+            <Button
+              text="선택된 파일 삭제"
+              variant="danger"
+              className="px-2 py-1 text-sm"
+              onClick={handleDeleteSelected}
+              disabled={selectedFiles.length === 0}
             />
-            전체 선택
           </div>
-          <Button
-            text="선택된 파일 삭제"
-            variant="danger"
-            className="px-2 py-1 text-sm"
-            onClick={handleDeleteSelected}
-            disabled={selectedFiles.length === 0}
-          />
         </div>
+        <div className="h-0.5 bg-lightGray" />
 
-        <div className="overflow-y-auto max-h-[300px] bg-gray-50 p-4 rounded-lg shadow-inner space-y-2">
+        <div className="overflow-y-auto max-h-[300px] bg-gray-50 p-4 rounded-lg space-y-2">
           {files.length === 0 ? (
             <p className="text-gray-500">업로드된 파일이 없습니다.</p>
           ) : (
             files.map((fileData) => (
-              <div key={fileData.id} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedFiles.includes(fileData.id)}
-                  onChange={() => handleSelectFile(fileData.id)}
-                />
-                <FileItem
-                  fileData={fileData}
-                  onRemove={() =>
-                    setFiles((prev) => prev.filter((f) => f.id !== fileData.id))
-                  }
-                />
+              <div
+                key={fileData.id}
+                className="bg-white px-4 rounded-lg shadow flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-2 w-full overflow-hidden">
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.includes(fileData.id)}
+                    onChange={() => handleSelectFile(fileData.id)}
+                  />
+                  <FileItem
+                    fileData={fileData}
+                    onRemove={() =>
+                      setFiles((prev) =>
+                        prev.filter((f) => f.id !== fileData.id)
+                      )
+                    }
+                  />
+                </div>
               </div>
             ))
           )}

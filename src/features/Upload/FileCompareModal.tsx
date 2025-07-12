@@ -16,7 +16,7 @@ const FileCompareModal: React.FC<FileCompareModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg min-w-[300px] space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl min-w-[300px] max-h-[90vh] overflow-y-auto space-y-6">
         <h2 className="text-xl font-bold mb-4 text-center">파일 비교</h2>
 
         {/* 파일 정보 영역 */}
@@ -24,7 +24,7 @@ const FileCompareModal: React.FC<FileCompareModalProps> = ({
           {/* 기존 파일 */}
           <div className="flex-1 bg-gray-100 p-4 rounded-lg">
             <h3 className="font-semibold text-blue-600 mb-2">기존 파일</h3>
-            <p className="font-bold text-gray-700 truncate">
+            <p className="font-bold text-gray-700 text-ellipsis">
               {existingFile.name}
             </p>
             <p className="text-sm text-gray-500 mt-1">
@@ -36,7 +36,9 @@ const FileCompareModal: React.FC<FileCompareModalProps> = ({
           {/* 새 파일 */}
           <div className="flex-1 bg-gray-100 p-4 rounded-lg">
             <h3 className="font-semibold text-green-600 mb-2">새 파일</h3>
-            <p className="font-bold text-gray-700 truncate">{newFile.name}</p>
+            <p className="font-bold text-gray-700 text-ellipsis">
+              {newFile.name}
+            </p>
             <p className="text-sm text-gray-500 mt-1">
               크기: {newFile.size} bytes
             </p>

@@ -16,44 +16,47 @@ const UploadPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col items-center p-8 space-y-4">
-        {/* 과제 정보 표시 */}
-        <Text
-          variant="caption"
-          weight="bold"
-          className="text-black text-lg text-center"
-        >
-          <span className="text-blue-500">{name}</span>
-          <span className="text-gray">{week ? ` (${week}주차)` : ''}</span> 과제
-          파일 유사도 검사
-        </Text>
+      <div className="flex flex-col w-full max-w-screen-lg mx-auto px-6 space-y-6">
+        {/* 상단 정보 영역 */}
+        <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
+          <Text variant="body" weight="bold" color="primary">
+            <span className="text-black">
+              {name} ({week}주차)
+            </span>{' '}
+            과제 유사도 분석 진행
+          </Text>
+          <Text variant="body" weight="medium" color="gray">
+            3. 파일 업로드
+          </Text>
+        </div>
 
-        {/* 메인 타이틀 */}
-        <Text variant="heading" weight="bold" className="text-gray-700">
-          검사를 진행할 파일을 업로드 해주세요
-        </Text>
-
-        {/* 서브 타이틀 */}
-        <Text variant="body" weight="regular" className="text-gray-500">
-          개별 파일 또는 압축 파일(.zip)을 업로드할 수 있습니다.
-        </Text>
-
-        {/* 파일 형식 안내 */}
-        <div className="bg-blue-50 text-blue-600 text-sm p-3 rounded-lg shadow-sm w-full max-w-lg">
-          ※ 업로드 가능한 파일 형식:{' '}
-          <span className="font-bold">.cpp, .zip</span>
+        {/* 제목 영역 */}
+        <div className="space-y-2">
+          <Text variant="subtitle" weight="bold">
+            검사를 진행할 파일을 업로드해 주세요
+          </Text>
+          <Text variant="caption" weight="medium" color="gray">
+            개별 파일 또는 압축 파일(.zip)을 업로드할 수 있습니다.
+          </Text>
+          <div className="bg-blue-50 text-blue-600 text-caption p-3 rounded-lg shadow-sm w-full">
+            ※ 업로드 가능한 파일 형식:{' '}
+            <span className="font-bold">.cpp, .zip</span>
+          </div>
         </div>
 
         {/* 파일 업로드 컴포넌트 */}
         <FileUpload />
 
         {/* 분석 시작 버튼 */}
-        <Button
-          text="분석 시작"
-          variant="primary"
-          className="mt-4"
-          onClick={handleStartAnalysis}
-        />
+        <div className="flex justify-end">
+          <Button
+            text="분석 시작"
+            variant="primary"
+            size="large"
+            className="mt-6"
+            onClick={handleStartAnalysis}
+          />
+        </div>
       </div>
     </Layout>
   );
