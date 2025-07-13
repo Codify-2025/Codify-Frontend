@@ -3,6 +3,7 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import { SignupFormData } from 'types/signup';
 import { FiEye, FiEyeOff, FiCheck } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 
 interface StepCredentialsProps {
   onNext: () => void;
@@ -66,12 +67,12 @@ const StepCredentials: React.FC<StepCredentialsProps> = ({
   };
 
   return (
-    <div className="flex flex-col space-y-10">
+    <div className="flex flex-col space-y-10 mt-14">
       <div className="space-y-2">
-        <Text variant="body" className="text-gray-500 text-lg">
+        <Text variant="body" className="text-gray">
           회원가입
         </Text>
-        <Text variant="heading" weight="bold" className="text-2xl">
+        <Text variant="heading" weight="bold">
           아이디와 비밀번호를 입력해주세요
         </Text>
       </div>
@@ -119,7 +120,7 @@ const StepCredentials: React.FC<StepCredentialsProps> = ({
         )}
         <button
           onClick={handleDuplicateCheck}
-          className="ml-2 px-4 py-1 border border-blue-500 text-blue-500 rounded text-sm hover:bg-blue-50"
+          className="ml-2 px-4 py-1 border border-blue-500 text-blue-500 rounded hover:bg-blue-50"
         >
           중복확인
         </button>
@@ -138,13 +139,13 @@ const StepCredentials: React.FC<StepCredentialsProps> = ({
           className="absolute right-8 top-2 cursor-pointer text-gray-500"
           onClick={() => setShowPassword(!showPassword)}
         >
-          {showPassword ? <FiEyeOff /> : <FiEye />}
+          {showPassword ? <FiEye /> : <FiEyeOff />}
         </span>
         {pwValid && (
           <FiCheck className="absolute right-2 top-2 text-blue-500" />
         )}
         {!pwValid && password.length > 0 && (
-          <span className="text-red-500 text-sm mt-1 block">
+          <span className="text-red-500 mt-1 block">
             비밀번호 조건을 충족해야 합니다.
           </span>
         )}
@@ -167,7 +168,7 @@ const StepCredentials: React.FC<StepCredentialsProps> = ({
           className="absolute right-8 top-2 cursor-pointer text-gray-500"
           onClick={() => setShowConfirm(!showConfirm)}
         >
-          {showConfirm ? <FiEyeOff /> : <FiEye />}
+          {showConfirm ? <FiEye /> : <FiEyeOff />}
         </span>
         {confirmPassword && pwMatch && (
           <FiCheck className="absolute right-2 top-2 text-blue-500" />
@@ -181,16 +182,19 @@ const StepCredentials: React.FC<StepCredentialsProps> = ({
 
       {/* 버튼 */}
       <div className="flex justify-between w-full pt-4">
-        <button onClick={onBack} className="text-sm text-gray-500 underline">
-          ← 이전으로
+        <button onClick={onBack} className="text-gray underline">
+          이전으로
         </button>
         <Button
-          text="다음 →"
+          text="다음"
           onClick={handleNext}
           disabled={!isValid}
-          className={`bg-blue-500 text-white px-6 py-2 rounded ${
+          size="large"
+          className={` ${
             isValid ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'
           }`}
+          icon={<FiArrowRight size={20} />}
+          iconPosition="right"
         />
       </div>
     </div>

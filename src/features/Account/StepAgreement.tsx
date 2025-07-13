@@ -3,6 +3,7 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import TermsModal from '@components/TermsModal';
 import { SignupFormData } from 'types/signup';
+import { PiArrowRight } from 'react-icons/pi';
 
 interface StepAgreementProps {
   onNext: () => void;
@@ -27,13 +28,18 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
   };
 
   return (
-    <div className="space-y-10 px-8 py-14 max-w-2xl mx-auto text-base">
-      <Text variant="heading" weight="bold" className="text-3xl">
-        이용약관 동의
-      </Text>
+    <div className="space-y-10 py-14 max-w-2xl mx-auto">
+      <div className="space-y-3">
+        <Text variant="body" className="text-gray">
+          회원가입
+        </Text>
+        <Text variant="heading" weight="bold">
+          이용약관 동의
+        </Text>
+      </div>
 
       <div
-        className={`flex items-center p-5 rounded-lg cursor-pointer text-lg ${
+        className={`flex bg-blue-50 w-full rounded-xl p-6 items-center rounded-lg cursor-pointer text-lg ${
           allChecked ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
         }`}
         onClick={() => handleAllChange(!allChecked)}
@@ -47,7 +53,7 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
         <span className="font-medium">전체 약관 동의</span>
       </div>
 
-      <div className="space-y-5 pl-1 text-lg">
+      <div className="space-y-5 pl-1">
         <label className="flex items-center justify-between">
           <div>
             <input
@@ -90,9 +96,9 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
           text="다음"
           onClick={onNext}
           disabled={!allChecked}
-          className="bg-blue-500 text-white px-8 py-3 text-lg rounded"
+          size="large"
           iconPosition="right"
-          icon={<span>→</span>}
+          icon={<PiArrowRight size={20} />}
         />
       </div>
 

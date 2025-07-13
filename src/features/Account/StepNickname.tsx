@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import { SignupFormData } from 'types/signup';
+import { FiArrowRight } from 'react-icons/fi';
 
 interface StepNicknameProps {
   onNext: () => void;
@@ -35,13 +36,13 @@ const StepNickname: React.FC<StepNicknameProps> = ({
     <div className="space-y-10 px-8 py-14 max-w-2xl mx-auto text-base">
       {/* 상단 안내 */}
       <div className="space-y-3">
-        <Text variant="body" className="text-gray-500 text-lg">
+        <Text variant="body" className="text-gray">
           회원가입
         </Text>
-        <Text variant="heading" weight="bold" className="text-3xl">
+        <Text variant="heading" weight="bold">
           닉네임을 입력해 주세요
         </Text>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-500">
           닉네임은 <strong>2~5자 이내</strong>의 <strong>한글 또는 영문</strong>
           만 사용할 수 있습니다.
         </p>
@@ -68,25 +69,26 @@ const StepNickname: React.FC<StepNicknameProps> = ({
 
       {/* 유효성 경고 */}
       {!isValid && touched && (
-        <div className="text-red-500 text-sm">
+        <div className="text-danger">
           닉네임은 한글 또는 영문으로 2~5자 이내로 입력해 주세요.
         </div>
       )}
 
       {/* 버튼 영역 */}
       <div className="flex justify-between w-full mt-8">
-        <button onClick={onBack} className="text-sm text-gray-500 underline">
-          ← 이전으로
+        <button onClick={onBack} className="text-gray underline">
+          이전으로
         </button>
         <Button
           text="다음"
           onClick={handleNext}
           disabled={!isValid}
-          className={`bg-blue-500 text-white px-6 py-2 rounded text-lg ${
+          size="large"
+          className={` ${
             isValid ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'
           }`}
           iconPosition="right"
-          icon={<span>→</span>}
+          icon={<FiArrowRight size={20} />}
         />
       </div>
     </div>
