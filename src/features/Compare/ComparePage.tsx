@@ -1,63 +1,97 @@
-// src/features/Compare/ComparePage.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import Select from '@components/Select';
 import Tooltip from '@components/Tooltip';
+import { FiArrowLeft } from 'react-icons/fi';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useSavedRecordStore } from '@stores/useSavedRecordStore';
 import { useAuthStore } from '@stores/useAuthStore';
 
+// 유사도에 따른 줄 배경색 반환
 const getLineStyleBySimilarity = (similar: string[]): string => {
-  if (similar.length >= 2) return 'bg-red-100'; // 유사한 코드 (다수)
-  if (similar.length === 1) return 'bg-green-100'; // 구조 유사 코드 (단일)
+  if (similar.length >= 2) return 'bg-red-100';
+  if (similar.length === 1) return 'bg-green-100';
   return '';
+};
+
+// 한 줄의 코드 비교 UI
+const CompareLineRow = ({
+  idx,
+  lineA,
+  lineB,
+  similarA,
+  similarB,
+  fileLabels,
+}: {
+  idx: number;
+  lineA: string;
+  lineB: string;
+  similarA: string[];
+  similarB: string[];
+  fileLabels: string[];
+}) => {
+  return (
+    <div className="grid grid-cols-2 text-sm border-b">
+      {[
+        { line: lineA, similar: similarA },
+        { line: lineB, similar: similarB },
+      ].map(({ line, similar }, i) => {
+        const filteredSimilar = similar.filter(
+          (name) => !fileLabels.includes(name)
+        );
+        return (
+          <div
+            key={i}
+            className={`py-2 px-3 ${getLineStyleBySimilarity(filteredSimilar)} border-r ${
+              i === 1 ? 'border-r-0' : ''
+            }`}
+          >
+            <Tooltip
+              content={
+                filteredSimilar.length > 0
+                  ? `유사한 다른 제출자: ${filteredSimilar.join(', ')}`
+                  : '유사한 제출자 없음'
+              }
+            >
+              <span
+                className={`text-gray-500 mr-2 ${
+                  filteredSimilar.length > 0
+                    ? 'text-blue-500 font-semibold underline decoration-dotted'
+                    : ''
+                }`}
+              >
+                {idx + 1}
+              </span>
+            </Tooltip>
+            {line}
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 const ComparePage: React.FC = () => {
   const navigate = useNavigate();
   const { files, selectedFileA, selectedFileB, setSelectedFiles } =
     useSelectedFileStore();
-
   const location = useLocation();
   const fromSaved = location.state?.fromSaved;
   const recordId = location.state?.recordId;
-
   const { isLoggedIn } = useAuthStore();
-
-  const handleSave = () => {
-    if (!isLoggedIn) {
-      navigate('/login', { state: { from: 'result' } });
-      return;
-    } else {
-      navigate('/decision', {
-        state: {
-          fileA: selectedFileA,
-          fileB: selectedFileB,
-          similarity: 0.95, // 임시. 나중엔 비교 결과에서 실제 유사도 계산 결과로 대체
-        },
-      });
-    }
-
-    // TODO: 실제 저장 로직
-    console.log('저장 진행...');
-  };
 
   useEffect(() => {
     if (fromSaved && recordId) {
       useSavedRecordStore.getState().selectRecordById(recordId);
       const selected = useSavedRecordStore.getState().selectedRecord;
       if (selected && selected.type === 'pair' && selected.fileB) {
-        useSelectedFileStore
-          .getState()
-          .setSelectedFiles(selected.fileA, selected.fileB);
+        setSelectedFiles(selected.fileA, selected.fileB);
       }
     }
-  }, [fromSaved, recordId]);
+  }, [fromSaved, recordId, setSelectedFiles]);
 
   if (!selectedFileA || !selectedFileB) {
     return (
@@ -75,17 +109,32 @@ const ComparePage: React.FC = () => {
     );
   }
 
+  const handleSave = () => {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: 'result' } });
+    } else {
+      navigate('/decision', {
+        state: {
+          fileA: selectedFileA,
+          fileB: selectedFileB,
+          similarity: 0.95, // TODO: 실제 유사도로 교체
+        },
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-8 py-10 space-y-6 text-base">
-        {/* 상단: 이전으로 버튼 */}
+        {/* 이전으로 버튼 */}
         <div className="flex justify-between items-center">
           <Button
             text="이전으로"
             variant="secondary"
-            icon={<span className="text-lg">←</span>}
+            size="large"
+            icon={<FiArrowLeft size={20} />}
             iconPosition="left"
-            onClick={() => navigate('/result')}
+            onClick={() => navigate(-1)}
           />
         </div>
 
@@ -137,56 +186,17 @@ const ComparePage: React.FC = () => {
             <div className="py-3">{selectedFileB.label}</div>
           </div>
 
-          {selectedFileA.content.map((lineA, idx) => {
-            const lineB = selectedFileB.content[idx] || '';
-            const similarA = selectedFileA.similarMap[idx + 1] || [];
-            const similarB = selectedFileB.similarMap[idx + 1] || [];
-
-            return (
-              <div key={idx} className="grid grid-cols-2 text-sm border-b">
-                {[
-                  { line: lineA, similar: similarA },
-                  { line: lineB, similar: similarB },
-                ].map(({ line, similar }, i) => {
-                  const otherFileNames = [
-                    selectedFileA.label,
-                    selectedFileB.label,
-                  ];
-                  const filteredSimilar = similar.filter(
-                    (name) => !otherFileNames.includes(name)
-                  );
-
-                  return (
-                    <div
-                      key={i}
-                      className={`py-2 px-3 ${getLineStyleBySimilarity(filteredSimilar)} border-r ${
-                        i === 1 ? 'border-r-0' : ''
-                      }`}
-                    >
-                      <Tooltip
-                        content={
-                          filteredSimilar.length > 0
-                            ? `유사한 다른 제출자: ${filteredSimilar.join(', ')}`
-                            : '유사한 제출자 없음'
-                        }
-                      >
-                        <span
-                          className={`text-gray-500 mr-2 ${
-                            filteredSimilar.length > 0
-                              ? 'text-blue-500 font-semibold underline decoration-dotted'
-                              : ''
-                          }`}
-                        >
-                          {idx + 1}
-                        </span>
-                      </Tooltip>
-                      {line}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {selectedFileA.content.map((lineA, idx) => (
+            <CompareLineRow
+              key={idx}
+              idx={idx}
+              lineA={lineA}
+              lineB={selectedFileB.content[idx] || ''}
+              similarA={selectedFileA.similarMap[idx + 1] || []}
+              similarB={selectedFileB.similarMap[idx + 1] || []}
+              fileLabels={[selectedFileA.label, selectedFileB.label]}
+            />
+          ))}
         </div>
 
         {/* 하단 버튼 */}
@@ -194,9 +204,15 @@ const ComparePage: React.FC = () => {
           <Button
             text="검사 종료하기"
             variant="secondary"
+            size="large"
             onClick={() => navigate('/')}
           />
-          <Button text="결과 저장하기" variant="primary" onClick={handleSave} />
+          <Button
+            text="결과 저장하기"
+            variant="primary"
+            size="large"
+            onClick={handleSave}
+          />
         </div>
       </div>
     </Layout>

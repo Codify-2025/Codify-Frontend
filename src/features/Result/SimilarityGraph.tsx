@@ -7,7 +7,7 @@ interface Props {
   edges: FileEdge[];
   onNodeHover?: (node: FileNode) => void;
   onEdgeHover?: (edge: FileEdge) => void;
-  onEdgeClick?: (edge: FileEdge) => void; // ✅ 추가
+  onEdgeClick?: (edge: FileEdge) => void;
   interactionOptions?: {
     dragNodes?: boolean;
     zoomView?: boolean;
@@ -20,25 +20,26 @@ const SimilarityGraph: React.FC<Props> = ({
   edges,
   onNodeHover,
   onEdgeHover,
-  onEdgeClick, // ✅ props로 받기
+  onEdgeClick,
   interactionOptions,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const networkRef = useRef<Network | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // vis.js 노드 생성
+    // vis-network용 노드 데이터셋
     const visNodes = new DataSet(
       nodes.map((node) => ({
         id: node.id,
         label: node.label,
-        title: `파일명: ${node.label}\n제출 시간: ${node.submittedAt}`,
+        title: undefined, // 중복 툴팁 방지
         fixed: { x: true, y: true },
       }))
     );
 
-    // vis.js 엣지 생성
+    // vis-network용 엣지 데이터셋
     const visEdges = new DataSet(
       edges.map((edge) => ({
         id: `${edge.from}-${edge.to}`,
@@ -62,68 +63,71 @@ const SimilarityGraph: React.FC<Props> = ({
       }))
     );
 
-    // 네트워크 생성
+    // interaction 기본 옵션 처리
+    const {
+      dragNodes = false,
+      zoomView = false,
+      dragView = false,
+    } = interactionOptions ?? {};
+
+    // 네트워크 그래프 초기화
     const network = new Network(
       containerRef.current,
       { nodes: visNodes, edges: visEdges },
       {
-        physics: {
-          enabled: false,
+        physics: { enabled: false },
+        layout: { randomSeed: 42 },
+        nodes: {
+          shape: 'dot',
+          size: 20,
+          fixed: true,
+          physics: false,
         },
-        layout: {
-          randomSeed: 42,
+        edges: {
+          smooth: true,
         },
-        edges: { smooth: true },
-        nodes: { shape: 'dot', size: 20, fixed: true, physics: false },
         interaction: {
           hover: true,
           tooltipDelay: 200,
-          zoomView: interactionOptions?.zoomView ?? false,
-          dragView: interactionOptions?.dragView ?? false,
-          dragNodes: interactionOptions?.dragNodes ?? false,
+          zoomView,
+          dragView,
+          dragNodes,
           selectable: true,
         },
       }
     );
 
-    // 노드 호버
+    networkRef.current = network;
+
+    // 노드 hover 이벤트
     network.on('hoverNode', (params) => {
       const node = nodes.find((n) => n.id === params.node);
-      if (node && onNodeHover) onNodeHover(node);
+      if (node) onNodeHover?.(node);
     });
 
-    // 엣지 호버
+    // 엣지 hover 이벤트
     network.on('hoverEdge', (params) => {
       const [fromId, toId] = params.edge.split('-');
-      const matchedEdge = edges.find(
+      const edge = edges.find(
+        (e) =>
+          (e.from === fromId && e.to === toId) ||
+          (e.from === toId && e.to === fromId)
+      );
+      if (edge) onEdgeHover?.(edge);
+    });
+
+    // 엣지 클릭 이벤트
+    network.on('click', (params) => {
+      if (params.edges.length === 0) return;
+
+      const [fromId, toId] = params.edges[0].split('-');
+      const edge = edges.find(
         (e) =>
           (e.from === fromId && e.to === toId) ||
           (e.from === toId && e.to === fromId)
       );
 
-      if (matchedEdge && onEdgeHover) {
-        onEdgeHover(matchedEdge);
-      }
-    });
-
-    // 엣지 클릭
-    network.on('click', (params) => {
-      console.log('✅ 클릭 이벤트 발생', params); // ← 이거 추가
-
-      if (params.edges.length > 0 && onEdgeClick) {
-        const edgeId = params.edges[0];
-        const [fromId, toId] = edgeId.split('-');
-        const matchedEdge = edges.find(
-          (e) =>
-            (e.from === fromId && e.to === toId) ||
-            (e.from === toId && e.to === fromId)
-        );
-
-        if (matchedEdge) {
-          console.log('🎯 엣지 매칭 성공', matchedEdge); // ← 이거도 추가
-          onEdgeClick(matchedEdge);
-        }
-      }
+      if (edge) onEdgeClick?.(edge);
     });
 
     return () => {
@@ -131,7 +135,7 @@ const SimilarityGraph: React.FC<Props> = ({
     };
   }, [nodes, edges, onNodeHover, onEdgeHover, onEdgeClick, interactionOptions]);
 
-  return <div ref={containerRef} style={{ height: '500px', width: '100%' }} />;
+  return <div ref={containerRef} className="w-full h-[500px]" />;
 };
 
 export default SimilarityGraph;
