@@ -16,7 +16,7 @@ const UserInfoHeader: React.FC = () => {
   const [birthdate, setBirthdate] = useState('2000-01-01');
   const [tempBirthdate, setTempBirthdate] = useState(birthdate);
 
-  const { setSelectedSubject } = useSubjectStore();
+  const { selectedSubject, setSelectedSubject } = useSubjectStore();
 
   const user = {
     name: '사용자명',
@@ -83,8 +83,7 @@ const UserInfoHeader: React.FC = () => {
         {isSubjectOpen && (
           <div className="mt-2 border border-gray-300 rounded-md overflow-hidden w-fit text-base text-gray-800 shadow-sm">
             {user.subjects.map((subj, idx) => {
-              const isSelected =
-                subj.code === useSubjectStore.getState().selectedSubject?.code;
+              const isSelected = subj.code === selectedSubject?.code;
 
               return (
                 <div
