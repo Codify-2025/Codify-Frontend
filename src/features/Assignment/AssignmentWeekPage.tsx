@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAssignmentStore } from '@stores/assignmentStore';
+import { FiArrowRight } from 'react-icons/fi';
 
 const getWeekNumber = (date: Date) => {
   const copied = new Date(date.getTime());
@@ -62,61 +63,58 @@ const AssignmentWeekPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col items-start justify-start px-6 py-16 space-y-8 w-full max-w-xl mx-auto">
-        {/* 상단 안내 */}
-        <Text variant="caption" weight="bold" className="text-black text-lg">
-          <span className="text-blue-500">{assignmentName}</span> 과제 유사도
-          분석 진행
-        </Text>
-        <Text variant="body" weight="medium" className="text-gray-400 text-xl">
-          2. 주차 선택
-        </Text>
+      <div className="flex flex-col items-start justify-start px-6 py-16 space-y-12 w-full max-w-4xl mx-auto">
+        {/* 상단 진행 정보 영역 */}
+        <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
+          <Text variant="body" weight="bold" color="primary">
+            <span className="text-black">{assignmentName}</span> 과제 유사도
+            분석 진행
+          </Text>
+          <Text variant="body" weight="medium" color="gray">
+            2. 주차 선택
+          </Text>
+        </div>
 
-        <Text
-          variant="heading"
-          weight="bold"
-          className="text-black text-2xl mt-2"
-        >
-          과제 시작일과 마감일을 선택해 주세요
-        </Text>
+        {/* 날짜 선택 */}
+        <div className="w-full space-y-6">
+          <Text variant="heading" weight="bold">
+            과제 시작일과 마감일을 선택해 주세요
+          </Text>
 
-        <div className="flex gap-6 w-full max-w-md">
-          <div className="flex flex-col flex-1">
-            <label className="text-gray-600 mb-1">시작일</label>
-            <DatePicker
-              selected={startDate}
-              onChange={(date) => setStartDate(date)}
-              selectsStart
-              startDate={startDate}
-              endDate={endDate}
-              className="border px-3 py-2 rounded-md w-full"
-              placeholderText="시작일 선택"
-            />
-          </div>
+          <div className="flex flex-col sm:flex-row gap-6">
+            <div className="flex flex-col">
+              <label className="text-gray-600 mb-1">시작일</label>
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                className="border px-4 py-3 rounded-md text-base"
+                placeholderText="시작일 선택"
+              />
+            </div>
 
-          <div className="flex flex-col flex-1">
-            <label className="text-gray-600 mb-1">마감일</label>
-            <DatePicker
-              selected={endDate}
-              onChange={(date) => setEndDate(date)}
-              selectsEnd
-              startDate={startDate}
-              endDate={endDate}
-              minDate={startDate || new Date()}
-              className="border px-3 py-2 rounded-md w-full"
-              placeholderText="마감일 선택"
-            />
+            <div className="flex flex-col flex-1">
+              <label className="text-gray-600 mb-1">마감일</label>
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => setEndDate(date)}
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                minDate={startDate || new Date()}
+                className="border px-4 py-3 rounded-md text-base"
+                placeholderText="마감일 선택"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between w-full max-w-md mt-4">
-          <Text
-            variant="body"
-            weight="medium"
-            className="text-blue-500 text-lg"
-          >
+        <div className="flex items-center justify-between w-1/2 mt-4">
+          <Text variant="body" weight="medium" color="primary">
             {manualWeek
-              ? `${selectedWeek}주차 (수동 설정)`
+              ? `${selectedWeek || '?'}주차 (수동 설정)`
               : `${calculatedWeek}주차 (자동 설정)`}
           </Text>
           <Toggle
@@ -126,15 +124,16 @@ const AssignmentWeekPage: React.FC = () => {
           />
         </div>
 
+        {/* 수동 주차 입력 */}
         {manualWeek && (
-          <div className="w-full max-w-md">
+          <div className="w-full sm:w-1/2">
             <input
               type="number"
               inputMode="numeric"
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(e.target.value)}
               placeholder="주차 입력 (1 이상)"
-              className="border px-3 py-2 rounded-md w-full mt-2"
+              className="border px-4 py-3 rounded-md w-full mt-2 text-base"
             />
           </div>
         )}
@@ -143,10 +142,11 @@ const AssignmentWeekPage: React.FC = () => {
           <Button
             text="다음"
             variant="primary"
+            size="large"
             onClick={handleNext}
             disabled={!startDate || !endDate}
             iconPosition="right"
-            icon={<span className="ml-1">→</span>}
+            icon={<FiArrowRight size={20} />}
           />
         </div>
       </div>

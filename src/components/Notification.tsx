@@ -4,6 +4,7 @@ import classNames from 'classnames';
 interface NotificationProps {
   message: string;
   type?: 'success' | 'error' | 'warning' | 'info';
+  className?: string;
 }
 
 const TYPE_CLASSES = {
@@ -16,9 +17,16 @@ const TYPE_CLASSES = {
 const Notification: React.FC<NotificationProps> = ({
   message,
   type = 'info',
+  className = '',
 }) => {
   return (
-    <div className={classNames('p-4 rounded-lg mb-4', TYPE_CLASSES[type])}>
+    <div
+      className={classNames(
+        'p-4 rounded-lg mb-4',
+        TYPE_CLASSES[type],
+        className
+      )}
+    >
       {message}
     </div>
   );
