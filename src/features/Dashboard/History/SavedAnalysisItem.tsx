@@ -14,7 +14,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
     return (
       <div className="flex flex-col items-center">
         <div
-          className="cursor-pointer border rounded p-4 hover:shadow transition w-full h-64 flex flex-col justify-center"
+          className="cursor-pointer border-2 border-[#E0E0E0] rounded-xl p-4 hover:shadow transition w-full h-60 flex flex-col justify-center"
           onClick={() =>
             navigate(`/result`, {
               state: { fromSaved: true, recordId: record.id },
@@ -25,7 +25,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
             네트워크 토폴로지 미리보기
           </div>
         </div>
-        <p className="text-center mt-2 text-sm text-gray-600 w-full">
+        <p className="text-center mt-2 text-gray-600 w-full font-semibold">
           &lt;{record.assignmentName}&gt; 전체 파일 분석 결과
         </p>
       </div>
@@ -35,7 +35,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   return (
     <div className="flex flex-col items-center">
       <div
-        className="cursor-pointer border rounded p-4 hover:shadow transition w-full h-64 flex flex-col justify-between"
+        className="cursor-pointer border-2 border-[#E0E0E0] rounded-xl p-4 hover:shadow transition w-full h-60 flex flex-col justify-between"
         onClick={() => {
           navigate(
             `/compare/${String(record.fileA.id)}/${String(record.fileB?.id)}`,
@@ -53,7 +53,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         </div>
 
         {/* 중간: 제출 시간 정보 */}
-        <div className="flex flex-col items-start gap-2 text-sm text-gray-700">
+        <div className="flex flex-col items-start gap-2 text-gray-700">
           <div>
             <span className="font-medium">{record.fileA.label}</span>{' '}
             <span className="text-blue-600">{record.fileA.submittedAt}</span>
@@ -69,7 +69,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       </div>
 
       {/* 하단 텍스트 (컨테이너 외부) */}
-      <p className="text-center mt-2 text-sm text-gray-600 w-full">
+      <p className="text-center mt-2 text-gray-600 w-full font-semibold">
         &lt;{record.assignmentName}&gt; {record.fileA.label}-
         {record.fileB.label} 코드 비교 결과
       </p>
