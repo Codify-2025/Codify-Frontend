@@ -10,7 +10,7 @@ const SimilarityCompletePage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center h-[70vh] space-y-10 px-4 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-10 px-4 text-center">
         {/* 아이콘 영역 */}
         <FiCheckCircle className="text-blue-500 text-9xl" />
 
