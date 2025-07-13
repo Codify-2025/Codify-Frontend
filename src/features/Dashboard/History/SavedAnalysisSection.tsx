@@ -49,13 +49,13 @@ const SavedAnalysisSection: React.FC = () => {
 
   return (
     <section className="mt-12">
-      <Text variant="heading" weight="bold" className="text-xl mb-4">
+      <Text variant="heading" weight="bold" className="mb-4">
         저장된 분석 기록
       </Text>
 
       {/* 정렬 & 검색 */}
       <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-4 text-lg">
           <button
             onClick={() => setSortOption('latest')}
             className={`${
@@ -86,7 +86,7 @@ const SavedAnalysisSection: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="과제/학생/주차별로 검색하기"
-            className="p-1 w-full pr-8 border-0 border-b border-gray-400 focus:outline-none focus:ring-0 focus:border-black placeholder-gray-400 text-sm"
+            className="p-1 w-full pr-8 border-0 border-b border-gray-400 focus:outline-none focus:ring-0 focus:border-black placeholder-gray-400"
           />
           <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500">
             🔍
@@ -95,10 +95,10 @@ const SavedAnalysisSection: React.FC = () => {
       </div>
 
       {/* 주차별 출력 */}
-      <div className="space-y-10">
+      <div className="space-y-12 py-6">
         {groupedByWeek.map(([week, records]) => (
           <div key={week}>
-            <div className="text-center text-lg font-semibold text-gray-800 mb-4">
+            <div className="text-center text-lg font-semibold text-gray mb-4 rounded-md py-2 bg-blue-100">
               {week}주차
             </div>
             <div className="grid grid-cols-2 gap-6">
@@ -109,7 +109,7 @@ const SavedAnalysisSection: React.FC = () => {
           </div>
         ))}
         {groupedByWeek.length === 0 && (
-          <div className="text-center text-gray-400 py-20 text-sm">
+          <div className="text-center text-lg font-medium text-gray-400 py-20">
             검색 결과가 없습니다.
           </div>
         )}

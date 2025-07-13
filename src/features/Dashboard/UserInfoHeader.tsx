@@ -53,7 +53,7 @@ const UserInfoHeader: React.FC = () => {
 
       {/* 생년월일 + 아이콘 */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="border border-gray-300 rounded-full px-4 py-1 text-sm text-gray-700">
+        <div className="border border-gray-300 rounded-full px-4 py-1 text-base text-gray-700">
           {birthdate}
         </div>
         <button onClick={openModal} className="text-gray-500 hover:text-black">
@@ -62,7 +62,7 @@ const UserInfoHeader: React.FC = () => {
       </div>
 
       {/* 유사도 검사 횟수 */}
-      <p className="text-sm text-gray-700 mb-4">
+      <p className="text-base text-gray-700 mb-4">
         진행한 유사도 검사 횟수:{' '}
         <span className="text-blue-600 font-semibold">{user.testCount}회</span>
       </p>
@@ -70,23 +70,36 @@ const UserInfoHeader: React.FC = () => {
       {/* 과목 아코디언 */}
       <div className="mb-6">
         <button
-          onClick={() => setSubjectOpen(!isSubjectOpen)}
-          className="border border-gray-300 rounded-full px-4 py-1 text-sm text-gray-700 hover:bg-gray-50"
+          onClick={() => {
+            setSubjectOpen((prev) => !prev);
+            // 버튼 다시 누르면 선택 해제
+            setSelectedSubject(null);
+          }}
+          className="border border-gray-300 rounded-full px-4 py-1 text-base text-gray-700 hover:bg-gray-50"
         >
           관리 중인 과목 {isSubjectOpen ? '▲' : '▼'}
         </button>
 
         {isSubjectOpen && (
-          <div className="mt-2 border border-gray-300 rounded-md overflow-hidden w-fit text-sm text-gray-800">
-            {user.subjects.map((subj, idx) => (
-              <div
-                key={subj.code}
-                onClick={() => setSelectedSubject(subj)}
-                className={`px-4 py-2 ${idx !== user.subjects.length - 1 ? 'border-b border-gray-300' : ''}`}
-              >
-                {subj.name} ({subj.code})
-              </div>
-            ))}
+          <div className="mt-2 border border-gray-300 rounded-md overflow-hidden w-fit text-base text-gray-800 shadow-sm">
+            {user.subjects.map((subj, idx) => {
+              const isSelected =
+                subj.code === useSubjectStore.getState().selectedSubject?.code;
+
+              return (
+                <div
+                  key={subj.code}
+                  onClick={() => setSelectedSubject(subj)}
+                  className={`
+              px-4 py-2 cursor-pointer 
+              ${isSelected ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-50'}
+              ${idx !== user.subjects.length - 1 ? 'border-b border-gray-200' : ''}
+            `}
+                >
+                  {subj.name} ({subj.code})
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

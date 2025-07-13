@@ -53,14 +53,10 @@ const AccumulatedSimilarityGraph: React.FC = () => {
 
       {/* 우측: 요약 테이블 */}
       <div className="col-span-4 bg-white p-4 rounded shadow">
-        <Text
-          variant="body"
-          weight="bold"
-          className="text-base mb-2 border-b pb-1"
-        >
+        <Text variant="body" weight="bold" className="mb-2 border-b pb-1">
           2회 이상 높은 유사도가 관측된 학생 쌍
         </Text>
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-left">
           <thead className="text-gray-500 font-medium border-b">
             <tr>
               <th>학생 쌍</th>
@@ -79,10 +75,8 @@ const AccumulatedSimilarityGraph: React.FC = () => {
                     <td>
                       {from?.label} ↔ {to?.label}
                     </td>
-                    <td className="text-red-600 font-medium">
-                      {e.similarity}%
-                    </td>
-                    <td className="text-blue-500">{e.count}회</td>
+                    <td className="text-danger font-bold">{e.similarity}%</td>
+                    <td className="text-primary font-bold">{e.count}회</td>
                   </tr>
                 );
               })}
@@ -91,7 +85,7 @@ const AccumulatedSimilarityGraph: React.FC = () => {
 
         {/* 하단: hover 정보 */}
         {hoverInfo && (
-          <div className="mt-4 p-3 border border-gray-200 rounded bg-gray-50 text-sm whitespace-pre-line text-gray-700">
+          <div className="mt-4 p-3 border border-gray-200 rounded bg-gray-50 whitespace-pre-line text-gray-700">
             {hoverInfo}
           </div>
         )}
