@@ -1,42 +1,39 @@
 import React from 'react';
-import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { FiCheck } from 'react-icons/fi';
+import { FiCheckCircle } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 const StepSuccess: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center h-[70vh] space-y-6">
-      {/* 체크 아이콘 */}
-      <div className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center">
-        <FiCheck className="text-white text-4xl" />
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-10 px-4 text-center">
+      {/* 아이콘 영역 */}
+      <FiCheckCircle className="text-green-500 text-9xl" />
 
-      {/* 텍스트 */}
-      <Text
-        variant="heading"
-        weight="bold"
-        className="text-black text-3xl text-center"
-      >
+      {/* 완료 텍스트 */}
+      <Text variant="heading" weight="bold" className="text-4xl text-gray-800">
         회원가입이 완료되었습니다!
       </Text>
-      <Text variant="body" className="text-gray-600 text-center">
+
+      {/* 부가 설명 */}
+      <Text variant="body" className="text-gray-600">
         지금 바로 Codify의 기능을 사용해보세요.
       </Text>
 
       {/* 버튼 */}
-      <div className="flex gap-4 mt-4">
+      <div className="flex gap-4 mt-2">
         <Button
           text="홈으로 가기"
           variant="secondary"
+          size="large"
           onClick={() => navigate('/')}
         />
         <Button
           text="로그인하러 가기"
           variant="primary"
+          size="large"
           onClick={() => navigate('/login')}
         />
       </div>

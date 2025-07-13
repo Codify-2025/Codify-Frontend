@@ -10,7 +10,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
   return (
     <div className="mb-8">
       {/* 막대 전체 */}
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
+      <div className="w-full h-2 bg-lightGray rounded-full overflow-hidden mb-4">
         <div
           className="h-full bg-black transition-all duration-300"
           style={{
@@ -20,7 +20,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
       </div>
 
       {/* 단계별 텍스트 */}
-      <div className="flex justify-between text-sm text-gray-600">
+      <div className="flex justify-between text-gray-600">
         {steps.map((label, index) => (
           <div key={index} className="flex-1 text-center">
             <span

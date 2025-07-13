@@ -1,26 +1,25 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import Layout from '@components/Layout';
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const location = useLocation();
-  const navigate = useNavigate();
 
-  // ResultPage, Dashboard 등에서 넘어온 경우 구분
   const from = location.state?.from ?? '/';
   const fromResultPage = from === 'result' || from === 'compare';
   const fromDashboard = from === '/dashboard';
 
-  // 상황별 문구 지정
   const headline = fromResultPage
     ? '로그인하여 분석 결과 저장하기'
     : fromDashboard
       ? '대시보드 이용을 위해 로그인해주세요'
-      : 'Codify 로그인';
+      : '로그인';
 
   const subtext = fromResultPage
     ? '로그인이 필요한 서비스입니다.'
@@ -30,75 +29,75 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = () => {
     console.log('로그인 시도:', { email, password });
-
-    // 로그인 성공 시 원래 경로로 이동
     if (fromResultPage) {
-      navigate(-1); // Result 또는 Compare 페이지로
+      navigate(-1);
     } else {
-      navigate(from, { replace: true }); // 대시보드 or 홈 등
+      navigate(from, { replace: true });
     }
-
-    // TODO: 실제 로그인 API 연동
   };
 
   return (
     <Layout>
-      <div className="flex h-screen">
-        {/* 좌측: 로그인 폼 */}
-        <div className="flex-1 flex flex-col justify-center items-center px-8 space-y-5">
-          <Text variant="body" className="text-lg text-gray-700">
-            {subtext}
-          </Text>
-          <Text variant="heading" weight="bold" className="text-3xl text-black">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] py-16 px-6 text-center space-y-10 max-w-xl mx-auto">
+        {/* 상단 텍스트 로고 */}
+        <Text
+          variant="heading"
+          weight="bold"
+          className="text-4xl sm:text-5xl md:text-6xl text-black border-b-2 border-dashed border-[#E0E0E0] py-4 px-4"
+        >
+          🚀 Codify
+        </Text>
+
+        {/* 안내 텍스트 */}
+        <div className="space-y-2">
+          <Text variant="heading" weight="bold" className="text-blue-600">
             {headline}
           </Text>
-
-          <input
-            type="email"
-            placeholder="이메일을 입력하세요"
-            className="w-full max-w-sm border border-gray-300 rounded px-4 py-3 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="비밀번호를 입력하세요"
-            className="w-full max-w-sm border border-gray-300 rounded px-4 py-3 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <Button
-            text="계속"
-            onClick={handleLogin}
-            className="w-full max-w-sm mt-2 bg-black text-white"
-          />
-
-          <div className="my-3 w-full max-w-sm border-t" />
-
-          <div className="text-xs text-gray-600 text-center space-y-2">
-            <div>
-              계정이 없으신가요?{' '}
-              <a href="/signup" className="underline font-medium">
-                가입하기
-              </a>
-            </div>
-            <div>
-              <a href="/reset-password" className="underline font-medium">
-                비밀번호 찾기
-              </a>
-            </div>
-          </div>
+          <p className="text-gray-500 leading-relaxed">{subtext}</p>
         </div>
 
-        {/* 우측: 이미지 영역 */}
-        <div className="hidden md:flex flex-1 justify-center items-center bg-white">
-          <img
-            src="/login-visual.png"
-            alt="login visual"
-            className="max-w-md"
+        {/* 입력 영역 */}
+        <div className="w-full space-y-6">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일 입력"
+            className="w-full border-b-2 border-gray-300 focus:border-black text-lg py-3 placeholder-gray-400"
           />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호 입력"
+            className="w-full border-b-2 border-gray-300 focus:border-black text-lg py-3 placeholder-gray-400"
+          />
+        </div>
+
+        {/* 로그인 버튼 */}
+        <Button
+          text="로그인"
+          onClick={handleLogin}
+          size="large"
+          className="w-full mt-4"
+        />
+
+        {/* 보조 링크 */}
+        <div className="space-y-2 text-gray-600">
+          <div>
+            계정이 없으신가요?{' '}
+            <a href="/signup" className="underline font-medium text-blue-600">
+              가입하기
+            </a>
+          </div>
+          <div>
+            <a
+              href="/reset-password"
+              className="underline font-medium text-blue-600"
+            >
+              비밀번호 찾기
+            </a>
+          </div>
         </div>
       </div>
     </Layout>
