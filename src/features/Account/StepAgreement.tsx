@@ -39,7 +39,7 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
       </div>
 
       <div
-        className={`flex bg-blue-50 w-full rounded-xl p-6 items-center rounded-lg cursor-pointer text-lg ${
+        className={`flex w-full rounded-xl p-6 items-center cursor-pointer text-lg ${
           allChecked ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
         }`}
         onClick={() => handleAllChange(!allChecked)}
