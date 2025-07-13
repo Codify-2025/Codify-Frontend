@@ -42,36 +42,36 @@ const PlagiarismDecisionPage: React.FC = () => {
     <Layout>
       <div className="max-w-3xl mx-auto px-10 py-20 space-y-16">
         {/* 제목 */}
-        <Text
-          variant="heading"
-          weight="bold"
-          className="text-4xl leading-relaxed"
-        >
-          <span className="text-blue-500">{fileA.label}</span>과{' '}
-          <span className="text-blue-500">{fileB.label}</span>를<br />
-          <span className="text-red-500">표절</span>로 판단하시겠습니까?
-        </Text>
+        <div className="space-y-4">
+          <Text variant="heading" weight="bold" className="text-4xl">
+            <span className="text-blue-500">{fileA.label}</span>과{' '}
+            <span className="text-blue-500">{fileB.label}</span>를
+          </Text>
+          <Text
+            variant="heading"
+            weight="bold"
+            className="text-4xl text-red-500"
+          >
+            표절로 판단하시겠습니까?
+          </Text>
+        </div>
 
         {/* 유사도 + 제출 시간 */}
         <div className="flex justify-between items-start">
-          <div>
-            <Text variant="caption" color="gray" className="text-lg">
+          <div className="flex flex-col gap-2">
+            <Text variant="body" color="gray" className="text-lg">
               유사도
             </Text>
-            <Text
-              variant="heading"
-              weight="bold"
-              className="text-red-500 text-5xl"
-            >
+            <Text variant="heading" weight="bold" color="danger">
               {(similarity * 100).toFixed(0)}%
             </Text>
           </div>
 
-          <div>
-            <Text variant="caption" color="gray" className="text-lg">
+          <div className="flex flex-col gap-1">
+            <Text variant="body" color="gray">
               제출 시간
             </Text>
-            <div className="mt-2 space-y-2 text-base">
+            <div className="mt-2 space-y-2 text-lg">
               <div>
                 <span className="font-bold mr-2">{fileA.label}</span>
                 <span className="text-blue-500">{fileA.submittedAt}</span>
@@ -97,11 +97,13 @@ const PlagiarismDecisionPage: React.FC = () => {
           <Button
             text="표절 아님"
             variant="secondary"
+            size="large"
             onClick={() => handleDecision(false)}
           />
           <Button
             text="표절로 저장"
             variant="danger"
+            size="large"
             onClick={() => handleDecision(true)}
           />
         </div>

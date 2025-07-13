@@ -72,8 +72,8 @@ const ResultPage: React.FC = () => {
         </h1>
 
         {/* 파이차트 + 설명 */}
-        <div className="grid grid-cols-2 gap-8 mb-12">
-          <div className="bg-white p-4 rounded shadow">
+        <div className="flex flex-col lg:flex-row gap-8 mb-12">
+          <div className="bg-white p-4 rounded shadow flex-1 min-h-[300px]">
             <SimilarityPieChart
               passedCount={2}
               failedCount={1}
@@ -84,7 +84,7 @@ const ResultPage: React.FC = () => {
               }}
             />
           </div>
-          <div className="bg-blue-50 text-blue-700 p-4 rounded shadow whitespace-pre-line text-lg">
+          <div className="bg-blue-50 text-blue-700 p-4 rounded shadow flex-1 text-lg whitespace-pre-line min-h-[300px]">
             {hoveredFiles.length > 0
               ? hoveredFiles
                   .map((f) => `📄 ${f.label} (${f.submittedAt})`)
@@ -95,8 +95,8 @@ const ResultPage: React.FC = () => {
 
         {/* 유사도 네트워크 그래프 */}
         <div className="mb-3">
-          <Text variant="body" weight="bold" className="text-xl mb-2">
-            유사도 네트워크
+          <Text variant="heading" weight="bold" className="mb-3">
+            유사도 네트워크 그래프
           </Text>
           <div className="bg-white p-4 rounded shadow">
             <SimilarityGraph
@@ -147,13 +147,18 @@ const ResultPage: React.FC = () => {
         </div>
 
         {/* 설명 */}
-        <div className="bg-blue-50 text-blue-700 p-4 rounded text-lg whitespace-pre-line shadow mb-8">
-          {hoverInfo ||
+        <div className="bg-blue-50 text-blue-700 p-4 rounded text-lg whitespace-pre-wrap shadow mb-8">
+          {hoverInfo?.split('\n').map((line, idx) => <p key={idx}>{line}</p>) ||
             '그래프에서 노드(파일)나 엣지(유사도)를 선택하면 상세 정보가 여기에 표시됩니다.'}
         </div>
 
         <div className="flex justify-end">
-          <Button text="결과 저장하기" variant="primary" onClick={handleSave} />
+          <Button
+            text="결과 저장하기"
+            variant="primary"
+            size="large"
+            onClick={handleSave}
+          />
         </div>
       </div>
     </Layout>

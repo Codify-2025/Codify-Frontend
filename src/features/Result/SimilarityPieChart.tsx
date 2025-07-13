@@ -1,4 +1,3 @@
-// src/features/Result/SimilarityPieChart.tsx
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 
@@ -21,41 +20,47 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
   ];
 
   const handleMouseEnter = (data: { name: string; value: number }) => {
-    if (onHover) onHover(data.name);
+    onHover?.(data.name);
   };
 
   return (
     <div className="flex flex-col items-center">
-      <h3 className="text-2xl font-bold mb-4">1차 필터링 결과</h3>
+      <h3 className="text-2xl font-bold mb-4" aria-label="1차 필터링 결과">
+        1차 필터링 결과
+      </h3>
       <p className="text-base text-gray-700 mb-5 text-center leading-relaxed">
         설정된 유사도 임계값을 기준으로 사전 필터링된 결과입니다. <br />
         기준 초과 파일 {passedCount}개, 기준 이하 파일 {failedCount}개의 비율을
         확인하세요.
       </p>
 
-      <PieChart width={300} height={300}>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          outerRadius={110}
-          dataKey="value"
-          onMouseEnter={handleMouseEnter}
-          label={({ name, percent }) =>
-            `${name} ${(percent * 100).toFixed(0)}%`
-          }
-        >
-          {data.map((entry, index) => (
-            <Cell
-              key={index}
-              fill={COLORS[index % COLORS.length]}
-              stroke="#ffffff"
-              strokeWidth={2}
-            />
-          ))}
-        </Pie>
-        <Tooltip />
-      </PieChart>
+      <div className="flex flex-col items-center w-full">
+        <div className="w-full flex justify-center">
+          <PieChart width={260} height={260} className="mx-auto">
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              outerRadius={110}
+              dataKey="value"
+              onMouseEnter={handleMouseEnter}
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={index}
+                  fill={COLORS[index % COLORS.length]}
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </div>
+      </div>
     </div>
   );
 };
