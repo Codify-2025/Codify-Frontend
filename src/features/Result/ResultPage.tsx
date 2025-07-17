@@ -11,9 +11,11 @@ import { dummyFiles } from '@constants/dummyFiles';
 import { useLocation } from 'react-router-dom';
 import { useSavedRecordStore } from '@stores/useSavedRecordStore';
 import { useAuthStore } from '@stores/useAuthStore';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 const ResultPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
+  const { selectedSubject } = useSubjectStore();
   const navigate = useNavigate();
   const { setFiles, setSelectedFiles } = useSelectedFileStore();
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
@@ -64,6 +66,12 @@ const ResultPage: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-8 py-10 text-base">
+        {/* 과목명 - 작게 상단 표시 */}
+        {selectedSubject?.name && (
+          <div className="text-medium mb-4 py-2 px-4 bg-blue-100 rounded-md w-fit">
+            📚 과목명: {selectedSubject.name}
+          </div>
+        )}
         <h1 className="text-4xl font-bold text-black mb-10">
           <span className="text-blue-500">
             {name} ({week}주차)

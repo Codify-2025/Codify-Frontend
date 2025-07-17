@@ -8,6 +8,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 const getWeekNumber = (date: Date) => {
   const copied = new Date(date.getTime());
@@ -37,6 +38,7 @@ const getAssignmentWeek = (start: Date): number => {
 
 const AssignmentWeekPage: React.FC = () => {
   const { name: assignmentName, setDates, setWeek } = useAssignmentStore();
+  const { selectedSubject } = useSubjectStore();
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -64,9 +66,12 @@ const AssignmentWeekPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col items-start justify-start px-6 py-16 space-y-12 w-full max-w-4xl mx-auto">
-        {/* 상단 진행 정보 영역 */}
+        {/* 상단 정보 영역 */}
         <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
           <Text variant="body" weight="bold" color="primary">
+            {selectedSubject?.name && (
+              <span className="text-gray">{selectedSubject.name} </span>
+            )}
             <span className="text-black">{assignmentName}</span> 과제 유사도
             분석 진행
           </Text>
