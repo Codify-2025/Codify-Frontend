@@ -1,6 +1,6 @@
 import React from 'react';
 import Text from '@components/Text';
-import { useSubjectStore } from '@stores/subjectStore';
+import { useSubjectStore } from '@stores/useSubjectStore';
 import AccumulatedSimilarityGraph from './AccumulatedSimilarityGraph';
 import SavedAnalysisSection from './History/SavedAnalysisSection';
 import { useEffect } from 'react';

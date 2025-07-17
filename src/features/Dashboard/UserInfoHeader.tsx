@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Button from '@components/Button';
 import { FiEdit2 } from 'react-icons/fi';
 import BirthdateEditModal from './BirthdateEditModal';
-import { useSubjectStore } from '@stores/subjectStore';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 interface Subject {
   name: string;

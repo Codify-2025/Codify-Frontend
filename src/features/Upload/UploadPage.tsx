@@ -3,12 +3,14 @@ import Layout from '@components/Layout';
 import FileUpload from './FileUpload';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { useAssignmentStore } from '@stores/assignmentStore';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useNavigate } from 'react-router-dom';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const { name, week } = useAssignmentStore();
+  const { selectedSubject } = useSubjectStore();
 
   const handleStartAnalysis = () => {
     navigate('/analysis/loading');
@@ -20,9 +22,12 @@ const UploadPage: React.FC = () => {
         {/* 상단 정보 영역 */}
         <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
           <Text variant="body" weight="bold" color="primary">
+            {selectedSubject?.name && (
+              <span className="text-gray">{selectedSubject.name} </span>
+            )}
             <span className="text-black">
-              {name} ({week}주차)
-            </span>{' '}
+              {name}-{week}주차{' '}
+            </span>
             과제 유사도 분석 진행
           </Text>
           <Text variant="body" weight="medium" color="gray">
