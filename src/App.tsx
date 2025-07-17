@@ -14,12 +14,14 @@ import DashboardPage from '@features/Dashboard/DashboardPage';
 import LoginPage from '@features/Account/LoginPage';
 import HomePage from '@features/Home/HomePage';
 import SignupPage from '@features/Account/SignupPage';
+import SubjectSelectPage from '@features/Assignment/SubjectSelectpage';
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/assignment/subject" element={<SubjectSelectPage />} />
         <Route path="/assignment/name" element={<AssignmentNamePage />} />
         <Route path="/assignment/week" element={<AssignmentWeekPage />} />
         <Route path="/upload" element={<UploadPage />} />

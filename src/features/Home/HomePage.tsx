@@ -32,7 +32,7 @@ const HomePage: React.FC = () => {
                 text="유사도 분석 시작하기"
                 variant="primary"
                 className="text-lg font-semibold px-12 py-4 text-white text-2xl !rounded-full shadow-lg"
-                onClick={() => navigate('/assignment/name')}
+                onClick={() => navigate('/assignment/subject')}
               />
             </div>
           </section>

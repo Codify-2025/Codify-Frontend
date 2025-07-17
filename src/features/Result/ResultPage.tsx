@@ -4,7 +4,7 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import SimilarityPieChart from './SimilarityPieChart';
 import SimilarityGraph from './SimilarityGraph';
-import { useAssignmentStore } from '@stores/assignmentStore';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useNavigate } from 'react-router-dom';
 import { dummyFiles } from '@constants/dummyFiles';

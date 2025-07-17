@@ -6,7 +6,7 @@ import Toggle from '@components/Toggle';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { useAssignmentStore } from '@stores/assignmentStore';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 
 const getWeekNumber = (date: Date) => {

@@ -3,7 +3,7 @@ import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import { useNavigate } from 'react-router-dom';
-import { useAssignmentStore } from '@stores/assignmentStore';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 
 const AssignmentNamePage: React.FC = () => {

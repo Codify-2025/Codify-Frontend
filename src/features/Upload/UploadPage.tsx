@@ -3,7 +3,7 @@ import Layout from '@components/Layout';
 import FileUpload from './FileUpload';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { useAssignmentStore } from '@stores/assignmentStore';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useNavigate } from 'react-router-dom';
 
 const UploadPage: React.FC = () => {
