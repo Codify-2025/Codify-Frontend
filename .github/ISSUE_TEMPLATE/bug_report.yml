@@ -1,5 +1,5 @@
 name: 🐞 Bug Report
-description: "버그를 발견했을 때 작성해 주세요"
+description: '버그를 발견했을 때 작성해 주세요'
 labels: [bug]
 body:
   - type: textarea
@@ -7,7 +7,7 @@ body:
     attributes:
       label: 💥 문제 설명
       description: 무엇이 잘못되었는지 명확하게 설명해 주세요.
-      placeholder: 예: 버튼을 눌렀는데 아무 동작이 없음
+      placeholder: '예: 버튼을 눌렀는데 아무 동작이 없음'
     validations:
       required: true
 
@@ -33,4 +33,4 @@ body:
     id: environment
     attributes:
       label: 🧪 환경 정보
-      placeholder: 예: Chrome 114, iOS 16, Flutter 3.22 등
+      placeholder: '예: Chrome 114, iOS 16, Flutter 3.22 등'
