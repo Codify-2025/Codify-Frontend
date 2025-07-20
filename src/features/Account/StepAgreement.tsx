@@ -116,7 +116,7 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
       {modalContent === 'privacy' && (
         <TermsModal
           title="개인정보 수집 및 이용"
-          content={`1. 수집 항목: 이메일, 닉네임, 생년월일, 아이디, 비밀번호 등
+          content={`1. 수집 항목: 이메일, 닉네임, 아이디, 비밀번호 등
 2. 수집 목적: 사용자 식별, 유사도 분석 결과 제공
 3. 보유 기간: 회원 탈퇴 시까지 보관
 ...`}
