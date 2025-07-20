@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import Layout from '@components/Layout';
 import StepAgreement from './StepAgreement';
 import StepNickname from './StepNickname';
-import StepBirth from './StepBirth';
 import StepCredentials from './StepCredentials';
 import StepSuccess from './StepSuccess';
 import ProgressBar from './ProgressBar';
-import { SignupFormData } from 'types/signup'; // 타입 import
+import { SignupFormData } from 'types/signup';
 
 const SignupPage: React.FC = () => {
   const [step, setStep] = useState(0);
@@ -15,7 +14,6 @@ const SignupPage: React.FC = () => {
     agree1: false,
     agree2: false,
     nickname: '',
-    birth: '',
     id: '',
     password: '',
   });
@@ -31,7 +29,7 @@ const SignupPage: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-xl mx-auto px-4 py-12">
-        {step < 4 && <ProgressBar currentStep={step} />}
+        {step < 3 && <ProgressBar currentStep={step} />}
 
         {step === 0 && (
           <StepAgreement
@@ -49,14 +47,6 @@ const SignupPage: React.FC = () => {
           />
         )}
         {step === 2 && (
-          <StepBirth
-            onNext={goNext}
-            onBack={goBack}
-            formData={formData}
-            setFormData={setFormData}
-          />
-        )}
-        {step === 3 && (
           <StepCredentials
             onNext={goNext}
             onBack={goBack}
@@ -64,7 +54,7 @@ const SignupPage: React.FC = () => {
             setFormData={setFormData}
           />
         )}
-        {step === 4 && <StepSuccess />}
+        {step === 3 && <StepSuccess />}
       </div>
     </Layout>
   );

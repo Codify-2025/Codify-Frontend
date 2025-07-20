@@ -1,10 +1,10 @@
 import React from 'react';
 
 interface ProgressBarProps {
-  currentStep: number; // 0~3까지만 표시 (4는 성공 화면이라 제외)
+  currentStep: number;
 }
 
-const steps = ['약관 동의', '닉네임', '생년월일', '계정 정보'];
+const steps = ['약관 동의', '닉네임', '계정 정보'];
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep }) => {
   return (
