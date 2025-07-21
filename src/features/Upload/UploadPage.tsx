@@ -47,6 +47,25 @@ const UploadPage: React.FC = () => {
             ※ 업로드 가능한 파일 형식:{' '}
             <span className="font-bold">.cpp, .zip</span>
           </div>
+
+          {/* 주의 사항 */}
+          <div className="bg-yellow-50 text-gray-700 p-3 rounded-md leading-relaxed space-y-1 shadow-sm">
+            <p>
+              📌 파일명은 반드시 <strong>학번_이름.cpp</strong> 형식으로 제출해
+              주세요.
+            </p>
+            <p>
+              📦 zip 파일을 업로드할 경우 내부 파일명이 동일한 형식을 따라야
+              합니다.
+            </p>
+            <p>
+              ❗ 형식을 따르지 않으면 파일명 전체가 학번 및 이름으로 저장됩니다.
+            </p>
+            <p>
+              🕒 제출일자는 각 파일의 <strong>최종 수정일자</strong> 기준이며,
+              zip 파일은 <strong>압축 파일의 수정일</strong>을 사용합니다.
+            </p>
+          </div>
         </div>
 
         {/* 파일 업로드 컴포넌트 */}

@@ -11,6 +11,9 @@ interface FileData {
   id: string;
   file: File;
   status: 'uploading' | 'success' | 'error';
+  studentId?: string;
+  studentName?: string;
+  submittedAt?: Date;
 }
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
@@ -23,13 +26,11 @@ const FileUpload: React.FC = () => {
   const [existingFile, setExistingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // 파일 선택 이벤트
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
     handleFileProcessing(newFiles);
   };
 
-  // 드래그 앤 드롭 이벤트
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
@@ -41,7 +42,6 @@ const FileUpload: React.FC = () => {
     handleFileProcessing(newFiles);
   };
 
-  // 파일 처리 함수
   const handleFileProcessing = async (newFiles: File[]) => {
     for (const file of newFiles) {
       const extension = file.name
@@ -55,51 +55,98 @@ const FileUpload: React.FC = () => {
       }
 
       if (extension === '.zip') {
-        const isValidZip = await validateZipFile(file);
-        if (!isValidZip) {
-          setNotification('지원하지 않는 파일 형식이 포함되어 있습니다.');
+        const extracted = await extractFilesFromZip(file);
+
+        const nonDuplicate = extracted.filter(
+          (e) =>
+            !files.some(
+              (f) =>
+                f.studentId === e.studentId && f.studentName === e.studentName
+            )
+        );
+
+        if (nonDuplicate.length === 0) {
+          setNotification('모든 파일이 이미 업로드되어 있습니다.');
           setTimeout(() => setNotification(null), 3000);
           continue;
         }
+
+        setFiles((prev) => [...prev, ...nonDuplicate]);
+
+        setTimeout(() => {
+          setFiles((prev) =>
+            prev.map((f) =>
+              nonDuplicate.some((e) => e.id === f.id)
+                ? { ...f, status: 'success' }
+                : f
+            )
+          );
+        }, 3000);
+      } else {
+        const isDuplicate = files.some((f) => f.file.name === file.name);
+        if (isDuplicate) {
+          setDuplicateFile(file);
+          setExistingFile(file);
+          return;
+        }
+        addFile(file);
       }
-
-      const existing = files.find((f) => f.file.name === file.name);
-
-      if (existing) {
-        setDuplicateFile(file);
-        setExistingFile(existing.file);
-        return;
-      }
-
-      addFile(file);
     }
   };
 
-  // .zip 파일 내부 검사 함수
-  const validateZipFile = async (file: File): Promise<boolean> => {
+  const extractFilesFromZip = async (zipFile: File): Promise<FileData[]> => {
     try {
       const zip = new JSZip();
-      const content = await zip.loadAsync(file);
-      const entries = Object.keys(content.files);
+      const content = await zip.loadAsync(zipFile);
+      const extractedFiles: FileData[] = [];
 
-      for (const entry of entries) {
-        const extension = entry.slice(entry.lastIndexOf('.')).toLowerCase();
-        if (extension !== '.cpp') return false;
+      const cppEntries = Object.entries(content.files).filter(
+        ([name, file]) => !file.dir && name.toLowerCase().endsWith('.cpp')
+      );
+
+      for (const [filename] of cppEntries) {
+        const baseName = filename.substring(filename.lastIndexOf('/') + 1);
+        const nameWithoutExt = baseName.replace(/\.[^/.]+$/, '');
+        const [studentId, studentName] = nameWithoutExt.split('_');
+        const fallback = nameWithoutExt;
+
+        extractedFiles.push({
+          id: `${zipFile.name}-${filename}-${Date.now()}`,
+          file: new File([], baseName),
+          status: 'uploading',
+          studentId: studentId || fallback,
+          studentName: studentName || fallback,
+          submittedAt: new Date(zipFile.lastModified),
+        });
       }
 
-      return true;
+      return extractedFiles;
     } catch (error) {
-      console.error('ZIP 파일 분석 에러:', error);
-      return false;
+      console.error('ZIP 처리 실패:', error);
+      return [];
     }
   };
 
-  // 파일 추가 함수
+  const extractFileMeta = (file: File) => {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const [studentId, studentName] = nameWithoutExt.split('_');
+
+    return {
+      studentId: studentId || nameWithoutExt,
+      studentName: studentName || nameWithoutExt,
+      submittedAt: new Date(file.lastModified),
+    };
+  };
+
   const addFile = (file: File) => {
+    const { studentId, studentName, submittedAt } = extractFileMeta(file);
     const newFile: FileData = {
       id: `${file.name}-${Date.now()}`,
       file,
       status: 'uploading',
+      studentId,
+      studentName,
+      submittedAt,
     };
 
     setFiles((prev) => [...prev, newFile]);
@@ -111,45 +158,32 @@ const FileUpload: React.FC = () => {
     }, 3000);
   };
 
-  // 체크박스 선택/해제
   const handleSelectFile = (id: string) => {
     setSelectedFiles((prev) =>
       prev.includes(id) ? prev.filter((fileId) => fileId !== id) : [...prev, id]
     );
   };
 
-  // 전체 선택/해제
   const handleSelectAll = () => {
-    if (selectedFiles.length === files.length) {
-      setSelectedFiles([]);
-    } else {
-      setSelectedFiles(files.map((file) => file.id));
-    }
+    setSelectedFiles(
+      selectedFiles.length === files.length ? [] : files.map((f) => f.id)
+    );
   };
 
-  // 선택된 파일 삭제
   const handleDeleteSelected = () => {
-    setFiles((prev) => prev.filter((file) => !selectedFiles.includes(file.id)));
+    setFiles((prev) => prev.filter((f) => !selectedFiles.includes(f.id)));
     setSelectedFiles([]);
   };
 
-  // 모달에서 파일 선택 시
   const handleFileSelection = (selectedFile: File) => {
-    if (selectedFile === duplicateFile) {
-      // 새 파일 업로드 선택 시, 기존 파일 삭제 후 새 파일 추가
-      if (existingFile) {
-        setFiles((prev) =>
-          prev.filter((f) => f.file.name !== existingFile.name)
-        );
-        addFile(duplicateFile);
-      }
+    if (selectedFile === duplicateFile && existingFile) {
+      setFiles((prev) => prev.filter((f) => f.file.name !== existingFile.name));
+      addFile(duplicateFile);
     }
-
     setDuplicateFile(null);
     setExistingFile(null);
   };
 
-  // 모달 취소 시
   const handleModalCancel = () => {
     setDuplicateFile(null);
     setExistingFile(null);
@@ -166,7 +200,6 @@ const FileUpload: React.FC = () => {
         />
       )}
 
-      {/* 파일 업로드 영역 */}
       <div
         className="flex flex-col h-[350px] items-center justify-center border border-dotted border-gray rounded-xl bg-lightGray hover:bg-blue-50 transition p-6 cursor-pointer"
         onDragOver={handleDragOver}
@@ -175,8 +208,7 @@ const FileUpload: React.FC = () => {
       >
         <FiUploadCloud size={40} className="text-primary mb-2" />
         <p className="text-gray text-center text-base">
-          이곳에 파일을 드래그하거나 <br />
-          클릭하여 업로드하세요
+          이곳에 파일을 드래그하거나 <br /> 클릭하여 업로드하세요
         </p>
         <input
           type="file"
@@ -188,7 +220,6 @@ const FileUpload: React.FC = () => {
         />
       </div>
 
-      {/* 파일 목록 영역 */}
       <div className="flex flex-col w-1/2 md:w-3/5 lg:w-2/3 ">
         {notification && <Notification message={notification} type="warning" />}
         <div className="flex justify-between items-center mb-3">
