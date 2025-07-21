@@ -8,6 +8,7 @@ interface FileData {
   studentId?: string;
   studentName?: string;
   submittedAt?: Date;
+  isFromZip?: boolean;
 }
 
 interface FileItemProps {
@@ -32,10 +33,9 @@ const formatDate = (date?: Date): string => {
 };
 
 const FileItem: React.FC<FileItemProps> = ({ fileData, onRemove }) => {
-  const { file, status, studentId, studentName, submittedAt } = fileData;
+  const { file, status, studentId, studentName, submittedAt, isFromZip } =
+    fileData;
   const [progress, setProgress] = useState(0);
-
-  const isFromZip = file.name.includes('.zip');
 
   useEffect(() => {
     if (status === 'uploading') {

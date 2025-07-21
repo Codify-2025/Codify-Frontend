@@ -14,6 +14,7 @@ interface FileData {
   studentId?: string;
   studentName?: string;
   submittedAt?: Date;
+  isFromZip?: boolean;
 }
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
@@ -61,7 +62,9 @@ const FileUpload: React.FC = () => {
           (e) =>
             !files.some(
               (f) =>
-                f.studentId === e.studentId && f.studentName === e.studentName
+                f.studentId === e.studentId &&
+                f.studentName === e.studentName &&
+                f.file.name === e.file.name
             )
         );
 
@@ -107,16 +110,26 @@ const FileUpload: React.FC = () => {
       for (const [filename] of cppEntries) {
         const baseName = filename.substring(filename.lastIndexOf('/') + 1);
         const nameWithoutExt = baseName.replace(/\.[^/.]+$/, '');
-        const [studentId, studentName] = nameWithoutExt.split('_');
+        const underscoreIndex = nameWithoutExt.indexOf('_');
+        const studentId =
+          underscoreIndex !== -1
+            ? nameWithoutExt.substring(0, underscoreIndex)
+            : '';
+        const studentName =
+          underscoreIndex !== -1
+            ? nameWithoutExt.substring(underscoreIndex + 1)
+            : '';
         const fallback = nameWithoutExt;
 
+        const fileBlob = await content.files[filename].async('blob');
         extractedFiles.push({
           id: `${zipFile.name}-${filename}-${Date.now()}`,
-          file: new File([], baseName),
+          file: new File([fileBlob], baseName, { type: 'text/plain' }),
           status: 'uploading',
           studentId: studentId || fallback,
           studentName: studentName || fallback,
           submittedAt: new Date(zipFile.lastModified),
+          isFromZip: true,
         });
       }
 
