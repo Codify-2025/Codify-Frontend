@@ -7,6 +7,8 @@ import SimilarityCompletePage from '@features/Similarity/SimilarityCompletePage'
 import ResultPage from '@features/Result/ResultPage';
 import './index.css';
 import 'react-tooltip/dist/react-tooltip.css';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 import ComparePage from '@features/Compare/\bComparePage';
 import PlagiarismDecisionPage from '@features/Result/PlagiarismDecisionPage';
 import ResultSaveCompletePage from '@features/Result/ResultSaveCompletePage';
