@@ -96,6 +96,12 @@ export interface compareResponseData {
   student2: compareStudent;
 }
 
+export interface compareApiResponse {
+  status: number;
+  success: boolean;
+  message: compareResponseData;
+}
+
 /// 표절 판단
 
 export interface judgeStudent {
@@ -118,21 +124,7 @@ export interface judgeApiResponse {
 
 /// 결과 저장
 
-export interface saveStudent {
-  id: string;
-  name: string;
-  submittedTime: string;
-}
-
-export interface saveResponseData {
-  userId: string;
-  plagiarize: boolean;
-  student1: saveStudent;
-  student2: saveStudent;
-}
-
 export interface saveApiResponse {
   status: number;
   success: boolean;
-  message: saveResponseData;
 }
