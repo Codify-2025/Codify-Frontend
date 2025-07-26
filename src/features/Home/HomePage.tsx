@@ -4,6 +4,7 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import Layout from '@components/Layout';
 import { useAuthStore } from '@stores/useAuthStore';
+import FeatureSlider from '@components/FeatureSlider';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,46 +39,7 @@ const HomePage: React.FC = () => {
           </section>
 
           {/* 기능 소개 Section */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            {[
-              {
-                icon: '🔗',
-                title: '유사도 네트워크',
-                desc: '제출자 간 유사도를 시각적으로 보여줍니다.',
-              },
-              {
-                icon: '🧠',
-                title: '코드 비교 뷰어',
-                desc: '두 코드의 구조와 내용을 줄 단위로 비교합니다.',
-              },
-              {
-                icon: '💾',
-                title: '저장 및 관리',
-                desc: '과제별 분석 결과를 저장하고 쉽게 관리하세요.',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="bg-white rounded-2xl shadow-md p-10 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
-              >
-                <div className="flex justify-center items-center w-16 h-16 mx-auto mb-5 rounded-full bg-blue-100 text-3xl">
-                  {item.icon}
-                </div>
-                <Text
-                  as="h3"
-                  variant="subtitle"
-                  weight="medium"
-                  color="gray"
-                  className="mb-1"
-                >
-                  {item.title}
-                </Text>
-                <Text as="p" variant="caption" color="gray">
-                  {item.desc}
-                </Text>
-              </div>
-            ))}
-          </section>
+          <FeatureSlider />
 
           {/* Call to Action */}
           {!isLoggedIn && (
