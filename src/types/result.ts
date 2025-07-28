@@ -26,7 +26,7 @@ export interface graphFilteredPair {
 export interface graphResponseData {
   nodes: graphNode[];
   filterSummary: graphFilterSummary;
-  filteredPairs: graphFilteredPair[];
+  filteredPairs: graphFilteredPair;
 }
 
 export interface graphApiResponse {
@@ -62,7 +62,7 @@ export interface topologyEdge {
   value: number;
   width: number;
   comparedFiles: string;
-  histories: topologyEdgeHistory;
+  histories: topologyEdgeHistory[];
 }
 
 export interface topologyResponseData {

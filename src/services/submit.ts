@@ -7,6 +7,12 @@ import {
   viewSubjectApiResponse,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
+import { addSubjectMock } from 'mocks/addSubjectMock';
+import { viewSubjectMock } from 'mocks/viewSubjectMock';
+import { addAssignmentMock } from 'mocks/addAssignmentMock';
+import { addWeekMock } from 'mocks/addWeekMock';
+import { uploadMock } from 'mocks/uploadMock';
+import { analyzeMock } from 'mocks/analyzeMock';
 
 /// 새로운 과목 추가
 
@@ -17,7 +23,12 @@ export interface addSubjectRequest {
 export const addSubject = async (
   { subjectName }: addSubjectRequest,
   token: string
-) => {
+): Promise<addSubjectApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return addSubjectMock;
+  }
+
   const formData = new FormData();
   formData.append('subjectName', subjectName);
 
@@ -33,7 +44,14 @@ export const addSubject = async (
 
 /// 기존 과목 조회
 
-export const fetchSubject = async (token: string) => {
+export const fetchSubject = async (
+  token: string
+): Promise<viewSubjectApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return viewSubjectMock;
+  }
+
   const response = await axiosInstance.get<viewSubjectApiResponse>(
     `api/submit/subjects`,
     {
@@ -53,7 +71,12 @@ export interface addAssignmentRequest {
 export const addAssignment = async (
   { assignmentId, assignmentName }: addAssignmentRequest,
   token: string
-) => {
+): Promise<addAssignmentApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return addAssignmentMock;
+  }
+
   const formData = new FormData();
   formData.append('assignmentId', assignmentId);
   formData.append('assignmentName', assignmentName);
@@ -80,7 +103,12 @@ export interface addWeekRequest {
 export const addWeek = async (
   { assignmentId, startDate, endDate, weekTitle }: addWeekRequest,
   token: string
-) => {
+): Promise<addWeekApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return addWeekMock;
+  }
+
   const formData = new FormData();
   formData.append('assignmentId', String(assignmentId));
   formData.append('startDate', startDate);
@@ -147,6 +175,11 @@ export const submitUploadMetadata = async (
   data: UploadMetadataRequest,
   token: string
 ): Promise<uploadApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return uploadMock;
+  }
+
   const response = await axiosInstance.post<uploadApiResponse>(
     `api/submit/upload`,
     data,
@@ -161,7 +194,14 @@ export const submitUploadMetadata = async (
 
 /// 유사도 분석
 
-export const fetchAnalyze = async (token: string) => {
+export const fetchAnalyze = async (
+  token: string
+): Promise<analyzeApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return analyzeMock;
+  }
+
   const response = await axiosInstance.get<analyzeApiResponse>(
     `api/submit/analyze`,
     {

@@ -77,7 +77,7 @@ export interface MainSubject {
 }
 
 export interface MainResponseData {
-  user: MainUser[];
+  user: MainUser;
   testCount: number; // 진행한 유사도 검사 횟수
   subjects: MainSubject[];
 }

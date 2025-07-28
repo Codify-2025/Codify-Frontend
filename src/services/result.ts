@@ -6,6 +6,11 @@ import {
   topologyApiResponse,
 } from 'types/result';
 import axiosInstance from './axiosInstance';
+import { graphMock } from 'mocks/graphMock';
+import { topologyMock } from 'mocks/topologyMock';
+import { compareMock } from 'mocks/compareMock';
+import { judgeMock } from 'mocks/judgeMock';
+import { saveMock } from 'mocks/saveMock';
 
 /// 유사도 분석 결과 그래프
 
@@ -17,7 +22,12 @@ export interface fetchGraphRequest {
 export const fetchGraph = async (
   { assignmentId, weekTitle }: fetchGraphRequest,
   token: string
-) => {
+): Promise<graphApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return graphMock;
+  }
+
   const response = await axiosInstance.get<graphApiResponse>(
     `api/result/graph`,
     {
@@ -33,7 +43,12 @@ export const fetchGraph = async (
 export const fetchTopology = async (
   { assignmentId, weekTitle }: fetchGraphRequest,
   token: string
-) => {
+): Promise<topologyApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return topologyMock;
+  }
+
   const response = await axiosInstance.get<topologyApiResponse>(
     `api/result/topology`,
     {
@@ -54,7 +69,12 @@ export interface compareRequest {
 export const fetchCompare = async (
   { student1, student2 }: compareRequest,
   token: string
-) => {
+): Promise<compareApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return compareMock;
+  }
+
   const response = await axiosInstance.get<compareApiResponse>(
     `api/result/compare`,
     {
@@ -70,7 +90,12 @@ export const fetchCompare = async (
 export const fetchJudge = async (
   { student1, student2 }: compareRequest,
   token: string
-) => {
+): Promise<judgeApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return judgeMock;
+  }
+
   const response = await axiosInstance.get<judgeApiResponse>(
     `api/result/judge`,
     {
@@ -99,7 +124,12 @@ export interface saveRequest {
 export const save = async (
   { userId, plagiarize, student1, student2 }: saveRequest,
   token: string
-) => {
+): Promise<saveApiResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return saveMock;
+  }
+
   const formData = new FormData();
   formData.append('userId', userId);
   formData.append('plagiarize', String(plagiarize));

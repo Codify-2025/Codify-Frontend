@@ -9,7 +9,7 @@ export interface addSubjectApiResponse {
   isSuccess: boolean;
   code: string;
   message: string;
-  result: addSubjectResult[];
+  result: addSubjectResult;
 }
 
 /// 기존 과목 조회
@@ -32,7 +32,7 @@ export interface addAssignmentApiResponse {
   isSuccess: boolean;
   code: string;
   message: string;
-  result: addAssignmentResult[];
+  result: addAssignmentResult;
 }
 
 /// 주차 생성
