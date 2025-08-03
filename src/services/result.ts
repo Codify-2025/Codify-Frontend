@@ -6,11 +6,11 @@ import {
   topologyApiResponse,
 } from 'types/result';
 import axiosInstance from './axiosInstance';
-import { graphMock } from 'mocks/graphMock';
-import { topologyMock } from 'mocks/topologyMock';
-import { compareMock } from 'mocks/compareMock';
-import { judgeMock } from 'mocks/judgeMock';
-import { saveMock } from 'mocks/saveMock';
+import { graphMock } from '@mocks/graphMock';
+import { topologyMock } from '@mocks/topologyMock';
+import { compareMock } from '@mocks/compareMock';
+import { judgeMock } from '@mocks/judgeMock';
+import { saveMock } from '@mocks/saveMock';
 
 /// 유사도 분석 결과 그래프
 

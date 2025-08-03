@@ -4,9 +4,9 @@ import {
   RecordApiResponse,
 } from 'types/dashboard';
 import axiosInstance from './axiosInstance';
-import { accumulatedMock } from 'mocks/accumulatedMock';
-import { recordMock } from 'mocks/recordMock';
-import { mainMock } from 'mocks/mainMock';
+import { accumulatedMock } from '@mocks/accumulatedMock';
+import { recordMock } from '@mocks/recordMock';
+import { mainMock } from '@mocks/mainMock';
 
 /// 누적 네트워크 토폴로지
 

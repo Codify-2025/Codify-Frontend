@@ -7,12 +7,12 @@ import {
   viewSubjectApiResponse,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
-import { addSubjectMock } from 'mocks/addSubjectMock';
-import { viewSubjectMock } from 'mocks/viewSubjectMock';
-import { addAssignmentMock } from 'mocks/addAssignmentMock';
-import { addWeekMock } from 'mocks/addWeekMock';
-import { uploadMock } from 'mocks/uploadMock';
-import { analyzeMock } from 'mocks/analyzeMock';
+import { addSubjectMock } from '@mocks/addSubjectMock';
+import { viewSubjectMock } from '@mocks/viewSubjectMock';
+import { addAssignmentMock } from '@mocks/addAssignmentMock';
+import { addWeekMock } from '@mocks/addWeekMock';
+import { uploadMock } from '@mocks/uploadMock';
+import { analyzeMock } from '@mocks/analyzeMock';
 
 /// 새로운 과목 추가
 
