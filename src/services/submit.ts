@@ -157,7 +157,7 @@ export const uploadFileToS3 = async (presignedUrl: string, file: File) => {
   await fetch(presignedUrl, {
     method: 'PUT',
     headers: {
-      'Conent-Type': file.type,
+      'Content-Type': file.type,
     },
     body: file,
   });

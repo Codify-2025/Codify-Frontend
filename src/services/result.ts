@@ -133,8 +133,8 @@ export const save = async (
   const formData = new FormData();
   formData.append('userId', userId);
   formData.append('plagiarize', String(plagiarize));
-  formData.append('student1', String(student1));
-  formData.append('student2', String(student2));
+  formData.append('student1', JSON.stringify(student1));
+  formData.append('student2', JSON.stringify(student2));
 
   const response = await axiosInstance.post<saveApiResponse>(
     `api/result/save`,
