@@ -24,7 +24,7 @@ export interface viewSubjectApiResponse {
 // 과제 생성
 
 export interface addAssignmentResult {
-  assignmentId: number;
+  assignmentId: string;
   message: string;
 }
 

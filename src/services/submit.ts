@@ -29,16 +29,17 @@ export const addSubject = async (
     return addSubjectMock;
   }
 
-  const formData = new FormData();
-  formData.append('subjectName', subjectName);
-
   const response = await axiosInstance.post<addSubjectApiResponse>(
     `/api/submit/subjects`,
-    formData,
+    { subjectName },
     {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     }
   );
+
   return response.data;
 };
 
@@ -64,12 +65,12 @@ export const fetchSubject = async (
 /// 과제 생성
 
 export interface addAssignmentRequest {
-  assignmentId: string;
+  subjectName: string;
   assignmentName: string;
 }
 
 export const addAssignment = async (
-  { assignmentId, assignmentName }: addAssignmentRequest,
+  { subjectName, assignmentName }: addAssignmentRequest,
   token: string
 ): Promise<addAssignmentApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
@@ -77,15 +78,14 @@ export const addAssignment = async (
     return addAssignmentMock;
   }
 
-  const formData = new FormData();
-  formData.append('assignmentId', assignmentId);
-  formData.append('assignmentName', assignmentName);
-
   const response = await axiosInstance.post<addAssignmentApiResponse>(
-    `/api/submit/assignment`,
-    formData,
+    `api/submit/assignment`,
+    { subjectName, assignmentName },
     {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     }
   );
   return response.data;
@@ -94,7 +94,7 @@ export const addAssignment = async (
 /// 주차 생성
 
 export interface addWeekRequest {
-  assignmentId: number;
+  assignmentId: string;
   startDate: string;
   endDate: string;
   weekTitle: number;
@@ -109,17 +109,19 @@ export const addWeek = async (
     return addWeekMock;
   }
 
-  const formData = new FormData();
-  formData.append('assignmentId', String(assignmentId));
-  formData.append('startDate', startDate);
-  formData.append('endDate', endDate);
-  formData.append('weekTitle', String(weekTitle));
-
   const response = await axiosInstance.post<addWeekApiResponse>(
     `/api/submit/week`,
-    formData,
     {
-      headers: { Authorization: `Bearer ${token}` },
+      assignmentId,
+      startDate,
+      endDate,
+      weekTitle,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     }
   );
   return response.data;
@@ -164,7 +166,7 @@ export const uploadFileToS3 = async (presignedUrl: string, file: File) => {
 };
 
 export interface UploadMetadataRequest {
-  assignmentId: number;
+  assignmentId: string;
   fileName: string;
   s3Key: string;
   fileType: string;
@@ -186,6 +188,7 @@ export const submitUploadMetadata = async (
     {
       headers: {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     }
   );
