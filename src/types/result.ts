@@ -45,7 +45,7 @@ export interface topologyRelatedFiles {
 export interface topologyNode {
   id: string;
   label: string;
-  fildeName: string;
+  fileName: string;
   submittedAt: string;
   relatedFiles: topologyRelatedFiles[];
 }

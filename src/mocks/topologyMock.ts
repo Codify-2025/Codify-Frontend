@@ -8,7 +8,7 @@ export const topologyMock: topologyApiResponse = {
       {
         id: '21000000',
         label: '학생 1',
-        fildeName: '학생1.cpp',
+        fileName: '학생1.cpp',
         submittedAt: '2025-03-29 17:10',
         relatedFiles: [
           {
@@ -24,7 +24,7 @@ export const topologyMock: topologyApiResponse = {
       {
         id: '21000001',
         label: '학생2',
-        fildeName: '학생2.cpp',
+        fileName: '학생2.cpp',
         submittedAt: '2025-03-29 17:11',
         relatedFiles: [
           {
@@ -40,7 +40,7 @@ export const topologyMock: topologyApiResponse = {
       {
         id: '21000002',
         label: '학생3',
-        fildeName: '학생3.cpp',
+        fileName: '학생3.cpp',
         submittedAt: '2025-03-29 17:12',
         relatedFiles: [
           {
