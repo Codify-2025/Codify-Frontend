@@ -33,7 +33,7 @@ export const addSubject = async (
   formData.append('subjectName', subjectName);
 
   const response = await axiosInstance.post<addSubjectApiResponse>(
-    `api/submit/subjects`,
+    `/api/submit/subjects`,
     formData,
     {
       headers: { Authorization: `Bearer ${token}` },
@@ -53,7 +53,7 @@ export const fetchSubject = async (
   }
 
   const response = await axiosInstance.get<viewSubjectApiResponse>(
-    `api/submit/subjects`,
+    `/api/submit/subjects`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
@@ -82,7 +82,7 @@ export const addAssignment = async (
   formData.append('assignmentName', assignmentName);
 
   const response = await axiosInstance.post<addAssignmentApiResponse>(
-    `api/submit/assignment`,
+    `/api/submit/assignment`,
     formData,
     {
       headers: { Authorization: `Bearer ${token}` },
@@ -116,7 +116,7 @@ export const addWeek = async (
   formData.append('weekTitle', String(weekTitle));
 
   const response = await axiosInstance.post<addWeekApiResponse>(
-    `api/submit/week`,
+    `/api/submit/week`,
     formData,
     {
       headers: { Authorization: `Bearer ${token}` },
@@ -142,7 +142,7 @@ export const getPresignedUrl = async (
   token: string
 ): Promise<PresignedUrlResponse> => {
   const response = await axiosInstance.post<PresignedUrlResponse>(
-    `api/s3/presign`, // 실제 백엔드 presigned URL 발급 API 경로로 수정 필요
+    `/api/s3/presign`, // 실제 백엔드 presigned URL 발급 API 경로로 수정 필요
     { fileName, contentType },
     {
       headers: {
@@ -181,7 +181,7 @@ export const submitUploadMetadata = async (
   }
 
   const response = await axiosInstance.post<uploadApiResponse>(
-    `api/submit/upload`,
+    `/api/submit/upload`,
     data,
     {
       headers: {
@@ -203,7 +203,7 @@ export const fetchAnalyze = async (
   }
 
   const response = await axiosInstance.get<analyzeApiResponse>(
-    `api/submit/analyze`,
+    `/api/submit/analyze`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
