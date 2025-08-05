@@ -14,7 +14,7 @@ const AssignmentNamePage: React.FC = () => {
   const navigate = useNavigate();
   const token = useAccessToken();
 
-  const { setName } = useAssignmentStore();
+  const { setName, setAssignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
 
   const { mutate: addAssignment, isLoading } = useAddAssignment(token);
@@ -29,9 +29,10 @@ const AssignmentNamePage: React.FC = () => {
         assignmentName: trimmedName,
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
+          const id = res.result.assignmentId;
           setName(trimmedName); // store에 저장
-          // assignmentId 저장 필요 시 추후에 로직 추가
+          setAssignmentId(id); // assignmentId 저장
           navigate('/assignment/week');
         },
         onError: () => {
