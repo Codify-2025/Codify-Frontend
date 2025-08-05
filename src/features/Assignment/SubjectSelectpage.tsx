@@ -51,14 +51,20 @@ const SubjectSelectPage: React.FC = () => {
       addSubject(
         { subjectName: trimmedName },
         {
-          onSuccess: () => {
-            const newSubject = {
-              name: trimmedName,
-              code: `SUBJ-${Date.now()}`,
-            };
-            setSelectedSubject(newSubject);
-            queryClient.invalidateQueries(['subjects']);
-            navigate('/assignment/name');
+          onSuccess: (data) => {
+            if (data.isSuccess && data.result) {
+              const { subjectId } = data.result;
+
+              setSelectedSubject({
+                name: trimmedName,
+                code: subjectId.toString(),
+              });
+
+              queryClient.invalidateQueries(['subjects']);
+              navigate('/assignment/name');
+            } else {
+              alert('과목 추가 응답이 올바르지 않습니다.');
+            }
           },
           onError: () => {
             alert('과목 추가에 실패했습니다.');
