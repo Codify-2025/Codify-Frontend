@@ -164,13 +164,19 @@ export const getPresignedUrl = async (
 };
 
 export const uploadFileToS3 = async (presignedUrl: string, file: File) => {
-  await fetch(presignedUrl, {
+  const response = await fetch(presignedUrl, {
     method: 'PUT',
     headers: {
       'Content-Type': file.type,
     },
     body: file,
   });
+
+  if (!response.ok) {
+    throw new Error(
+      `S3 업로드 실패: ${response.status} ${response.statusText}`
+    );
+  }
 };
 
 export interface UploadMetadataRequest {
