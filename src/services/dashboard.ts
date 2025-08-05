@@ -40,7 +40,7 @@ export const fetchRecord = async (
   }
 
   const response = await axiosInstance.get<RecordApiResponse>(
-    `api/dashboard/record`,
+    `/api/dashboard/record`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
@@ -57,7 +57,7 @@ export const fetchMain = async (token: string): Promise<MainApiResponse> => {
   }
 
   const response = await axiosInstance.get<MainApiResponse>(
-    `api/dashboard/main`,
+    `/api/dashboard/main`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
