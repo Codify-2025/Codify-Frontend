@@ -9,6 +9,8 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 import { useSubjectStore } from '@stores/useSubjectStore';
+import { useAccessToken } from '@hooks/useAccessToken';
+import { useAddWeek } from '@hooks/useAddWeek';
 
 const getWeekNumber = (date: Date) => {
   const copied = new Date(date.getTime());
@@ -37,14 +39,22 @@ const getAssignmentWeek = (start: Date): number => {
 };
 
 const AssignmentWeekPage: React.FC = () => {
-  const { name: assignmentName, setDates, setWeek } = useAssignmentStore();
+  const {
+    name: assignmentName,
+    assignmentId,
+    setDates,
+    setWeek,
+  } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
+  const token = useAccessToken();
+  const navigate = useNavigate();
+
+  const { mutate: addWeek, isLoading } = useAddWeek(token);
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [manualWeek, setManualWeek] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
-  const navigate = useNavigate();
 
   const calculatedWeek = startDate ? getAssignmentWeek(startDate) : 1;
 
@@ -58,9 +68,24 @@ const AssignmentWeekPage: React.FC = () => {
       return;
     }
 
-    setDates(startDate, endDate);
-    setWeek(weekNumber);
-    navigate('/upload');
+    addWeek(
+      {
+        assignmentId: assignmentId!,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        weekTitle: weekNumber,
+      },
+      {
+        onSuccess: () => {
+          setDates(startDate, endDate);
+          setWeek(weekNumber);
+          navigate('/upload');
+        },
+        onError: () => {
+          alert('주차 생성에 실패했습니다.');
+        },
+      }
+    );
   };
 
   return (
@@ -149,7 +174,7 @@ const AssignmentWeekPage: React.FC = () => {
             variant="primary"
             size="large"
             onClick={handleNext}
-            disabled={!startDate || !endDate}
+            disabled={!startDate || !endDate || isLoading}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
           />
