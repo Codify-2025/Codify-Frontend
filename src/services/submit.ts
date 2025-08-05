@@ -143,6 +143,14 @@ export const getPresignedUrl = async (
   { fileName, contentType }: PresignedUrlRequest,
   token: string
 ): Promise<PresignedUrlResponse> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return {
+      url: 'https://mock-presigned-url.com',
+      key: `mock-key-${fileName}`,
+    };
+  }
+
   const response = await axiosInstance.post<PresignedUrlResponse>(
     `/api/s3/presign`, // 실제 백엔드 presigned URL 발급 API 경로로 수정 필요
     { fileName, contentType },
