@@ -4,7 +4,7 @@ import { RecordApiResponse } from 'types/dashboard';
 
 export const useRecord = (token: string) => {
   return useQuery<RecordApiResponse>({
-    queryKey: ['record'],
+    queryKey: ['record', token],
     queryFn: () => fetchRecord(token),
     enabled: !!token,
     staleTime: 1000 * 60 * 5,
