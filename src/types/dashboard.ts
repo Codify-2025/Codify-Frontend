@@ -33,7 +33,7 @@ export interface RecordNode {
   submittedAt: string; // 제출 시간
 }
 
-export interface ReactWeekHistory {
+export interface RecordWeekHistory {
   submittedFrom: string;
   submittedTo: string;
   similarity: number;
@@ -45,7 +45,7 @@ export interface RecordWeekEdge {
   to: string;
   value: number;
   width: number;
-  histories: ReactWeekHistory[];
+  histories: RecordWeekHistory[];
 }
 
 export interface RecordEdge {
