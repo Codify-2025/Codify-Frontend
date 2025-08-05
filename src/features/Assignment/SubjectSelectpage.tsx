@@ -5,42 +5,39 @@ import Button from '@components/Button';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiSearch } from 'react-icons/fi';
 import { useSubjectStore } from '@stores/useSubjectStore';
-
-const dummySubjects = [
-  { name: '자료구조', code: 'CS101' },
-  { name: '운영체제', code: 'CS102' },
-  { name: '알고리즘', code: 'CS103' },
-  { name: '캡스톤디자인', code: 'CS401' },
-  { name: '인공지능', code: 'CS201' },
-  { name: '컴퓨터비전', code: 'CS202' },
-  { name: '딥러닝', code: 'CS203' },
-  { name: '블록체인', code: 'CS204' },
-  { name: '컴파일러', code: 'CS205' },
-  { name: '컴퓨터네트워크', code: 'CS206' },
-  { name: '웹프로그래밍', code: 'CS207' },
-];
+import { useQueryClient } from 'react-query';
+import { useSubjects } from '@hooks/useSubjects';
+import { useAddSubject } from '@hooks/useAddSubject';
+import { useAccessToken } from '@hooks/useAccessToken';
 
 const SubjectSelectPage: React.FC = () => {
   const [newSubjectName, setNewSubjectName] = useState('');
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
   const { setSelectedSubject } = useSubjectStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const filteredSubjects = dummySubjects.filter((subject) =>
-    subject.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const token = useAccessToken();
+  const { data: subjectData, isLoading } = useSubjects(token);
+  const { mutate: addSubject, isLoading: isAdding } = useAddSubject(token);
+
+  const subjects = subjectData?.result ?? [];
+
+  const filteredSubjects = subjects.filter((name) =>
+    name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSelect = (subject: (typeof dummySubjects)[number]) => {
-    if (selectedCode === subject.code) {
+  const handleSelect = (name: string) => {
+    if (selectedName === name) {
       // 이미 선택된 항목을 다시 클릭한 경우 선택 해제
-      setSelectedCode(null);
+      setSelectedName(null);
       setNewSubjectName('');
       setSelectedSubject(null);
     } else {
-      setSelectedCode(subject.code);
-      setNewSubjectName(subject.name);
-      setSelectedSubject(subject);
+      setSelectedName(name);
+      setNewSubjectName(name);
+      setSelectedSubject({ name, code: name });
     }
   };
 
@@ -48,15 +45,32 @@ const SubjectSelectPage: React.FC = () => {
     const trimmedName = newSubjectName.trim();
     if (!trimmedName) return;
 
-    if (selectedCode) {
+    if (selectedName) {
       navigate('/assignment/name');
     } else {
-      const newSubject = {
-        name: trimmedName,
-        code: `SUBJ-${Date.now()}`,
-      };
-      setSelectedSubject(newSubject);
-      navigate('/assignment/name');
+      addSubject(
+        { subjectName: trimmedName },
+        {
+          onSuccess: (data) => {
+            if (data.isSuccess && data.result) {
+              const { subjectId } = data.result;
+
+              setSelectedSubject({
+                name: trimmedName,
+                code: subjectId.toString(),
+              });
+
+              queryClient.invalidateQueries(['subjects']);
+              navigate('/assignment/name');
+            } else {
+              alert('과목 추가 응답이 올바르지 않습니다.');
+            }
+          },
+          onError: () => {
+            alert('과목 추가에 실패했습니다.');
+          },
+        }
+      );
     }
   };
 
@@ -108,18 +122,22 @@ const SubjectSelectPage: React.FC = () => {
             {/* 과목 리스트 (가로 스크롤) */}
             <div className="w-full max-w-3xl overflow-x-auto pt-1">
               <div className="flex gap-3 min-w-max pr-4 pb-2">
-                {filteredSubjects.length > 0 ? (
-                  filteredSubjects.map((subject) => (
+                {isLoading ? (
+                  <Text variant="caption" color="gray">
+                    불러오는 중...
+                  </Text>
+                ) : filteredSubjects.length > 0 ? (
+                  filteredSubjects.map((name) => (
                     <button
-                      key={subject.code}
-                      onClick={() => handleSelect(subject)}
+                      key={name}
+                      onClick={() => handleSelect(name)}
                       className={`px-4 py-2 rounded-full border whitespace-nowrap transition ${
-                        selectedCode === subject.code
+                        selectedName === name
                           ? 'bg-blue-500 text-white border-blue-500'
                           : 'border-gray-300 text-gray-700 hover:border-blue-300'
                       }`}
                     >
-                      {subject.name}
+                      {name}
                     </button>
                   ))
                 ) : (
@@ -142,7 +160,7 @@ const SubjectSelectPage: React.FC = () => {
               value={newSubjectName}
               onChange={(e) => {
                 setNewSubjectName(e.target.value);
-                setSelectedCode(null); // 기존 선택 해제
+                setSelectedName(null); // 기존 선택 해제
               }}
               className="w-full py-3 px-4 border-b border-gray-300 text-xl focus:outline-none placeholder:text-gray-400"
             />
@@ -156,7 +174,7 @@ const SubjectSelectPage: React.FC = () => {
             variant="primary"
             size="large"
             onClick={handleNext}
-            disabled={!isValid}
+            disabled={!isValid || isAdding}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
           />
