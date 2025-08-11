@@ -6,18 +6,40 @@ import { useNavigate } from 'react-router-dom';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 import { useSubjectStore } from '@stores/useSubjectStore';
+import { useAccessToken } from '@hooks/useAccessToken';
+import { useAddAssignment } from '@hooks/useAddAssignment';
 
 const AssignmentNamePage: React.FC = () => {
-  const [name, setNameInput] = useState('');
+  const [inputName, setInputName] = useState('');
   const navigate = useNavigate();
-  const { setName } = useAssignmentStore();
+  const token = useAccessToken();
+
+  const { setName, setAssignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
 
+  const { mutate: addAssignment, isLoading } = useAddAssignment(token);
+
   const handleNext = () => {
-    if (name.trim()) {
-      setName(name.trim());
-      navigate('/assignment/week');
-    }
+    const trimmedName = inputName.trim();
+    if (!trimmedName || !selectedSubject) return;
+
+    addAssignment(
+      {
+        subjectName: selectedSubject.name,
+        assignmentName: trimmedName,
+      },
+      {
+        onSuccess: (res) => {
+          const id = res.result.assignmentId;
+          setName(trimmedName); // store에 저장
+          setAssignmentId(id); // assignmentId 저장
+          navigate('/assignment/week');
+        },
+        onError: () => {
+          alert('과제 생성에 실패했습니다.');
+        },
+      }
+    );
   };
 
   return (
@@ -46,8 +68,8 @@ const AssignmentNamePage: React.FC = () => {
             <input
               type="text"
               placeholder="과제명"
-              value={name}
-              onChange={(e) => setNameInput(e.target.value)}
+              value={inputName}
+              onChange={(e) => setInputName(e.target.value)}
               className="flex-grow py-3 px-1 focus:outline-none text-xl placeholder:text-gray-400"
             />
           </div>
@@ -59,7 +81,7 @@ const AssignmentNamePage: React.FC = () => {
             variant="primary"
             size="large"
             onClick={handleNext}
-            disabled={!name.trim()}
+            disabled={!inputName.trim() || isLoading}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
           />
