@@ -48,19 +48,6 @@ export interface addWeekApiResponse {
   result: addWeekResult;
 }
 
-/// 파일 업로드
-
-export interface uploadResult {
-  message: string;
-}
-
-export interface uploadApiResponse {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-  result: uploadResult;
-}
-
 /// 유사도 분석
 
 export interface analyzeResponseData {
