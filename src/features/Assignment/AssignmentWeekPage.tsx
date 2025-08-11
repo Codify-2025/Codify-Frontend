@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
@@ -57,6 +57,14 @@ const AssignmentWeekPage: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<string>('');
 
   const calculatedWeek = startDate ? getAssignmentWeek(startDate) : 1;
+
+  // assignmentId null check
+  useEffect(() => {
+    if (!assignmentId) {
+      alert('과제를 먼저 생성해주세요.');
+      navigate('/assignment/name');
+    }
+  }, [assignmentId, navigate]);
 
   const handleNext = () => {
     const weekNumber = manualWeek ? Number(selectedWeek) : calculatedWeek;
