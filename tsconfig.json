@@ -17,7 +17,8 @@
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"],
       "@constants/*": ["constants/*"],
-      "@mocks/*": ["mocks/*"]
+      "@mocks/*": ["mocks/*"],
+      "@typings/*": ["types/*"]
     },
     "types": ["react", "react-dom", "vite/client"],
     "skipLibCheck": true

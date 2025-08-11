@@ -3,7 +3,6 @@ import {
   addSubjectApiResponse,
   addWeekApiResponse,
   analyzeApiResponse,
-  uploadApiResponse,
   viewSubjectApiResponse,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
@@ -11,7 +10,6 @@ import { addSubjectMock } from '@mocks/addSubjectMock';
 import { viewSubjectMock } from '@mocks/viewSubjectMock';
 import { addAssignmentMock } from '@mocks/addAssignmentMock';
 import { addWeekMock } from '@mocks/addWeekMock';
-import { uploadMock } from '@mocks/uploadMock';
 import { analyzeMock } from '@mocks/analyzeMock';
 
 /// 새로운 과목 추가
@@ -117,88 +115,6 @@ export const addWeek = async (
       endDate,
       weekTitle,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  return response.data;
-};
-
-/// 파일 업로드
-
-export interface PresignedUrlRequest {
-  fileName: string;
-  contentType: string;
-}
-
-export interface PresignedUrlResponse {
-  url: string; // presigned upload URL
-  key: string; // S3 object key
-}
-
-export const getPresignedUrl = async (
-  { fileName, contentType }: PresignedUrlRequest,
-  token: string
-): Promise<PresignedUrlResponse> => {
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    return {
-      url: 'https://mock-presigned-url.com',
-      key: `mock-key-${fileName}`,
-    };
-  }
-
-  const response = await axiosInstance.post<PresignedUrlResponse>(
-    `/api/s3/presign`, // 실제 백엔드 presigned URL 발급 API 경로로 수정 필요
-    { fileName, contentType },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-  return response.data;
-};
-
-export const uploadFileToS3 = async (presignedUrl: string, file: File) => {
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': file.type,
-    },
-    body: file,
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `S3 업로드 실패: ${response.status} ${response.statusText}`
-    );
-  }
-};
-
-export interface UploadMetadataRequest {
-  assignmentId: string;
-  fileName: string;
-  s3Key: string;
-  fileType: string;
-  uploadAt: string;
-}
-
-export const submitUploadMetadata = async (
-  data: UploadMetadataRequest,
-  token: string
-): Promise<uploadApiResponse> => {
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    return uploadMock;
-  }
-
-  const response = await axiosInstance.post<uploadApiResponse>(
-    `/api/submit/upload`,
-    data,
     {
       headers: {
         Authorization: `Bearer ${token}`,
