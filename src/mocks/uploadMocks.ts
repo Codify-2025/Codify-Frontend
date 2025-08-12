@@ -31,11 +31,11 @@ export function makePresignedPostMock(fileName: string): PresignedResp {
     method: 'POST',
     url: `https://mock-s3.local/uploads`,
     fields: {
-      key: `uploads/2/${id}/${fileName}`,
+      key: `uploads/2/${id}/${encodeURIComponent(fileName)}`,
       Policy: 'mock-policy',
       'X-Amz-Signature': 'mock-sign',
     },
-    s3Key: `uploads/2/${id}/${fileName}`,
+    s3Key: `uploads/2/${id}/${encodeURIComponent(fileName)}`,
   };
 }
 
