@@ -1,10 +1,8 @@
 import type { PresignedResp } from 'types/upload';
 
 const uuid = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID)
     return crypto.randomUUID();
-  }
-  // fallback for older browsers
   return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -12,49 +10,57 @@ const uuid = () => {
   });
 };
 
+// 파일명에 /, \ 같은 경로 구분자가 들어올 경우를 대비해 최소한의 정규화
+const normalizeName = (name: string) => name.replace(/[\\/]/g, '_');
+
+const makeS3Key = (id: string, fileName: string) =>
+  `uploads/2/${id}/${fileName}`;
+
 // Presigned (PUT)
 export function makePresignedPutMock(fileName: string): PresignedResp {
+  const safeName = normalizeName(fileName);
   const id = uuid();
+  const s3Key = makeS3Key(id, safeName);
+
   return {
     method: 'PUT',
-    url: `https://mock-s3.local/uploads/2/${id}/${encodeURIComponent(fileName)}`,
+    url: `https://mock-s3.local/uploads/2/${id}/${encodeURIComponent(safeName)}`,
     headers: { 'x-amz-meta-demo': 'codify' },
-    s3Key: `uploads/2/${id}/${fileName}`,
+    s3Key,
   };
 }
 
 // Presigned (POST)
 export function makePresignedPostMock(fileName: string): PresignedResp {
+  const safeName = normalizeName(fileName);
   const id = uuid();
+  const s3Key = makeS3Key(id, safeName);
+
   return {
     method: 'POST',
     url: `https://mock-s3.local/uploads`,
     fields: {
-      key: `uploads/2/${id}/${encodeURIComponent(fileName)}`,
+      key: s3Key,
       Policy: 'mock-policy',
       'X-Amz-Signature': 'mock-sign',
     },
-    s3Key: `uploads/2/${id}/${encodeURIComponent(fileName)}`,
+    s3Key,
   };
 }
 
-// S3 업로드 시뮬레이션(진행률 콜백 호출 + ETag 반환)
+// S3 업로드 시뮬레이션(진행률 콜백 + 취소 지원)
 export async function simulateS3UploadMock(
   onProgress?: (pct: number) => void,
   signal?: AbortSignal
 ): Promise<{ etag?: string }> {
   for (let p = 0; p <= 100; p += 20) {
-    if (signal?.aborted) {
-      // 실제 axios 취소와 동일한 형태로 던지기
-      throw new DOMException('Aborted', 'AbortError');
-    }
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     onProgress?.(p);
     await new Promise((r) => setTimeout(r, 120));
   }
   return { etag: `mock-etag-${uuid()}` };
 }
 
-// /api/upload 성공 응답
 export const registerUploadSuccessMock = {
   isSuccess: true,
   code: 'COMMON200',
@@ -62,7 +68,6 @@ export const registerUploadSuccessMock = {
   result: { message: '파일이 성공적으로 업로드되었습니다.' },
 };
 
-// 실패 응답
 export const registerUploadErrorMock = {
   isSuccess: false,
   code: 'COMMON500',
