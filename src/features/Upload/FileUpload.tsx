@@ -1,3 +1,4 @@
+// FileUpload.tsx
 import React, { useState, useRef } from 'react';
 import JSZip from 'jszip';
 import FileItem from './FileItem';
@@ -18,25 +19,14 @@ interface FileData {
   submittedAt?: Date;
   isFromZip?: boolean;
 }
+type Meta = { studentId: number; studentName: string; submittedAt: Date };
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
 
 const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileData[]>([]);
   const { items, enqueue, cancel, start } = useUploader(3);
-
   const { assignmentId, week } = useAssignmentStore();
-
-  // 업로드 상태/진행률 매핑 헬퍼
-  const findUploaderIndex = (f: File) => items.findIndex((it) => it.file === f);
-  const getStage = (f: File) => {
-    const i = findUploaderIndex(f);
-    return i >= 0 ? items[i].stage : undefined;
-  };
-  const getProgress = (f: File) => {
-    const i = findUploaderIndex(f);
-    return i >= 0 ? items[i].progress : 0;
-  };
 
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -44,188 +34,41 @@ const FileUpload: React.FC = () => {
   const [existingFile, setExistingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || []);
-    void handleFileProcessing(newFiles);
+  // 업로드 상태/진행률 매핑
+  const findUploaderIndex = (f: File) => items.findIndex((it) => it.file === f);
+  const getStage = (f: File) =>
+    findUploaderIndex(f) >= 0 ? items[findUploaderIndex(f)].stage : undefined;
+  const getProgress = (f: File) =>
+    findUploaderIndex(f) >= 0 ? items[findUploaderIndex(f)].progress : 0;
+
+  const showTimedNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const newFiles = Array.from(e.dataTransfer.files);
-    void handleFileProcessing(newFiles);
-  };
-
-  const handleFileProcessing = async (newFiles: File[]) => {
-    // 과제/주차 값 확인
+  const validateAssignmentContext = () => {
     if (!assignmentId || !week) {
-      setNotification(
+      showTimedNotification(
         '과제/주차 정보가 없습니다. 이전 단계에서 과제를 다시 선택해 주세요.'
       );
-      setTimeout(() => setNotification(null), 3000);
-      return;
+      return false;
     }
-
-    // 이번 add에서 추가될 파일과 메타를 한 번에 모으기
-    const batchFileDatas: FileData[] = [];
-    const metaMap = new Map<
-      File,
-      { studentId: number; studentName: string; submittedAt: Date }
-    >();
-
-    // 결과 집계용
-    const invalidFiles: string[] = []; // 미지원 확장자
-    const duplicateFiles: string[] = []; // 중복/이미 업로드
-    const addedFiles: string[] = []; // 실제 추가된 파일명
-
-    for (const file of newFiles) {
-      const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-
-      if (!SUPPORTED_EXTENSIONS.includes(ext)) {
-        invalidFiles.push(file.name);
-        continue;
-      }
-
-      if (ext === '.zip') {
-        const extracted = await extractFilesFromZip(file);
-
-        // 중복 제거 (기존 목록 + 이번 배치에 이미 담긴 것 모두와 비교)
-        const nonDuplicate = extracted.filter(
-          (e) =>
-            !files.some(
-              (f) =>
-                f.studentId === e.studentId &&
-                f.studentName === e.studentName &&
-                f.file.name === e.file.name
-            ) &&
-            !batchFileDatas.some(
-              (f) =>
-                f.studentId === e.studentId &&
-                f.studentName === e.studentName &&
-                f.file.name === e.file.name
-            )
-        );
-
-        if (nonDuplicate.length === 0) {
-          duplicateFiles.push(`${file.name} (압축 내 중복)`);
-          continue;
-        }
-
-        batchFileDatas.push(...nonDuplicate);
-        for (const e of nonDuplicate) {
-          metaMap.set(e.file, {
-            studentId: Number(e.studentId ?? 0) || 0,
-            studentName: e.studentName ?? 'Unknown',
-            submittedAt: e.submittedAt ?? new Date(),
-          });
-          addedFiles.push(e.file.name);
-        }
-      } else {
-        // 단일 .cpp
-        const { studentId, studentName, submittedAt } = extractFileMeta(file);
-        const newFD: FileData = {
-          id: `${file.name}-${Date.now()}`,
-          file,
-          status: 'uploading', // 표시용, 실제 진행은 훅 stage/progress로 반영
-          studentId,
-          studentName,
-          submittedAt,
-        };
-
-        // 중복 검사 (기존 목록 + 이번 배치)
-        const isDupInCurrent =
-          files.some(
-            (f) =>
-              f.file.name === file.name &&
-              f.studentId === newFD.studentId &&
-              f.studentName === newFD.studentName
-          ) ||
-          batchFileDatas.some(
-            (f) =>
-              f.file.name === file.name &&
-              f.studentId === newFD.studentId &&
-              f.studentName === newFD.studentName
-          );
-
-        if (isDupInCurrent) {
-          duplicateFiles.push(file.name);
-          continue;
-        }
-
-        batchFileDatas.push(newFD);
-        metaMap.set(file, {
-          studentId: Number(studentId ?? 0) || 0,
-          studentName: studentName ?? 'Unknown',
-          submittedAt,
-        });
-        addedFiles.push(file.name);
-      }
-    }
-
-    // 추가된 게 하나도 없으면, 집계 내용으로 알림을 한 번만 보여줌
-    if (batchFileDatas.length === 0) {
-      if (invalidFiles.length && !duplicateFiles.length) {
-        setNotification(
-          `지원하지 않는 파일 형식입니다: ${invalidFiles.join(', ')}`
-        );
-      } else if (!invalidFiles.length && duplicateFiles.length) {
-        setNotification('모든 파일이 이미 업로드되어 있습니다.');
-      } else if (invalidFiles.length && duplicateFiles.length) {
-        setNotification(
-          `모든 파일이 무시되었습니다. (중복 ${duplicateFiles.length}개, 미지원 ${invalidFiles.length}개)`
-        );
-      } else {
-        setNotification('추가된 파일이 없습니다.');
-      }
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
-
-    // 로컬 목록/UI 갱신
-    setFiles((prev) => [...prev, ...batchFileDatas]);
-
-    // 훅 큐에 한 번에 넣기
-    const batchFiles = batchFileDatas.map((b) => b.file);
-    enqueue(batchFiles);
-
-    // 딱 한 번 start 호출 (파일별 메타 파생)
-    start((fileObj) => {
-      const meta = metaMap.get(fileObj) ?? {
-        studentId: 0,
-        studentName: 'Unknown',
-        submittedAt: new Date(),
-      };
-      return {
-        assignmentId,
-        week,
-        submissionDate: meta.submittedAt,
-        studentId: meta.studentId,
-        studentName: meta.studentName,
-      };
-    });
-
-    // 혼합 상황(일부 추가/일부 중복/일부 미지원) 안내
-    if (invalidFiles.length || duplicateFiles.length) {
-      const parts: string[] = [];
-      if (addedFiles.length) parts.push(`${addedFiles.length}개 추가`);
-      if (duplicateFiles.length)
-        parts.push(`중복 ${duplicateFiles.length}개 제외`);
-      if (invalidFiles.length)
-        parts.push(`미지원 ${invalidFiles.length}개 제외`);
-      setNotification(parts.join(' · '));
-      setTimeout(() => setNotification(null), 3000);
-    }
+    return true;
   };
 
-  // 삭제 시 업로드 중이면 cancel 호출
-  const handleRemove = (fd: FileData) => {
-    const idx = findUploaderIndex(fd.file);
-    if (idx >= 0) cancel(idx);
-    setFiles((prev) => prev.filter((f) => f.id !== fd.id));
+  const isSupported = (file: File) => {
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    return SUPPORTED_EXTENSIONS.includes(ext);
+  };
+
+  const extractFileMeta = (file: File) => {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    const [studentId, studentName] = nameWithoutExt.split('_');
+    return {
+      studentId: studentId || nameWithoutExt,
+      studentName: studentName || nameWithoutExt,
+      submittedAt: new Date(file.lastModified),
+    };
   };
 
   const extractFilesFromZip = async (zipFile: File): Promise<FileData[]> => {
@@ -235,7 +78,7 @@ const FileUpload: React.FC = () => {
       const extractedFiles: FileData[] = [];
 
       const cppEntries = Object.entries(content.files).filter(
-        ([name, file]) => !file.dir && name.toLowerCase().endsWith('.cpp')
+        ([, f]) => !f.dir && f.name.toLowerCase().endsWith('.cpp')
       );
 
       for (const [filename] of cppEntries) {
@@ -251,8 +94,8 @@ const FileUpload: React.FC = () => {
             ? nameWithoutExt.substring(underscoreIndex + 1)
             : '';
         const fallback = nameWithoutExt;
-
         const fileBlob = await content.files[filename].async('blob');
+
         extractedFiles.push({
           id: `${zipFile.name}-${filename}-${Date.now()}`,
           file: new File([fileBlob], baseName, { type: 'text/plain' }),
@@ -263,26 +106,236 @@ const FileUpload: React.FC = () => {
           isFromZip: true,
         });
       }
-
       return extractedFiles;
-    } catch (error) {
-      console.error('ZIP 처리 실패:', error);
+    } catch (e) {
+      console.error('ZIP 처리 실패:', e);
       return [];
     }
   };
 
-  const extractFileMeta = (file: File) => {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-    const [studentId, studentName] = nameWithoutExt.split('_');
+  const showBatchNotification = (
+    invalid: string[],
+    duplicate: string[],
+    added: string[]
+  ) => {
+    if (added.length === 0) {
+      if (invalid.length && !duplicate.length) {
+        showTimedNotification(
+          `지원하지 않는 파일 형식입니다: ${invalid.join(', ')}`
+        );
+      } else if (!invalid.length && duplicate.length) {
+        showTimedNotification('모든 파일이 이미 업로드되어 있습니다.');
+      } else if (invalid.length && duplicate.length) {
+        showTimedNotification(
+          `모든 파일이 무시되었습니다. (중복 ${duplicate.length}개, 미지원 ${invalid.length}개)`
+        );
+      } else {
+        showTimedNotification('추가된 파일이 없습니다.');
+      }
+      return;
+    }
 
-    return {
-      studentId: studentId || nameWithoutExt,
-      studentName: studentName || nameWithoutExt,
-      submittedAt: new Date(file.lastModified),
-    };
+    // 일부만 추가된 혼합 케이스
+    const parts: string[] = [];
+    if (added.length) parts.push(`${added.length}개 추가`);
+    if (duplicate.length) parts.push(`중복 ${duplicate.length}개 제외`);
+    if (invalid.length) parts.push(`미지원 ${invalid.length}개 제외`);
+    if (parts.length) showTimedNotification(parts.join(' · '));
   };
 
-  // 기존 모달에서 "새 파일 업로드" 선택 시 사용 (로컬 목록만 교체)
+  const processSingleFile = (
+    file: File,
+    batch: FileData[],
+    metaMap: Map<File, Meta>,
+    results: { invalid: string[]; duplicate: string[]; added: string[] }
+  ) => {
+    // 미지원 확장자
+    if (!isSupported(file)) {
+      results.invalid.push(file.name);
+      return;
+    }
+
+    // .cpp만 들어오도록
+    if (!file.name.toLowerCase().endsWith('.cpp')) {
+      results.invalid.push(file.name);
+      return;
+    }
+
+    const { studentId, studentName, submittedAt } = extractFileMeta(file);
+    const newFD: FileData = {
+      id: `${file.name}-${Date.now()}`,
+      file,
+      status: 'uploading',
+      studentId,
+      studentName,
+      submittedAt,
+    };
+
+    // 중복 검사 (기존 목록 + 이번 배치)
+    const isDup =
+      files.some(
+        (f) =>
+          f.file.name === file.name &&
+          f.studentId === newFD.studentId &&
+          f.studentName === newFD.studentName
+      ) ||
+      batch.some(
+        (f) =>
+          f.file.name === file.name &&
+          f.studentId === newFD.studentId &&
+          f.studentName === newFD.studentName
+      );
+
+    if (isDup) {
+      results.duplicate.push(file.name);
+      // 모달 트리거
+      setDuplicateFile(file);
+      setExistingFile(file);
+      return;
+    }
+
+    batch.push(newFD);
+    metaMap.set(file, {
+      studentId: Number(studentId ?? 0) || 0,
+      studentName: studentName ?? 'Unknown',
+      submittedAt,
+    });
+    results.added.push(file.name);
+  };
+
+  const processZipFile = async (
+    zipFile: File,
+    batch: FileData[],
+    metaMap: Map<File, Meta>,
+    results: { invalid: string[]; duplicate: string[]; added: string[] }
+  ) => {
+    if (!isSupported(zipFile)) {
+      results.invalid.push(zipFile.name);
+      return;
+    }
+    if (!zipFile.name.toLowerCase().endsWith('.zip')) {
+      results.invalid.push(zipFile.name);
+      return;
+    }
+
+    const extracted = await extractFilesFromZip(zipFile);
+
+    const nonDuplicate = extracted.filter(
+      (e) =>
+        !files.some(
+          (f) =>
+            f.studentId === e.studentId &&
+            f.studentName === e.studentName &&
+            f.file.name === e.file.name
+        ) &&
+        !batch.some(
+          (f) =>
+            f.studentId === e.studentId &&
+            f.studentName === e.studentName &&
+            f.file.name === e.file.name
+        )
+    );
+
+    if (nonDuplicate.length === 0) {
+      results.duplicate.push(`${zipFile.name} (압축 내 중복)`);
+      return;
+    }
+
+    batch.push(...nonDuplicate);
+    for (const e of nonDuplicate) {
+      metaMap.set(e.file, {
+        studentId: Number.isNaN(Number(e.studentId)) ? 0 : Number(e.studentId),
+        studentName: e.studentName ?? 'Unknown',
+        submittedAt: e.submittedAt ?? new Date(),
+      });
+      results.added.push(e.file.name);
+    }
+  };
+
+  // 메인 핸들러
+  const handleFileProcessing = async (newFiles: File[]) => {
+    // 런타임 가드
+    if (assignmentId == null || week == null) {
+      setNotification(
+        '과제/주차 정보가 없습니다. 이전 단계에서 과제를 다시 선택해 주세요.'
+      );
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    // null 아님이 보장된 number를 로컬 상수로 캡처
+    const aId: number = assignmentId;
+    const wk: number = week;
+
+    if (!validateAssignmentContext()) return;
+
+    const batchFileDatas: FileData[] = [];
+    const metaMap = new Map<File, Meta>();
+    const results = {
+      invalid: [] as string[],
+      duplicate: [] as string[],
+      added: [] as string[],
+    };
+
+    for (const file of newFiles) {
+      const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      if (ext === '.zip') {
+        await processZipFile(file, batchFileDatas, metaMap, results);
+      } else {
+        processSingleFile(file, batchFileDatas, metaMap, results);
+      }
+    }
+
+    // 결과 처리
+    if (batchFileDatas.length === 0) {
+      showBatchNotification(results.invalid, results.duplicate, results.added);
+      return;
+    }
+
+    setFiles((prev) => [...prev, ...batchFileDatas]);
+
+    const batchFiles = batchFileDatas.map((b) => b.file);
+    enqueue(batchFiles);
+
+    start((fileObj: File) => {
+      const meta = metaMap.get(fileObj) ?? {
+        studentId: 0,
+        studentName: 'Unknown',
+        submittedAt: new Date(),
+      };
+      return {
+        assignmentId: aId,
+        week: wk,
+        submissionDate: meta.submittedAt,
+        studentId: meta.studentId,
+        studentName: meta.studentName,
+      };
+    });
+
+    // 혼합 상황 요약 알림
+    if (results.invalid.length || results.duplicate.length) {
+      showBatchNotification(results.invalid, results.duplicate, results.added);
+    }
+  };
+
+  // 기타 UI 핸들러
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(e.target.files || []);
+    void handleFileProcessing(newFiles);
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) =>
+    e.preventDefault();
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newFiles = Array.from(e.dataTransfer.files);
+    void handleFileProcessing(newFiles);
+  };
+  const handleRemove = (fd: FileData) => {
+    const idx = findUploaderIndex(fd.file);
+    if (idx >= 0) cancel(idx);
+    setFiles((prev) => prev.filter((f) => f.id !== fd.id));
+  };
   const addFile = (file: File) => {
     const { studentId, studentName, submittedAt } = extractFileMeta(file);
     const newFile: FileData = {
@@ -293,27 +346,20 @@ const FileUpload: React.FC = () => {
       studentName,
       submittedAt,
     };
-
     setFiles((prev) => [...prev, newFile]);
   };
-
-  const handleSelectFile = (id: string) => {
+  const handleSelectFile = (id: string) =>
     setSelectedFiles((prev) =>
-      prev.includes(id) ? prev.filter((fileId) => fileId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
-  };
-
-  const handleSelectAll = () => {
-    setSelectedFiles(
-      selectedFiles.length === files.length ? [] : files.map((f) => f.id)
+  const handleSelectAll = () =>
+    setSelectedFiles((prev) =>
+      prev.length === files.length ? [] : files.map((f) => f.id)
     );
-  };
-
   const handleDeleteSelected = () => {
     setFiles((prev) => prev.filter((f) => !selectedFiles.includes(f.id)));
     setSelectedFiles([]);
   };
-
   const handleFileSelection = (selectedFile: File) => {
     if (selectedFile === duplicateFile && existingFile) {
       setFiles((prev) => prev.filter((f) => f.file.name !== existingFile.name));
@@ -322,7 +368,6 @@ const FileUpload: React.FC = () => {
     setDuplicateFile(null);
     setExistingFile(null);
   };
-
   const handleModalCancel = () => {
     setDuplicateFile(null);
     setExistingFile(null);
@@ -367,6 +412,9 @@ const FileUpload: React.FC = () => {
           <Text variant="caption" weight="medium" color="primary">
             파일 목록 ({files.length})
           </Text>
+        </div>
+        <div className="h-0.5 bg-lightGray" />
+        <div className="flex justify-end my-2">
           <div className="flex gap-5 items-center">
             <div>
               <input
@@ -388,7 +436,6 @@ const FileUpload: React.FC = () => {
             />
           </div>
         </div>
-        <div className="h-0.5 bg-lightGray" />
 
         <div className="overflow-y-auto max-h-[300px] bg-gray-50 p-4 rounded-lg space-y-2">
           {files.length === 0 ? (
