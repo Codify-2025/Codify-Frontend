@@ -54,7 +54,16 @@ export async function simulateS3UploadMock(
   signal?: AbortSignal
 ): Promise<{ etag?: string }> {
   for (let p = 0; p <= 100; p += 20) {
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (signal?.aborted) {
+      // DOM 환경이면 DOMException, 아니면 일반 Error에 name만 세팅
+      if (typeof DOMException !== 'undefined') {
+        throw new DOMException('Aborted', 'AbortError');
+      } else {
+        const err = new Error('Aborted');
+        err.name = 'AbortError';
+        throw err;
+      }
+    }
     onProgress?.(p);
     await new Promise((r) => setTimeout(r, 120));
   }
