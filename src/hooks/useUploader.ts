@@ -6,9 +6,7 @@ import {
   registerUpload,
 } from '@services/upload.api';
 import { toLocalISOStringWithOffset } from '@utils/date';
-// baseUrl("./src") 가 있다면 이렇게:
-import type { UploadItemState } from 'types/upload';
-// 또는 '@' 별칭이 있다면: import type { UploadItemState } from '@/types/upload';
+import type { UploadItemState } from '@typings/upload';
 
 type MetaBase = {
   assignmentId: number;
