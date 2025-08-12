@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 
 interface FileData {
@@ -14,6 +14,14 @@ interface FileData {
 interface FileItemProps {
   fileData: FileData;
   onRemove: () => void;
+  externalStage?:
+    | 'idle'
+    | 'presigning'
+    | 'uploading'
+    | 'registering'
+    | 'done'
+    | 'error';
+  externalProgress?: number;
 }
 
 const STATUS_COLORS = {
@@ -32,27 +40,30 @@ const formatDate = (date?: Date): string => {
     .padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
-const FileItem: React.FC<FileItemProps> = ({ fileData, onRemove }) => {
-  const { file, status, studentId, studentName, submittedAt, isFromZip } =
-    fileData;
-  const [progress, setProgress] = useState(0);
+const FileItem: React.FC<FileItemProps> = ({
+  fileData,
+  onRemove,
+  externalStage,
+  externalProgress,
+}) => {
+  const {
+    file,
+    status: localStatus,
+    studentId,
+    studentName,
+    submittedAt,
+    isFromZip,
+  } = fileData;
 
-  useEffect(() => {
-    if (status === 'uploading') {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          const nextProgress = prev + 10;
-          return nextProgress >= 100 ? 100 : nextProgress;
-        });
-      }, 200);
+  const mappedStatus: 'uploading' | 'success' | 'error' = externalStage
+    ? externalStage === 'done'
+      ? 'success'
+      : externalStage === 'error'
+        ? 'error'
+        : 'uploading'
+    : localStatus;
 
-      return () => clearInterval(interval);
-    }
-
-    if (status === 'success' || status === 'error') {
-      setProgress(100);
-    }
-  }, [status]);
+  const progress = externalProgress ?? (mappedStatus === 'uploading' ? 0 : 100);
 
   return (
     <div className="flex flex-col bg-gray-100 p-3 rounded-lg shadow-sm w-full max-w-lg mb-2">
@@ -75,12 +86,12 @@ const FileItem: React.FC<FileItemProps> = ({ fileData, onRemove }) => {
         <div className="flex items-center w-[40%] justify-end">
           <div className="relative h-2 bg-gray-300 rounded-lg overflow-hidden w-[70%] mr-2">
             <div
-              className={`absolute top-0 left-0 h-full ${STATUS_COLORS[status]}`}
+              className={`absolute top-0 left-0 h-full ${STATUS_COLORS[mappedStatus]}`}
               style={{ width: `${progress}%`, transition: 'width 0.3s ease' }}
             />
           </div>
           <span className="text-xs text-gray-600 w-[30%] text-right">
-            {status === 'uploading' ? `${progress}%` : status}
+            {mappedStatus === 'uploading' ? `${progress}%` : mappedStatus}
           </span>
         </div>
 
