@@ -5,7 +5,7 @@ type NumLike = number | string | null | undefined;
 const toNumberOrNull = (v: NumLike): number | null => {
   if (v === null || v === undefined) return null;
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  const n = parseInt(String(v), 10);
+  const n = Number(String(v));
   return Number.isFinite(n) ? n : null;
 };
 
