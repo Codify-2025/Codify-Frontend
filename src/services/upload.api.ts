@@ -46,7 +46,7 @@ export async function uploadToS3(
 ) {
   if (USE_MOCK) {
     // 실제 네트워크 대신 진행률/ETag만 시뮬레이션
-    return simulateS3UploadMock(onProgress);
+    return simulateS3UploadMock(onProgress, signal);
   }
 
   if (presigned.method === 'PUT') {

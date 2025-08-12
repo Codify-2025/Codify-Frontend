@@ -1,6 +1,5 @@
 import type { PresignedResp } from 'types/upload';
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const uuid = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -41,11 +40,16 @@ export function makePresignedPostMock(fileName: string): PresignedResp {
 
 // S3 업로드 시뮬레이션(진행률 콜백 호출 + ETag 반환)
 export async function simulateS3UploadMock(
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  signal?: AbortSignal
 ): Promise<{ etag?: string }> {
   for (let p = 0; p <= 100; p += 20) {
+    if (signal?.aborted) {
+      // 실제 axios 취소와 동일한 형태로 던지기
+      throw new DOMException('Aborted', 'AbortError');
+    }
     onProgress?.(p);
-    await sleep(120);
+    await new Promise((r) => setTimeout(r, 120));
   }
   return { etag: `mock-etag-${uuid()}` };
 }
