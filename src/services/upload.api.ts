@@ -24,10 +24,11 @@ export async function getPresignedUrl(params: {
   }
 
   const { data } = await axiosInstance.post('/api/presigned', params, {
-    headers: {
-      // 배포 전 임시 게이트
-      'x-dev-password': import.meta.env.VITE_UPLOAD_DEV_PASSWORD as string,
-    },
+    headers:
+      import.meta.env.MODE === 'development' &&
+      import.meta.env.VITE_UPLOAD_DEV_PASSWORD
+        ? { 'x-dev-password': import.meta.env.VITE_UPLOAD_DEV_PASSWORD }
+        : {},
   });
   return data.result as PresignedResp;
 }
