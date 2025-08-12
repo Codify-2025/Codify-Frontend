@@ -52,14 +52,22 @@ export function useUploader(concurrency = 3) {
 
   const runOne = useCallback(
     async (i: number, metaOrDeriver: MetaBase | MetaDeriver) => {
-      setItems((prev) =>
-        prev.map((it, idx) =>
+      // 최신 items를 가져오기 위해 함수형 업데이트 사용
+      let currentItem: UploadItemState | undefined;
+      setItems((prev) => {
+        currentItem = prev[i];
+        return prev.map((it, idx) =>
           idx === i ? { ...it, stage: 'presigning', error: undefined } : it
-        )
-      );
+        );
+      });
+
+      if (!currentItem) {
+        console.error(`Item at index ${i} not found`);
+        return;
+      }
 
       try {
-        const target = items[i];
+        const target = currentItem;
         const m: MetaBase =
           typeof metaOrDeriver === 'function'
             ? (metaOrDeriver as MetaDeriver)(target.file, i)
@@ -131,7 +139,7 @@ export function useUploader(concurrency = 3) {
         delete abortControllersRef.current[i];
       }
     },
-    [items]
+    []
   );
 
   const start = useCallback(
