@@ -1,8 +1,17 @@
 import type { PresignedResp } from 'types/upload';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const uuid = () =>
-  Math.random().toString(16).slice(2) + Date.now().toString(16);
+const uuid = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // fallback for older browsers
+  return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 // Presigned (PUT)
 export function makePresignedPutMock(fileName: string): PresignedResp {
