@@ -10,13 +10,16 @@ import {
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 // Presigned 발급
-export async function getPresignedUrl(params: {
-  fileName: string;
-  contentType: string;
-  assignmentId: number;
-  week: number;
-  studentId: number;
-}): Promise<PresignedResp> {
+export async function getPresignedUrl(
+  params: {
+    fileName: string;
+    contentType: string;
+    assignmentId: number;
+    week: number;
+    studentId: number;
+  },
+  signal?: AbortSignal
+): Promise<PresignedResp> {
   if (USE_MOCK) {
     // PUT/POST 중 원하는 형태 반환
     return makePresignedPutMock(params.fileName);
@@ -29,6 +32,7 @@ export async function getPresignedUrl(params: {
       import.meta.env.VITE_UPLOAD_DEV_PASSWORD
         ? { 'x-dev-password': import.meta.env.VITE_UPLOAD_DEV_PASSWORD }
         : {},
+    signal,
   });
   return data.result as PresignedResp;
 }
@@ -73,7 +77,10 @@ export async function uploadToS3(
 }
 
 // 메타데이터 등록
-export async function registerUpload(meta: UploadMetaReq) {
+export async function registerUpload(
+  meta: UploadMetaReq,
+  signal?: AbortSignal
+) {
   if (USE_MOCK) {
     // 실제와 유사하게 약간의 지연 후 성공 응답 반환
     await new Promise((r) => setTimeout(r, 200));
@@ -81,7 +88,7 @@ export async function registerUpload(meta: UploadMetaReq) {
   }
 
   try {
-    const { data } = await axiosInstance.post('/api/upload', meta);
+    const { data } = await axiosInstance.post('/api/upload', meta, { signal });
     return data;
   } catch (error) {
     console.error('Failed to register upload:', error);

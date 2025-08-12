@@ -18,27 +18,15 @@ type MetaBase = {
 
 type MetaDeriver = (file: File, index: number) => MetaBase;
 
-type UploadApiError = {
-  message?: string;
-  code?: string;
-};
-
 export function useUploader(concurrency = 3) {
   const [items, setItems] = useState<UploadItemState[]>([]);
   const queueIndexRef = useRef<number>(0);
   const abortControllersRef = useRef<Record<number, AbortController>>({});
 
   const reset = useCallback(() => {
-    // 진행 중 요청 모두 중단
-    Object.values(abortControllersRef.current).forEach((ac) => {
-      if (ac && !ac.signal.aborted) {
-        ac.abort();
-      }
-    });
-
-    abortControllersRef.current = {};
-    queueIndexRef.current = 0;
     setItems([]);
+    queueIndexRef.current = 0;
+    abortControllersRef.current = {};
   }, []);
 
   const enqueue = useCallback((files: File[]) => {
@@ -59,37 +47,64 @@ export function useUploader(concurrency = 3) {
 
   const runOne = useCallback(
     async (i: number, metaOrDeriver: MetaBase | MetaDeriver) => {
-      // 최신 items를 가져오기 위해 함수형 업데이트 사용
-      let currentItem: UploadItemState | undefined;
+      // presign 이전에 AbortController 준비
+      const ac = new AbortController();
+      abortControllersRef.current[i] = ac;
+
+      // 최신 아이템 캡처 + presigning 표시
+      let target: UploadItemState | undefined;
       setItems((prev) => {
-        currentItem = prev[i];
+        target = prev[i];
         return prev.map((it, idx) =>
           idx === i ? { ...it, stage: 'presigning', error: undefined } : it
         );
       });
 
-      if (!currentItem) {
+      if (!target) {
+        // 인덱스가 유효하지 않으면 안전 종료
+        ac.abort();
+        delete abortControllersRef.current[i];
         console.error(`Item at index ${i} not found`);
         return;
       }
 
+      // 파일 상단(또는 훅 안 최상단)에 추가
+      type UploadApiError = { message?: string; code?: string };
+
+      // AbortError 판별용 타입 가드
+      function isAbortError(e: unknown): boolean {
+        // DOM 환경/브라우저
+        if (typeof DOMException !== 'undefined' && e instanceof DOMException) {
+          return e.name === 'AbortError';
+        }
+        // 일부 런타임은 일반 Error로 전달
+        return e instanceof Error && e.name === 'AbortError';
+      }
+
       try {
-        const target = currentItem;
         const m: MetaBase =
           typeof metaOrDeriver === 'function'
             ? (metaOrDeriver as MetaDeriver)(target.file, i)
             : (metaOrDeriver as MetaBase);
 
-        const presigned = await getPresignedUrl({
-          fileName: target.file.name,
-          contentType: target.file.type || 'application/octet-stream',
-          assignmentId: m.assignmentId,
-          week: m.week,
-          studentId: m.studentId,
-        });
+        // presign에도 signal 전달
+        const presigned = await getPresignedUrl(
+          {
+            fileName: target.file.name,
+            contentType: target.file.type || 'application/octet-stream',
+            assignmentId: m.assignmentId,
+            week: m.week,
+            studentId: m.studentId,
+          },
+          ac.signal
+        );
 
-        const ac = new AbortController();
-        abortControllersRef.current[i] = ac;
+        // 취소가 이미 눌렸다면 즉시 중단
+        if (ac.signal.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
+        }
+
+        // 업로드 시작 표시
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i
@@ -98,6 +113,7 @@ export function useUploader(concurrency = 3) {
           )
         );
 
+        // S3 업로드 (signal + 진행률 업데이트)
         const { etag } = await uploadToS3(
           target.file,
           presigned,
@@ -108,34 +124,47 @@ export function useUploader(concurrency = 3) {
           ac.signal
         );
 
+        // 등록 단계 표시
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i ? { ...it, stage: 'registering', etag } : it
           )
         );
 
-        await registerUpload({
-          assignmentId: m.assignmentId,
-          fileName: target.file.name,
-          week: m.week,
-          submissionDate: toLocalISOStringWithOffset(m.submissionDate),
-          studentId: m.studentId,
-          studentName: m.studentName,
-          s3Key: presigned.s3Key,
-          ...(etag ? { etag } : {}),
-        });
+        // 메타 등록에도 signal 전달
+        await registerUpload(
+          {
+            assignmentId: m.assignmentId,
+            fileName: target.file.name,
+            week: m.week,
+            submissionDate: toLocalISOStringWithOffset(m.submissionDate),
+            studentId: m.studentId,
+            studentName: m.studentName,
+            s3Key: presigned.s3Key,
+            ...(etag ? { etag } : {}),
+          },
+          ac.signal
+        );
 
+        // 완료
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i ? { ...it, stage: 'done', progress: 100 } : it
           )
         );
       } catch (err: unknown) {
-        const message = axios.isAxiosError<UploadApiError>(err)
-          ? (err.response?.data?.message ?? err.message)
-          : err instanceof Error
-            ? err.message
-            : '업로드 중 오류가 발생했습니다.';
+        // 취소 케이스 일관 처리 (any 사용 금지)
+        const isCanceled =
+          (axios.isAxiosError(err) && err.code === 'ERR_CANCELED') ||
+          isAbortError(err);
+
+        const message = isCanceled
+          ? '업로드가 취소되었습니다.'
+          : axios.isAxiosError<UploadApiError>(err)
+            ? (err.response?.data?.message ?? err.message)
+            : err instanceof Error
+              ? err.message
+              : '업로드 중 오류가 발생했습니다.';
 
         setItems((prev) =>
           prev.map((it, idx) =>
@@ -143,6 +172,7 @@ export function useUploader(concurrency = 3) {
           )
         );
       } finally {
+        // 컨트롤러 정리
         delete abortControllersRef.current[i];
       }
     },
