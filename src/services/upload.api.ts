@@ -1,6 +1,6 @@
 import axios from 'axios';
 import axiosInstance from './axiosInstance';
-import type { PresignedResp, UploadMetaReq } from 'types/upload';
+import type { PresignedResp, UploadMetaReq } from '@typings/upload';
 import {
   makePresignedPutMock,
   simulateS3UploadMock,
