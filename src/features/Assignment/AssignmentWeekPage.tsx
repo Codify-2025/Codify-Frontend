@@ -78,7 +78,7 @@ const AssignmentWeekPage: React.FC = () => {
 
     addWeek(
       {
-        assignmentId: assignmentId!,
+        assignmentId: String(assignmentId),
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
         weekTitle: weekNumber,
