@@ -29,9 +29,16 @@ export function useUploader(concurrency = 3) {
   const abortControllersRef = useRef<Record<number, AbortController>>({});
 
   const reset = useCallback(() => {
-    setItems([]);
-    queueIndexRef.current = 0;
+    // 진행 중 요청 모두 중단
+    Object.values(abortControllersRef.current).forEach((ac) => {
+      if (ac && !ac.signal.aborted) {
+        ac.abort();
+      }
+    });
+
     abortControllersRef.current = {};
+    queueIndexRef.current = 0;
+    setItems([]);
   }, []);
 
   const enqueue = useCallback((files: File[]) => {
