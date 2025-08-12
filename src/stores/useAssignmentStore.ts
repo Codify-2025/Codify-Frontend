@@ -11,7 +11,11 @@ const toNumberOrNull = (v: NumLike): number | null => {
 
 const toDateOrNull = (v: Date | string | null | undefined): Date | null => {
   if (!v) return null;
-  return v instanceof Date ? v : new Date(v);
+  if (v instanceof Date) {
+    return isNaN(v.getTime()) ? null : v;
+  }
+  const date = new Date(v);
+  return isNaN(date.getTime()) ? null : date;
 };
 
 interface AssignmentState {
