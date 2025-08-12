@@ -80,6 +80,11 @@ export async function registerUpload(meta: UploadMetaReq) {
     return registerUploadSuccessMock;
   }
 
-  const { data } = await axiosInstance.post('/api/upload', meta);
-  return data;
+  try {
+    const { data } = await axiosInstance.post('/api/upload', meta);
+    return data;
+  } catch (error) {
+    console.error('Failed to register upload:', error);
+    throw error;
+  }
 }
