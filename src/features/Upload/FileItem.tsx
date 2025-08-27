@@ -24,7 +24,7 @@ interface FileItemProps {
   externalProgress?: number;
 }
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<'uploading' | 'success' | 'error', string> = {
   uploading: 'bg-blue-500',
   success: 'bg-green-500',
   error: 'bg-red-500',
@@ -32,12 +32,8 @@ const STATUS_COLORS = {
 
 const formatDate = (date?: Date): string => {
   if (!date) return '';
-  return `${date.getFullYear()}.${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, '0')}.${date.getDate().toString().padStart(2, '0')} ${date
-    .getHours()
-    .toString()
-    .padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const FileItem: React.FC<FileItemProps> = ({
@@ -66,47 +62,44 @@ const FileItem: React.FC<FileItemProps> = ({
   const progress = externalProgress ?? (mappedStatus === 'uploading' ? 0 : 100);
 
   return (
-    <div className="flex flex-col bg-gray-100 p-3 rounded-lg shadow-sm w-full max-w-lg mb-2">
-      {/* 상단 영역: 파일명, 상태, 삭제 */}
-      <div className="flex items-center justify-between w-full">
-        {/* 파일명 + 압축 표시 */}
-        <div
-          className="w-[50%] truncate pr-2 text-sm font-medium flex items-center gap-2"
-          title={file.name}
-        >
-          <span>{file.name}</span>
+    <div className="flex w-full items-start justify-between gap-2">
+      {/* 좌측: 파일명/태그 + 메타 */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+          <span className="truncate" title={file.name}>
+            {file.name}
+          </span>
           {isFromZip && (
-            <span className="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
-              압축파일
+            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700">
+              ZIP
             </span>
           )}
         </div>
-
-        {/* 로딩바 + 상태 */}
-        <div className="flex items-center w-[40%] justify-end">
-          <div className="relative h-2 bg-gray-300 rounded-lg overflow-hidden w-[70%] mr-2">
-            <div
-              className={`absolute top-0 left-0 h-full ${STATUS_COLORS[mappedStatus]}`}
-              style={{ width: `${progress}%`, transition: 'width 0.3s ease' }}
-            />
-          </div>
-          <span className="text-xs text-gray-600 w-[30%] text-right">
-            {mappedStatus === 'uploading' ? `${progress}%` : mappedStatus}
-          </span>
+        <div className="mt-1 text-xs text-gray-500">
+          제출자: {studentId} / {studentName} · 제출일:{' '}
+          {formatDate(submittedAt)}
         </div>
-
-        {/* 삭제 버튼 */}
-        <button onClick={onRemove} className="ml-2">
-          <FiTrash2 className="text-red-500" />
-        </button>
       </div>
 
-      {/* 하단 영역: 학번, 이름, 제출일자 */}
-      <div className="mt-2 text-xs text-gray-500 space-y-1 pl-1">
-        <p>
-          제출자: {studentId} / {studentName}
-        </p>
-        <p>제출일: {formatDate(submittedAt)}</p>
+      {/* 우측: 진행바/상태 + 삭제 */}
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="relative h-2 w-28 overflow-hidden rounded bg-gray-200">
+          <div
+            className={`absolute left-0 top-0 h-full ${STATUS_COLORS[mappedStatus]}`}
+            style={{ width: `${progress}%`, transition: 'width .3s ease' }}
+          />
+        </div>
+        <span className="w-14 text-right text-xs text-gray-600">
+          {mappedStatus === 'uploading' ? `${progress}%` : mappedStatus}
+        </span>
+
+        <button
+          onClick={onRemove}
+          aria-label="파일 삭제"
+          className="rounded p-1 hover:bg-red-50"
+        >
+          <FiTrash2 className="text-red-500" />
+        </button>
       </div>
     </div>
   );

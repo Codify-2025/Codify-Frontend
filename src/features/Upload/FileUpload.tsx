@@ -1,4 +1,3 @@
-// FileUpload.tsx
 import React, { useState, useRef } from 'react';
 import JSZip from 'jszip';
 import FileItem from './FileItem';
@@ -20,6 +19,21 @@ interface FileData {
   isFromZip?: boolean;
 }
 type Meta = { studentId: number; studentName: string; submittedAt: Date };
+type Stage =
+  | 'idle'
+  | 'presigning'
+  | 'uploading'
+  | 'registering'
+  | 'done'
+  | 'error';
+type MetaBase = {
+  assignmentId: number;
+  week: number;
+  submissionDate: Date;
+  studentId: number;
+  studentName: string;
+};
+type MetaDeriver = (file: File, index: number) => MetaBase;
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
 
@@ -33,13 +47,34 @@ const FileUpload: React.FC = () => {
   const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
   const [existingFile, setExistingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const startRequestedRef = React.useRef<MetaDeriver | null>(null);
+  const fileKey = (f: File) => `${f.name}::${f.size}::${f.lastModified}`;
+
+  const findUploaderIndex = (f: File) =>
+    items.findIndex((it) => fileKey(it.file) === fileKey(f));
 
   // 업로드 상태/진행률 매핑
-  const findUploaderIndex = (f: File) => items.findIndex((it) => it.file === f);
-  const getStage = (f: File) =>
-    findUploaderIndex(f) >= 0 ? items[findUploaderIndex(f)].stage : undefined;
-  const getProgress = (f: File) =>
-    findUploaderIndex(f) >= 0 ? items[findUploaderIndex(f)].progress : 0;
+  const uploaderMap = React.useMemo(() => {
+    const m = new Map<string, { stage?: Stage; progress?: number }>();
+    for (const it of items) {
+      m.set(fileKey(it.file), {
+        stage: it.stage as Stage,
+        progress: it.progress,
+      });
+    }
+    return m;
+  }, [items]);
+
+  const getStage = (f: File): Stage | undefined =>
+    uploaderMap.get(fileKey(f))?.stage;
+  const getProgress = (f: File) => uploaderMap.get(fileKey(f))?.progress ?? 0;
+
+  // 0~1 또는 0~100 모두 대응
+  const getProgressPct = (f: File) => {
+    const raw = getProgress(f);
+    const pct = raw <= 1 ? raw * 100 : raw;
+    return Math.max(0, Math.min(100, Math.round(pct)));
+  };
 
   const showTimedNotification = (msg: string) => {
     setNotification(msg);
@@ -297,7 +332,7 @@ const FileUpload: React.FC = () => {
     const batchFiles = batchFileDatas.map((b) => b.file);
     enqueue(batchFiles);
 
-    start((fileObj: File) => {
+    startRequestedRef.current = (fileObj: File) => {
       const meta = metaMap.get(fileObj) ?? {
         studentId: 0,
         studentName: 'Unknown',
@@ -310,7 +345,7 @@ const FileUpload: React.FC = () => {
         studentId: meta.studentId,
         studentName: meta.studentName,
       };
-    });
+    };
 
     // 혼합 상황 요약 알림
     if (results.invalid.length || results.duplicate.length) {
@@ -373,8 +408,16 @@ const FileUpload: React.FC = () => {
     setExistingFile(null);
   };
 
+  React.useEffect(() => {
+    if (items.length > 0 && startRequestedRef.current) {
+      const deriver = startRequestedRef.current;
+      startRequestedRef.current = null;
+      start(deriver);
+    }
+  }, [items, start]);
+
   return (
-    <div className="flex gap-10 px-6 py-1 w-full max-w-screen-lg mx-auto">
+    <div className="mx-auto flex w-full max-w-screen-lg gap-8">
       {duplicateFile && existingFile && (
         <FileCompareModal
           existingFile={existingFile}
@@ -384,17 +427,21 @@ const FileUpload: React.FC = () => {
         />
       )}
 
-      {/* 드래그&드롭 / 클릭 업로드 영역 */}
+      {/* 드래그&드롭 영역 */}
       <div
-        className="flex flex-col h-[350px] items-center justify-center border border-dotted border-gray rounded-xl bg-lightGray hover:bg-blue-50 transition p-6 cursor-pointer"
+        className="flex h-[340px] flex-1 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white p-6 ring-1 ring-gray-200 transition hover:border-blue-300 hover:ring-blue-200"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        aria-label="파일 업로드 드롭존"
       >
-        <FiUploadCloud size={40} className="text-primary mb-2" />
-        <p className="text-gray text-center text-base">
+        <FiUploadCloud size={44} className="mb-3 text-blue-600" />
+        <Text variant="body" color="muted" className="text-center">
           이곳에 파일을 드래그하거나 <br /> 클릭하여 업로드하세요
-        </p>
+        </Text>
+        <Text variant="caption" color="muted" className="mt-2">
+          허용: .cpp, .zip
+        </Text>
         <input
           type="file"
           multiple
@@ -406,54 +453,57 @@ const FileUpload: React.FC = () => {
       </div>
 
       {/* 파일 리스트 영역 */}
-      <div className="flex flex-col w-1/2 md:w-3/5 lg:w-2/3 ">
+      <div className="flex w-1/2 min-w-[320px] flex-col">
         {notification && <Notification message={notification} type="warning" />}
-        <div className="flex justify-between items-center mb-3">
+        <div className="mb-2 flex items-center justify-between">
           <Text variant="caption" weight="medium" color="primary">
             파일 목록 ({files.length})
           </Text>
-        </div>
-        <div className="h-0.5 bg-lightGray" />
-        <div className="flex justify-end my-2">
-          <div className="flex gap-5 items-center">
-            <div>
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-1 text-sm text-gray-700">
               <input
                 type="checkbox"
                 checked={
                   selectedFiles.length === files.length && files.length > 0
                 }
                 onChange={handleSelectAll}
-                className="mr-2"
+                className="accent-blue-600"
               />
               전체 선택
-            </div>
+            </label>
             <Button
-              text="선택된 파일 삭제"
-              variant="danger"
-              className="px-2 py-1 text-sm"
+              text="선택 삭제"
+              variant="secondary"
+              size="sm"
+              className="px-3 py-1 text-sm"
               onClick={handleDeleteSelected}
               disabled={selectedFiles.length === 0}
             />
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[300px] bg-gray-50 p-4 rounded-lg space-y-2">
+        <div className="h-0.5 w-full bg-gray-100" />
+
+        <div className="mt-3 max-h-[300px] space-y-2 overflow-y-auto rounded-xl bg-gray-50 p-3">
           {files.length === 0 ? (
-            <p className="text-gray-500">업로드된 파일이 없습니다.</p>
+            <Text variant="body" color="muted">
+              업로드된 파일이 없습니다.
+            </Text>
           ) : (
             files.map((fd) => {
               const stage = getStage(fd.file);
-              const progress = getProgress(fd.file);
+              const progress = getProgressPct(fd.file);
               return (
                 <div
                   key={fd.id}
-                  className="bg-white px-4 rounded-lg shadow flex items-center justify-between"
+                  className="rounded-lg bg-white px-3 py-2 shadow-sm"
                 >
-                  <div className="flex items-center space-x-2 w-full overflow-hidden">
+                  <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={selectedFiles.includes(fd.id)}
                       onChange={() => handleSelectFile(fd.id)}
+                      className="accent-blue-600"
                     />
                     <FileItem
                       fileData={fd}
