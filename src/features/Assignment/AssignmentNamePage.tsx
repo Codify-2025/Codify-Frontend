@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
@@ -9,6 +9,8 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { useAccessToken } from '@hooks/useAccessToken';
 import { useAddAssignment } from '@hooks/useAddAssignment';
 
+const MAX_LEN = 60;
+
 const AssignmentNamePage: React.FC = () => {
   const [inputName, setInputName] = useState('');
   const navigate = useNavigate();
@@ -16,10 +18,9 @@ const AssignmentNamePage: React.FC = () => {
 
   const { setName, setAssignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
-
   const { mutate: addAssignment, isLoading } = useAddAssignment(token);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const trimmedName = inputName.trim();
     if (!trimmedName || !selectedSubject) return;
 
@@ -31,8 +32,8 @@ const AssignmentNamePage: React.FC = () => {
       {
         onSuccess: (res) => {
           const id = res.result.assignmentId;
-          setName(trimmedName); // store에 저장
-          setAssignmentId(id); // assignmentId 저장
+          setName(trimmedName);
+          setAssignmentId(id);
           navigate('/assignment/week');
         },
         onError: () => {
@@ -40,52 +41,108 @@ const AssignmentNamePage: React.FC = () => {
         },
       }
     );
+  }, [
+    addAssignment,
+    inputName,
+    navigate,
+    selectedSubject,
+    setAssignmentId,
+    setName,
+  ]);
+
+  const onEnter: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter' && inputName.trim() && !isLoading) handleNext();
   };
+
+  const valid = !!inputName.trim();
+  const len = inputName.length;
 
   return (
     <Layout>
-      <div className="flex flex-col items-start justify-center px-6 py-16 space-y-8 w-full max-w-4xl mx-auto">
-        {/* 상단 페이지 정보 영역 */}
-        <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
-          <Text variant="body" weight="bold" color="primary">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-14">
+        {/* 상단 진행 배너 */}
+        <div className="w-full rounded-2xl bg-blue-50/70 p-6 ring-1 ring-blue-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+              유사도 분석 진행
+            </span>
             {selectedSubject?.name && (
-              <span className="text-gray">{selectedSubject.name} </span>
+              <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+                과목: {selectedSubject.name}
+              </span>
             )}
-            유사도 분석 진행
-          </Text>
-          <Text variant="body" weight="medium" color="gray">
-            1. 과제 생성
+          </div>
+          <Text variant="body" className="mt-3 text-gray-700">
+            <span className="font-semibold text-blue-700">1단계.</span> 과제
+            생성
           </Text>
         </div>
 
-        {/* 본문 입력 영역 */}
-        <div className="w-full py-10 space-y-10">
-          <Text variant="heading" weight="bold">
+        {/* 타이틀 & 보조설명 */}
+        <div className="space-y-2">
+          <Text
+            as="h1"
+            variant="heading"
+            weight="bold"
+            className="text-2xl md:text-3xl text-gray-900"
+          >
             과제명을 입력해 주세요
           </Text>
+          <Text variant="body" color="muted">
+            최대 {MAX_LEN}자까지 입력할 수 있습니다. Enter 키로 바로 다음 단계로
+            이동할 수 있어요.
+          </Text>
+        </div>
 
-          <div className="flex items-center border-b border-gray-300 w-2/3">
-            <input
-              type="text"
-              placeholder="과제명"
-              value={inputName}
-              onChange={(e) => setInputName(e.target.value)}
-              className="flex-grow py-3 px-1 focus:outline-none text-xl placeholder:text-gray-400"
-            />
+        {/* 입력 영역 */}
+        <div className="w-full max-w-xl space-y-2">
+          <label htmlFor="assignmentName" className="sr-only">
+            과제명
+          </label>
+          <input
+            id="assignmentName"
+            type="text"
+            placeholder="예: HW2 - 정렬 알고리즘 구현"
+            value={inputName}
+            onChange={(e) => {
+              const v = e.target.value.slice(0, MAX_LEN);
+              setInputName(v);
+            }}
+            onKeyDown={onEnter}
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-lg placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            aria-describedby="assignmentNameHelp"
+            autoFocus
+          />
+          <div className="flex items-center justify-between text-sm">
+            <Text id="assignmentNameHelp" variant="caption" color="muted">
+              과제명은 이후 결과 저장·검색에 사용됩니다.
+            </Text>
+            <Text variant="caption" color="muted">
+              {len}/{MAX_LEN}
+            </Text>
           </div>
         </div>
 
-        <div className="self-end pt-20">
+        {/* 다음 버튼 */}
+        <div className="flex justify-end pt-6">
           <Button
             text="다음"
             variant="primary"
-            size="large"
+            size="lg"
             onClick={handleNext}
-            disabled={!inputName.trim() || isLoading}
+            disabled={!valid || !selectedSubject || isLoading}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
+            ariaLabel="다음 단계로 이동"
           />
         </div>
+
+        {/* 과목 없이 접근했을 때 안내 (가드) */}
+        {!selectedSubject && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            과목이 선택되지 않았습니다. 이전 단계에서 과목을 먼저 선택해 주세요.
+          </div>
+        )}
       </div>
     </Layout>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
@@ -12,6 +12,7 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { useAccessToken } from '@hooks/useAccessToken';
 import { useAddWeek } from '@hooks/useAddWeek';
 
+// ---------- 유틸: 주차 계산 ----------
 const getWeekNumber = (date: Date) => {
   const copied = new Date(date.getTime());
   copied.setDate(1);
@@ -22,7 +23,6 @@ const getWeekNumber = (date: Date) => {
 const getAssignmentWeek = (start: Date): number => {
   const month = start.getMonth() + 1;
   const week = getWeekNumber(start);
-
   const mapping: { [key: number]: number } = {
     3: 1,
     4: 5,
@@ -33,10 +33,11 @@ const getAssignmentWeek = (start: Date): number => {
     11: 9,
     12: 13,
   };
-
   const base = mapping[month];
   return base ? base + (week - 1) : 1;
 };
+
+const fmt = (d: Date) => d.toISOString().split('T')[0];
 
 const AssignmentWeekPage: React.FC = () => {
   const {
@@ -48,7 +49,6 @@ const AssignmentWeekPage: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
   const token = useAccessToken();
   const navigate = useNavigate();
-
   const { mutate: addWeek, isLoading } = useAddWeek(token);
 
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -56,9 +56,7 @@ const AssignmentWeekPage: React.FC = () => {
   const [manualWeek, setManualWeek] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
 
-  const calculatedWeek = startDate ? getAssignmentWeek(startDate) : 1;
-
-  // assignmentId null check
+  // 과제 누락 접근 가드
   useEffect(() => {
     if (!assignmentId) {
       alert('과제를 먼저 생성해주세요.');
@@ -66,10 +64,25 @@ const AssignmentWeekPage: React.FC = () => {
     }
   }, [assignmentId, navigate]);
 
-  const handleNext = () => {
-    const weekNumber = manualWeek ? Number(selectedWeek) : calculatedWeek;
+  // 시작일 변경 시 기본적으로 7일 뒤로 마감일 보정
+  useEffect(() => {
+    if (startDate) {
+      if (!endDate || endDate < startDate) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + 7);
+        setEndDate(d);
+      }
+    }
+  }, [startDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const calculatedWeek = useMemo(
+    () => (startDate ? getAssignmentWeek(startDate) : 1),
+    [startDate]
+  );
+
+  const handleNext = useCallback(() => {
     if (!startDate || !endDate) return;
+    const weekNumber = manualWeek ? Number(selectedWeek) : calculatedWeek;
 
     if (manualWeek && (!selectedWeek || isNaN(weekNumber) || weekNumber < 1)) {
       alert('주차를 1 이상의 숫자로 입력해주세요.');
@@ -79,8 +92,8 @@ const AssignmentWeekPage: React.FC = () => {
     addWeek(
       {
         assignmentId: String(assignmentId),
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
         weekTitle: weekNumber,
       },
       {
@@ -89,52 +102,80 @@ const AssignmentWeekPage: React.FC = () => {
           setWeek(weekNumber);
           navigate('/upload');
         },
-        onError: () => {
-          alert('주차 생성에 실패했습니다.');
-        },
+        onError: () => alert('주차 생성에 실패했습니다.'),
       }
     );
-  };
+  }, [
+    addWeek,
+    assignmentId,
+    startDate,
+    endDate,
+    manualWeek,
+    selectedWeek,
+    calculatedWeek,
+    navigate,
+    setDates,
+    setWeek,
+  ]);
+
+  const nextDisabled = !startDate || !endDate || isLoading;
 
   return (
     <Layout>
-      <div className="flex flex-col items-start justify-start px-6 py-16 space-y-12 w-full max-w-4xl mx-auto">
-        {/* 상단 정보 영역 */}
-        <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
-          <Text variant="body" weight="bold" color="primary">
+      <div className="mx-auto flex w-full max-w-5xl flex-col space-y-12 px-6 py-14">
+        {/* 진행 배너 */}
+        <div className="w-full rounded-2xl bg-blue-50/70 p-6 ring-1 ring-blue-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+              유사도 분석 진행
+            </span>
             {selectedSubject?.name && (
-              <span className="text-gray">{selectedSubject.name} </span>
+              <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+                과목: {selectedSubject.name}
+              </span>
             )}
-            <span className="text-black">{assignmentName}</span> 과제 유사도
-            분석 진행
+            {assignmentName && (
+              <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+                과제: {assignmentName}
+              </span>
+            )}
+          </div>
+          <Text variant="body" className="mt-3 text-gray-700">
+            <span className="font-semibold text-blue-700">2단계.</span> 주차
+            선택
           </Text>
-          <Text variant="body" weight="medium" color="gray">
-            2. 주차 선택
+        </div>
+
+        {/* 타이틀 */}
+        <div className="space-y-2">
+          <Text as="h1" variant="h2" weight="bold" className="text-gray-900">
+            과제 시작일과 마감일을 선택해 주세요
+          </Text>
+          <Text variant="body" color="muted">
+            기본값으로 시작일 기준 <strong>+7일</strong>이 마감일로 설정됩니다.
+            필요 시 직접 조정하세요.
           </Text>
         </div>
 
         {/* 날짜 선택 */}
         <div className="w-full space-y-6">
-          <Text variant="heading" weight="bold">
-            과제 시작일과 마감일을 선택해 주세요
-          </Text>
-
-          <div className="flex flex-col sm:flex-row gap-6">
-            <div className="flex flex-col">
-              <label className="text-gray-600 mb-1">시작일</label>
+          <div className="flex flex-col gap-6 sm:flex-row">
+            <div className="flex flex-1 flex-col">
+              <label className="mb-1 text-gray-700">시작일</label>
               <DatePicker
                 selected={startDate}
                 onChange={(date) => setStartDate(date)}
                 selectsStart
                 startDate={startDate}
                 endDate={endDate}
-                className="border px-4 py-3 rounded-md text-base"
+                dateFormat="yyyy-MM-dd"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 placeholderText="시작일 선택"
               />
             </div>
 
-            <div className="flex flex-col flex-1">
-              <label className="text-gray-600 mb-1">마감일</label>
+            <div className="flex flex-1 flex-col">
+              <label className="mb-1 text-gray-700">마감일</label>
               <DatePicker
                 selected={endDate}
                 onChange={(date) => setEndDate(date)}
@@ -142,15 +183,17 @@ const AssignmentWeekPage: React.FC = () => {
                 startDate={startDate}
                 endDate={endDate}
                 minDate={startDate || new Date()}
-                className="border px-4 py-3 rounded-md text-base"
+                dateFormat="yyyy-MM-dd"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 placeholderText="마감일 선택"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between w-1/2 mt-4">
-          <Text variant="body" weight="medium" color="primary">
+        {/* 자동/수동 주차 표시 + 토글 */}
+        <div className="mt-2 flex w-full flex-col items-start gap-3 sm:w-2/3 sm:flex-row sm:items-center sm:justify-between">
+          <Text variant="body" color="primary" className="font-medium">
             {manualWeek
               ? `${selectedWeek || '?'}주차 (수동 설정)`
               : `${calculatedWeek}주차 (자동 설정)`}
@@ -164,27 +207,33 @@ const AssignmentWeekPage: React.FC = () => {
 
         {/* 수동 주차 입력 */}
         {manualWeek && (
-          <div className="w-full sm:w-1/2">
+          <div className="w-full sm:w-2/3">
             <input
               type="number"
               inputMode="numeric"
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(e.target.value)}
               placeholder="주차 입력 (1 이상)"
-              className="border px-4 py-3 rounded-md w-full mt-2 text-base"
+              min={1}
+              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
+            <Text variant="caption" color="muted" className="mt-1">
+              학기 운영 방식과 다르면 직접 입력할 수 있어요.
+            </Text>
           </div>
         )}
 
-        <div className="self-end pt-20">
+        {/* CTA */}
+        <div className="flex justify-end pt-10">
           <Button
             text="다음"
             variant="primary"
-            size="large"
+            size="lg"
             onClick={handleNext}
-            disabled={!startDate || !endDate || isLoading}
+            disabled={nextDisabled}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
+            aria-label="다음 단계로 이동"
           />
         </div>
       </div>
