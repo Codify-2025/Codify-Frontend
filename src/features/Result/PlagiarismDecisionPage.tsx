@@ -4,21 +4,34 @@ import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
 import { useDecisionStore } from '@stores/useDecisionStore';
+import { FiArrowLeft, FiAlertTriangle } from 'react-icons/fi';
+
+type DecisionLocationState = {
+  fileA: { id: string; label: string; submittedAt: string };
+  fileB: { id: string; label: string; submittedAt: string };
+  /** 0~1 또는 0~100 */
+  similarity: number;
+};
+
+const toPercent = (v: number) => (v > 1 ? Math.round(v) : Math.round(v * 100));
 
 const PlagiarismDecisionPage: React.FC = () => {
   const navigate = useNavigate();
-  const { state } = useLocation();
+  const location = useLocation();
   const { saveDecision } = useDecisionStore();
+
+  const state = location.state as DecisionLocationState | undefined;
 
   if (!state?.fileA || !state?.fileB) {
     return (
       <Layout>
-        <div className="px-8 py-10">
-          <Text variant="heading" weight="bold" className="text-xl mb-4">
+        <div className="px-8 py-12">
+          <Text variant="h3" weight="bold" className="mb-3 text-gray-900">
             파일 정보가 존재하지 않습니다.
           </Text>
           <Button
             text="결과 페이지로 이동"
+            variant="primary"
             onClick={() => navigate('/result')}
           />
         </div>
@@ -26,84 +39,123 @@ const PlagiarismDecisionPage: React.FC = () => {
     );
   }
 
-  const { fileA, fileB, similarity } = state;
+  const { fileA, fileB } = state;
+  const similarityPct = toPercent(state.similarity);
 
   const handleDecision = (isPlagiarism: boolean) => {
-    console.log('판단 결과:', isPlagiarism ? '표절' : '표절 아님');
-    saveDecision({
-      fileAId: fileA.id,
-      fileBId: fileB.id,
-      isPlagiarism,
-    });
-    navigate('/result/save'); // 판단 후 결과 저장 완료 페이지로 이동
+    saveDecision({ fileAId: fileA.id, fileBId: fileB.id, isPlagiarism });
+    navigate('/result/save');
   };
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto px-10 py-20 space-y-16">
-        {/* 제목 */}
-        <div className="space-y-4">
-          <Text variant="heading" weight="bold" className="text-4xl">
-            <span className="text-blue-500">{fileA.label}</span>과{' '}
-            <span className="text-blue-500">{fileB.label}</span>를
+      <div className="mx-auto max-w-4xl px-6 py-10">
+        {/* 상단 헤더 */}
+        <div className="mb-6 flex items-center justify-between">
+          <Text variant="h2" weight="bold" className="text-gray-900">
+            표절 판단
           </Text>
-          <Text
-            variant="heading"
-            weight="bold"
-            className="text-4xl text-red-500"
-          >
-            표절로 판단하시겠습니까?
-          </Text>
+          <Button
+            text="코드 비교 다시 보기"
+            variant="ghost"
+            size="sm"
+            icon={<FiArrowLeft />}
+            onClick={() => navigate(-1)}
+          />
         </div>
 
-        {/* 유사도 + 제출 시간 */}
-        <div className="flex justify-between items-start">
-          <div className="flex flex-col gap-2">
-            <Text variant="body" color="gray" className="text-lg">
-              유사도
+        {/* 페어 요약 카드 */}
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr]">
+          {/* A 파일 */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <Text variant="caption" color="muted">
+              파일 A
             </Text>
-            <Text variant="heading" weight="bold" color="danger">
-              {(similarity * 100).toFixed(0)}%
+            <Text
+              variant="body-lg"
+              weight="bold"
+              className="mt-1 truncate text-gray-900"
+            >
+              {fileA.label}
             </Text>
+            <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2">
+              <Text variant="caption" color="muted">
+                제출 시간
+              </Text>
+              <div className="mt-0.5 text-sm text-blue-700">
+                {fileA.submittedAt}
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <Text variant="body" color="gray">
-              제출 시간
+          {/* 가운데 유사도 배지 */}
+          <div className="flex items-center justify-center">
+            <div className="inline-flex min-w-[120px] flex-col items-center rounded-2xl border border-blue-100 bg-blue-50 px-6 py-4 text-blue-700 shadow-sm">
+              <Text variant="caption" color="muted">
+                유사도
+              </Text>
+              <Text variant="h2" weight="bold" className="mt-1">
+                {similarityPct}%
+              </Text>
+            </div>
+          </div>
+
+          {/* B 파일 */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <Text variant="caption" color="muted">
+              파일 B
             </Text>
-            <div className="mt-2 space-y-2 text-lg">
-              <div>
-                <span className="font-bold mr-2">{fileA.label}</span>
-                <span className="text-blue-500">{fileA.submittedAt}</span>
-              </div>
-              <div>
-                <span className="font-bold mr-2">{fileB.label}</span>
-                <span className="text-blue-500">{fileB.submittedAt}</span>
+            <Text
+              variant="body-lg"
+              weight="bold"
+              className="mt-1 truncate text-gray-900"
+            >
+              {fileB.label}
+            </Text>
+            <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2">
+              <Text variant="caption" color="muted">
+                제출 시간
+              </Text>
+              <div className="mt-0.5 text-sm text-blue-700">
+                {fileB.submittedAt}
               </div>
             </div>
           </div>
         </div>
 
-        {/* 코드 비교 다시 보기 */}
-        <div
-          className="underline text-base cursor-pointer w-fit"
-          onClick={() => navigate(-1)}
-        >
-          코드 비교 다시 보기
+        {/* 안내/주의 섹션 */}
+        <div className="mb-10 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <div className="mb-1 inline-flex items-center gap-2">
+            <FiAlertTriangle />
+            <Text variant="body" weight="medium">
+              판단 전 확인 사항
+            </Text>
+          </div>
+          <ul className="ml-5 list-disc text-sm leading-6">
+            <li>
+              유사도는 보조 지표입니다. 코드 구조와 주석, 변수명 변경 등을 함께
+              검토하세요.
+            </li>
+            <li>
+              제출 시간을 비교하여 제출 순서나 의심 정황을 함께 확인하세요.
+            </li>
+          </ul>
         </div>
 
-        {/* 하단 버튼 */}
-        <div className="flex justify-center gap-8 pt-12">
+        {/* 하단 결정 버튼 */}
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center sm:gap-6">
           <Button
             text="표절 아님"
             variant="secondary"
-            size="large"
+            size="lg"
             onClick={() => handleDecision(false)}
           />
           <Button
             text="표절로 저장"
-            variant="danger"
-            size="large"
+            variant="secondary"
+            size="lg"
+            // Button에 danger 변형이 없으므로 className으로 강조
+            className="border-red-200 text-red-700 hover:bg-red-50"
             onClick={() => handleDecision(true)}
           />
         </div>

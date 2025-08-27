@@ -2,7 +2,7 @@ import React from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { FiCheckCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiHome, FiRepeat } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 const ResultSaveCompletePage: React.FC = () => {
@@ -10,31 +10,34 @@ const ResultSaveCompletePage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-10 px-4 text-center">
+      <div className="flex min-h-[68vh] flex-col items-center justify-center px-6 text-center">
         {/* 아이콘 */}
-        <FiCheckCircle className="text-blue-500 text-9xl" />
+        <div className="mb-6 rounded-full bg-blue-50 p-5 text-blue-600 shadow-sm">
+          <FiCheckCircle className="h-16 w-16" />
+        </div>
 
-        {/* 완료 텍스트 */}
-        <Text
-          variant="heading"
-          weight="bold"
-          className="text-4xl text-gray-800"
-        >
+        {/* 텍스트 */}
+        <Text variant="h2" weight="bold" className="text-gray-900">
           결과가 성공적으로 저장되었습니다!
+        </Text>
+        <Text variant="caption" color="muted" className="mt-2">
+          저장된 결과는 대시보드 &gt; 기록에서 다시 확인할 수 있어요.
         </Text>
 
         {/* 버튼 그룹 */}
-        <div className="flex flex-col sm:flex-row gap-4 mt-2">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Button
             text="검사 종료하기"
             variant="secondary"
-            size="large"
+            size="lg"
+            icon={<FiHome />}
             onClick={() => navigate('/')}
           />
           <Button
             text="검사 계속하기"
             variant="primary"
-            size="large"
+            size="lg"
+            icon={<FiRepeat />}
             onClick={() => navigate('/result')}
           />
         </div>
