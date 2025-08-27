@@ -9,48 +9,49 @@ const Header: React.FC = () => {
   const { isLoggedIn, logout } = useAuthStore();
 
   return (
-    <header className="bg-white p-4 flex justify-between items-center">
-      {/* Logo */}
-      <div
-        className="flex items-center space-x-2 cursor-pointer"
-        onClick={() => navigate('/')}
-      >
-        <Text variant="heading" weight="bold" color="gray">
-          Codify
-        </Text>
-      </div>
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        {/* Logo */}
+        <button
+          className="inline-flex items-center gap-2"
+          onClick={() => navigate('/')}
+          aria-label="홈으로 이동"
+        >
+          <Text as="span" variant="h3" weight="bold">
+            Codify
+          </Text>
+        </button>
 
-      {/* User Actions */}
-      <div className="flex items-center space-x-4">
-        {!isLoggedIn ? (
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          {!isLoggedIn ? (
+            <>
+              <Button
+                text="로그인"
+                variant="secondary"
+                onClick={() => navigate('/login')}
+              />
+            </>
+          ) : (
+            <Button
+              text="로그아웃"
+              variant="secondary"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+            />
+          )}
+
           <Button
-            text="로그인"
-            variant="custom"
-            className="bg-gray-800 text-black px-4 py-2 rounded-lg"
-            onClick={() => navigate('/login')}
+            text="대시보드"
+            onClick={() =>
+              // 로그인 요구 로직을 쓰려면 아래로 교체
+              // isLoggedIn ? navigate('/dashboard') : navigate('/login', { state: { from: '/dashboard' } })
+              navigate('/dashboard')
+            }
           />
-        ) : (
-          <Button
-            text="로그아웃"
-            variant="custom"
-            className="bg-gray-200 text-black px-4 py-2 rounded-lg"
-            onClick={() => {
-              logout();
-              navigate('/');
-            }}
-          />
-        )}
-        <Button
-          text="대시보드"
-          variant="custom"
-          className="bg-black text-white border border-black px-4 py-2 rounded-lg"
-          // onClick={() =>
-          //   isLoggedIn
-          //     ? navigate('/dashboard')
-          //     : navigate('/login', { state: { from: '/dashboard' } })
-          // }
-          onClick={() => navigate('/dashboard')}
-        />
+        </div>
       </div>
     </header>
   );

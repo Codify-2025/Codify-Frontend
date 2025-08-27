@@ -1,7 +1,7 @@
 import React from 'react';
 import Header from './layout/Header';
-import Footer from './layout/Footer';
 import Content from './layout/Content';
+import Footer from './layout/Footer';
 
 interface LayoutProps {
   title?: string;
@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({
   contentClassName,
 }) => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
       <Content
         title={title}

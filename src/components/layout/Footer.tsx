@@ -3,10 +3,12 @@ import Text from '../Text';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gray-800 p-4 mt-auto flex justify-center items-center">
-      <Text variant="caption" weight="regular" color="gray">
-        &copy; {new Date().getFullYear()} Codify - All Rights Reserved.
-      </Text>
+    <footer className="mt-auto bg-slate-900 py-6">
+      <div className="mx-auto max-w-7xl px-6 text-center">
+        <Text variant="caption" color="inverted">
+          &copy; {new Date().getFullYear()} Codify — All Rights Reserved.
+        </Text>
+      </div>
     </footer>
   );
 };
