@@ -12,8 +12,8 @@ const SimilarityCompletePage: React.FC = () => {
     <Layout>
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
         {/* 완료 아이콘 */}
-        <div className="rounded-full bg-blue-50 p-6">
-          <FiCheckCircle className="text-6xl text-blue-600 animate-[pop_300ms_ease-out]" />
+        <div className="rounded-full bg-blue-50 p-6" aria-hidden="true">
+          <FiCheckCircle className="text-6xl text-blue-600 animate-[pop_300ms_ease-out] motion-reduce:animate-none" />
         </div>
 
         {/* 텍스트 */}
