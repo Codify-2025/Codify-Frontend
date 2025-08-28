@@ -5,11 +5,15 @@ import { useNavigate } from 'react-router-dom';
 
 const SimilarityLoadingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [progress, setProgress] = useState(0);
-  const [phaseIdx, setPhaseIdx] = useState(0);
-  const intervalRef = useRef<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
 
+  // 진행률(0~100)
+  const [progress, setProgress] = useState(0);
+
+  // rAF용 레퍼런스
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+
+  // 단계 라벨 / 경계
   const phases = useMemo(
     () => [
       '파일 파싱',
@@ -22,32 +26,40 @@ const SimilarityLoadingPage: React.FC = () => {
   );
   const thresholds = useMemo(() => [0, 20, 45, 70, 85], []);
 
+  // progress → 현재 단계 인덱스(상태 대신 파생값)
+  const phaseIdx = useMemo(() => {
+    const idx = thresholds.findIndex(
+      (t, i) => progress >= t && progress < (thresholds[i + 1] ?? 101)
+    );
+    return idx === -1 ? 0 : idx;
+  }, [progress, thresholds]);
+
   useEffect(() => {
-    // 부드러운 가짜 진행률: 0→92% 사이에서 가변 증가
-    intervalRef.current = window.setInterval(() => {
-      setProgress((p) => {
-        const delta = Math.floor(Math.random() * 4) + 1; // 1~4%
-        const next = Math.min(p + delta, 92);
-        const idx = thresholds.findIndex(
-          (t, i) => next >= t && next < (thresholds[i + 1] ?? 101)
-        );
-        if (idx !== -1 && idx !== phaseIdx) setPhaseIdx(idx);
-        return next;
-      });
-    }, 120);
+    const duration = 3000; // 3s
 
-    // 완료 페이지로 전환
-    timeoutRef.current = window.setTimeout(() => {
-      setPhaseIdx(phases.length - 1);
-      setProgress(100);
-      navigate('/analysis/complete');
-    }, 3000);
+    // 살짝 더 부드럽게 보이도록 easeOutCubic 적용
+    const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    const tick = (now: number) => {
+      if (startRef.current == null) startRef.current = now;
+      const elapsed = now - startRef.current;
+      const ratio = Math.min(elapsed / duration, 1); // 0~1
+      const eased = easeOutCubic(ratio);
+      const next = Math.round(eased * 100);
+      setProgress(next);
+
+      if (ratio < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        navigate('/analysis/complete', { replace: true });
+      }
     };
-  }, [navigate, phases.length, thresholds, phaseIdx]);
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [navigate]);
 
   return (
     <Layout>
@@ -77,7 +89,7 @@ const SimilarityLoadingPage: React.FC = () => {
         <div className="mt-8 w-full max-w-xl">
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
             <div
-              className="h-full bg-blue-600 transition-[width] duration-200"
+              className="h-full bg-blue-600 transition-[width] duration-100"
               style={{ width: `${progress}%` }}
             />
           </div>
