@@ -47,14 +47,13 @@ const SubjectSelectPage: React.FC = () => {
   );
 
   const handleNext = useCallback(() => {
-    const trimmedName = newSubjectName.trim();
-    if (!trimmedName) return;
-
     // 기존 과목 선택 → 바로 이동
     if (selectedName) {
       navigate('/assignment/name');
       return;
     }
+    const trimmedName = newSubjectName.trim();
+    if (!trimmedName) return;
 
     // 새 과목 추가 → 성공 시 이동
     addSubject(
@@ -91,7 +90,7 @@ const SubjectSelectPage: React.FC = () => {
     if (e.key === 'Enter' && newSubjectName.trim() && !isAdding) handleNext();
   };
 
-  const isValid = !!newSubjectName.trim();
+  const canProceed = Boolean(selectedName) || newSubjectName.trim().length > 0;
   const showEmptyState = !isLoading && filteredSubjects.length === 0;
 
   return (
@@ -217,7 +216,7 @@ const SubjectSelectPage: React.FC = () => {
             variant="primary"
             size="lg"
             onClick={handleNext}
-            disabled={!isValid || isAdding}
+            disabled={!canProceed || isAdding}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
             ariaLabel="다음 단계로 이동"
