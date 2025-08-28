@@ -19,6 +19,8 @@ export const TooltipPortal: React.FC<TooltipPortalProps> = ({
   offset = 8,
   className,
 }) => {
+  const id = React.useId();
+  const portalContainer = typeof window !== 'undefined' ? document.body : null;
   const triggerRef = React.useRef<HTMLSpanElement | null>(null);
   const [open, setOpen] = React.useState(false);
   const [pos, setPos] = React.useState<{ top: number; left: number }>({
@@ -79,15 +81,18 @@ export const TooltipPortal: React.FC<TooltipPortalProps> = ({
         onKeyDown={(e) => {
           if (e.key === 'Escape') setOpen(false);
         }}
+        aria-describedby={open ? id : undefined}
         tabIndex={0}
       >
         {children}
       </span>
 
       {open &&
+        portalContainer &&
         ReactDOM.createPortal(
           <div
             role="tooltip"
+            id={id}
             style={{
               position: 'fixed',
               top: pos.top,
@@ -110,7 +115,7 @@ export const TooltipPortal: React.FC<TooltipPortalProps> = ({
           >
             {content}
           </div>,
-          document.body
+          portalContainer
         )}
     </>
   );
