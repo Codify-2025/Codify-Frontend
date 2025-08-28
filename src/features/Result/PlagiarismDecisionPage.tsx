@@ -13,7 +13,14 @@ type DecisionLocationState = {
   similarity: number;
 };
 
-const toPercent = (v: number) => (v > 1 ? Math.round(v) : Math.round(v * 100));
+const toPercent = (v: number) => {
+  const n = Number.isFinite(v)
+    ? v > 1
+      ? Math.round(v)
+      : Math.round(v * 100)
+    : 0;
+  return Math.max(0, Math.min(100, n));
+};
 
 const PlagiarismDecisionPage: React.FC = () => {
   const navigate = useNavigate();
