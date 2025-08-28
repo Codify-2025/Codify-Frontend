@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from '../Button';
 import Text from '../Text';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@stores/useAuthStore';
 
 const Header: React.FC = () => {
@@ -12,15 +12,15 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
-        <button
-          className="inline-flex items-center gap-2"
-          onClick={() => navigate('/')}
+        <Link
+          to="/"
           aria-label="홈으로 이동"
+          className="inline-flex items-center gap-2"
         >
           <Text as="span" variant="h3" weight="bold">
             Codify
           </Text>
-        </button>
+        </Link>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
