@@ -47,6 +47,9 @@ const StepNickname: React.FC<StepNicknameProps> = ({
       </div>
 
       <div className="relative w-full">
+        <label htmlFor="nickname" className="sr-only">
+          닉네임
+        </label>
         <input
           type="text"
           value={nickname}
@@ -55,7 +58,14 @@ const StepNickname: React.FC<StepNicknameProps> = ({
             setTouched(true);
           }}
           placeholder="닉네임 입력"
+          id="nickname"
+          name="nickname"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleNext();
+          }}
+          pattern="^[가-힣a-zA-Z]{2,5}$"
           aria-invalid={touched && !isValid}
+          aria-describedby="nickname-error"
           className={[
             'w-full border-b-2 bg-transparent py-2 pr-10 text-xl outline-none transition-colors',
             touched && !isValid
@@ -69,7 +79,7 @@ const StepNickname: React.FC<StepNicknameProps> = ({
       </div>
 
       {!isValid && touched && (
-        <p className="text-sm text-red-600">
+        <p id="nickname-error" role="alert" className="text-sm text-red-600">
           닉네임은 한글/영문 2~5자로 입력하세요.
         </p>
       )}
