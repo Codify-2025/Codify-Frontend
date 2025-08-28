@@ -14,7 +14,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, onClose, children }) => {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50">
-      <div className="w-80 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
+        className="w-[calc(100%-2rem)] max-w-sm sm:max-w-md rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
+      >
         {title && (
           <Text variant="heading" weight="bold" className="mb-4">
             {title}
