@@ -18,7 +18,7 @@ const Card: React.FC<CardProps> = ({ title, children, footer, className }) => {
       )}
     >
       {title && (
-        <Text variant="heading" weight="bold" className="mb-2">
+        <Text as="h3" variant="heading" weight="bold" className="mb-2">
           {title}
         </Text>
       )}
