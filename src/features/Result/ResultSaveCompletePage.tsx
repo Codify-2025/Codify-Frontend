@@ -30,14 +30,14 @@ const ResultSaveCompletePage: React.FC = () => {
             text="검사 종료하기"
             variant="secondary"
             size="lg"
-            icon={<FiHome />}
+            icon={<FiHome aria-hidden="true" focusable="false" />}
             onClick={() => navigate('/')}
           />
           <Button
             text="검사 계속하기"
             variant="primary"
             size="lg"
-            icon={<FiRepeat />}
+            icon={<FiRepeat aria-hidden="true" focusable="false" />}
             onClick={() => navigate('/result')}
           />
         </div>
