@@ -46,11 +46,15 @@ const UploadPage: React.FC = () => {
               개별 파일 또는 압축(.zip) 업로드 가능
             </Text>
 
-            {/* ✅ react-tooltip용 Tooltip: content는 string만 */}
             <Tooltip content=".cpp, .zip 확장자만 허용됩니다.">
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200">
-                <FiInfo /> 지원 형식: <strong>.cpp, .zip</strong>
-              </span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 ring-1 ring-blue-200"
+                aria-label="지원 파일 형식 정보: .cpp, .zip"
+              >
+                <FiInfo aria-hidden="true" /> 지원 형식:{' '}
+                <strong>.cpp, .zip</strong>
+              </button>
             </Tooltip>
 
             <button
