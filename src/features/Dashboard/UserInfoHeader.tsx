@@ -54,6 +54,7 @@ const UserInfoHeader: React.FC = () => {
               type="button"
               onClick={handleToggle}
               aria-expanded={isSubjectOpen}
+              aria-controls="subject-panel"
               className="rounded-full border border-gray-200 bg-white px-4 py-1 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
             >
               관리 중인 과목 {isSubjectOpen ? '▲' : '▼'}
@@ -63,7 +64,12 @@ const UserInfoHeader: React.FC = () => {
 
         {/* 과목 선택 패널 */}
         {isSubjectOpen && (
-          <div className="mt-4 w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div
+            id="subject-panel"
+            role="region"
+            aria-label="관리 중인 과목 목록"
+            className="mt-4 w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2">
               {user.subjects.map((subj) => {
                 const isSelected = subj.code === selectedSubject?.code;
@@ -76,6 +82,7 @@ const UserInfoHeader: React.FC = () => {
                         isSelected ? null : { name: subj.name, code: subj.code }
                       )
                     }
+                    aria-pressed={isSelected}
                     className={[
                       'flex items-center justify-between px-4 py-3 text-left transition',
                       'border-b border-gray-100 last:border-b-0 sm:last:border-b',
