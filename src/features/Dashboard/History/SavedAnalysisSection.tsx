@@ -31,7 +31,7 @@ const SavedAnalysisSection: React.FC = () => {
     if (!q) return sorted;
     return sorted.filter((r) => {
       const base =
-        `${r.assignmentName} ${'fileA' in r ? r.fileA.label : ''} ${'fileB' in r ? r.fileB.label : ''}`.toLowerCase();
+        `${r.assignmentName} ${'fileA' in r ? r.fileA.label : ''} ${'fileB' in r ? r.fileB.label : ''} ${r.week}주차 ${r.week}`.toLowerCase();
       return base.includes(q);
     });
   }, [sorted, search]);
