@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import Text from '@components/Text';
 import { savedAnalysisRecords } from './SavedAnalysisDummy';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
+import SavedAnalysisItem from './SavedAnalysisItem';
 
 type SortOption = 'latest' | 'similarity';
 
@@ -117,5 +118,3 @@ const SavedAnalysisSection: React.FC = () => {
 };
 
 export default SavedAnalysisSection;
-
-import SavedAnalysisItem from './SavedAnalysisItem';
