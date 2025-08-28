@@ -76,6 +76,9 @@ export const TooltipPortal: React.FC<TooltipPortalProps> = ({
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+        }}
         tabIndex={0}
       >
         {children}
