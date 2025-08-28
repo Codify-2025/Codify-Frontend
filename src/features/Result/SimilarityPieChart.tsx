@@ -5,7 +5,7 @@ import Text from '@components/Text';
 interface SimilarityPieChartProps {
   passedCount: number; // 임계값 초과
   failedCount: number; // 임계값 이하
-  onHover?: (segmentName: string) => void;
+  onHover?: (segmentName: PieDatum['name'] | null) => void;
 }
 
 type PieDatum = { name: '기준 이하' | '기준 초과'; value: number };
@@ -47,6 +47,7 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
               outerRadius={110}
               dataKey="value"
               onMouseEnter={handleEnter}
+              onMouseLeave={() => onHover?.(null)}
               // ↑ any 제거: 라벨 props 타입 명시
               label={(props: { name: PieDatum['name']; percent: number }) =>
                 `${props.name} ${(props.percent * 100).toFixed(0)}%`
