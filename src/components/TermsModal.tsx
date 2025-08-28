@@ -12,11 +12,25 @@ interface TermsModalProps {
 const TermsModal: React.FC<TermsModalProps> = ({ title, content, onClose }) => {
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200">
-        <Text variant="h3" weight="bold" className="mb-3">
+      <div
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="terms-modal-title"
+        aria-describedby="terms-modal-content"
+      >
+        <Text
+          id="terms-modal-title"
+          variant="h3"
+          weight="bold"
+          className="mb-3"
+        >
           {title}
         </Text>
-        <div className="max-h-72 overflow-y-auto whitespace-pre-line rounded-lg bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100">
+        <div
+          id="terms-modal-content"
+          className="max-h-72 overflow-y-auto whitespace-pre-line rounded-lg bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100"
+        >
           {content}
         </div>
         <div className="mt-5 flex justify-end">
