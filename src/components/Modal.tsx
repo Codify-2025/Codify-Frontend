@@ -21,7 +21,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, onClose, children }) => {
         className="w-[calc(100%-2rem)] max-w-sm sm:max-w-md rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200"
       >
         {title && (
-          <Text variant="heading" weight="bold" className="mb-4">
+          <Text
+            as="h2"
+            id="modal-title"
+            variant="heading"
+            weight="bold"
+            className="mb-4"
+          >
             {title}
           </Text>
         )}
