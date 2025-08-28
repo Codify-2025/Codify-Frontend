@@ -37,7 +37,10 @@ const getAssignmentWeek = (start: Date): number => {
   return base ? base + (week - 1) : 1;
 };
 
-const fmt = (d: Date) => d.toISOString().split('T')[0];
+const fmt = (d: Date) => {
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
 
 const AssignmentWeekPage: React.FC = () => {
   const {
