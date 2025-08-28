@@ -11,8 +11,9 @@ interface ButtonProps {
   isLoading?: boolean;
   disabled?: boolean;
   className?: string;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   ariaLabel?: string;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 const BASE =
@@ -43,14 +44,17 @@ const Button: React.FC<ButtonProps> = ({
   className,
   onClick,
   ariaLabel,
+  type = 'button',
 }) => {
   return (
     <button
-      type="button"
+      type={type}
       aria-label={ariaLabel || text}
       className={classNames(BASE, VARIANT[variant], SIZE[size], className)}
       onClick={onClick}
       disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
+      aria-disabled={disabled || isLoading || undefined}
     >
       {icon && iconPosition === 'left' && <span className="mr-2">{icon}</span>}
       {isLoading ? (loadingText ?? 'Loading…') : text}
