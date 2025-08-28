@@ -85,11 +85,17 @@ const LoginPage: React.FC = () => {
               <input
                 id="email"
                 type="email"
+                name="email"
                 value={email}
                 onBlur={() => setTouchedEmail(true)}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 aria-invalid={touchedEmail && !emailValid}
+                aria-describedby={
+                  touchedEmail && !emailValid ? 'email-error' : undefined
+                }
+                autoComplete="email"
+                required
                 className={[
                   'w-full rounded-lg border bg-transparent px-3 py-2 text-base outline-none transition-colors',
                   touchedEmail && !emailValid
@@ -98,7 +104,11 @@ const LoginPage: React.FC = () => {
                 ].join(' ')}
               />
               {touchedEmail && !emailValid && (
-                <p className="mt-1 text-sm text-red-600">
+                <p
+                  id="email-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
                   올바른 이메일 주소를 입력해 주세요.
                 </p>
               )}
@@ -116,11 +126,17 @@ const LoginPage: React.FC = () => {
                 <input
                   id="password"
                   type={showPw ? 'text' : 'password'}
+                  name="password"
                   value={password}
                   onBlur={() => setTouchedPw(true)}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="비밀번호 입력"
                   aria-invalid={touchedPw && !pwValid}
+                  aria-describedby={
+                    touchedPw && !pwValid ? 'password-error' : undefined
+                  }
+                  autoComplete="current-password"
+                  required
                   className={[
                     'w-full rounded-lg border bg-transparent px-3 py-2 pr-10 text-base outline-none transition-colors',
                     touchedPw && !pwValid
@@ -131,6 +147,7 @@ const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   aria-label="비밀번호 보기 전환"
+                  aria-pressed={showPw}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
                   onClick={() => setShowPw((v) => !v)}
                 >
@@ -138,7 +155,11 @@ const LoginPage: React.FC = () => {
                 </button>
               </div>
               {touchedPw && !pwValid && (
-                <p className="mt-1 text-sm text-red-600">
+                <p
+                  id="password-error"
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                >
                   비밀번호를 입력해 주세요.
                 </p>
               )}
