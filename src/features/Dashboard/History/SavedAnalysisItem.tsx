@@ -38,14 +38,18 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-        onClick={() =>
+        onClick={() => {
+          if (!record.fileB) {
+            alert('비교 대상 파일 정보가 없습니다.');
+            return;
+          }
           navigate(
-            `/compare/${String(record.fileA.id)}/${String(record.fileB?.id)}`,
+            `/compare/${String(record.fileA.id)}/${String(record.fileB.id)}`,
             {
               state: { fromSaved: true, recordId: record.id },
             }
-          )
-        }
+          );
+        }}
       >
         {/* 유사도 */}
         <div className="text-center">
@@ -61,8 +65,10 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
             <span className="text-blue-600">{record.fileA.submittedAt}</span>
           </div>
           <div>
-            <span className="font-medium">{record.fileB.label}</span>{' '}
-            <span className="text-blue-600">{record.fileB.submittedAt}</span>
+            <span className="font-medium">{record.fileB?.label ?? '-'}</span>{' '}
+            <span className="text-blue-600">
+              {record.fileB?.submittedAt ?? '-'}
+            </span>
           </div>
         </div>
       </button>
