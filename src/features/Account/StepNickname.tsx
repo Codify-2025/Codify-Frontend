@@ -19,11 +19,10 @@ const StepNickname: React.FC<StepNicknameProps> = ({
 }) => {
   const [nickname, setNickname] = useState(formData.nickname || '');
   const [isValid, setIsValid] = useState(false);
-  const [touched, setTouched] = useState(false); // 입력 여부 확인용
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    const valid = /^[가-힣a-zA-Z]{2,5}$/.test(nickname);
-    setIsValid(valid);
+    setIsValid(/^[가-힣a-zA-Z]{2,5}$/.test(nickname));
   }, [nickname]);
 
   const handleNext = () => {
@@ -33,62 +32,68 @@ const StepNickname: React.FC<StepNicknameProps> = ({
   };
 
   return (
-    <div className="space-y-10 px-8 py-14 max-w-2xl mx-auto text-base">
-      {/* 상단 안내 */}
-      <div className="space-y-3">
-        <Text variant="body" className="text-gray">
+    <div className="mx-auto max-w-2xl space-y-10 px-8 py-14 text-base">
+      <div className="space-y-2">
+        <Text variant="body" color="muted">
           회원가입
         </Text>
-        <Text variant="heading" weight="bold">
+        <Text variant="h2" weight="bold">
           닉네임을 입력해 주세요
         </Text>
-        <p className="text-gray-500">
-          닉네임은 <strong>2~5자 이내</strong>의 <strong>한글 또는 영문</strong>
-          만 사용할 수 있습니다.
-        </p>
+        <Text variant="caption" color="muted">
+          닉네임은 <strong>2~5자</strong>의 <strong>한글/영문</strong>만
+          가능합니다.
+        </Text>
       </div>
 
-      {/* 입력창 */}
-      <div className="w-full relative">
+      <div className="relative w-full">
+        <label htmlFor="nickname" className="sr-only">
+          닉네임
+        </label>
         <input
           type="text"
           value={nickname}
           onChange={(e) => {
             setNickname(e.target.value);
-            setTouched(true); // 사용자가 입력한 적 있음을 표시
+            setTouched(true);
           }}
           placeholder="닉네임 입력"
-          className="w-full border-b-2 border-gray-300 focus:outline-none focus:border-black text-xl py-2 pr-10"
+          id="nickname"
+          name="nickname"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleNext();
+          }}
+          pattern="^[가-힣a-zA-Z]{2,5}$"
+          aria-invalid={touched && !isValid}
+          aria-describedby="nickname-error"
+          className={[
+            'w-full border-b-2 bg-transparent py-2 pr-10 text-xl outline-none transition-colors',
+            touched && !isValid
+              ? 'border-red-400 focus:border-red-500'
+              : 'border-gray-300 focus:border-gray-900',
+          ].join(' ')}
         />
         {isValid && (
-          <span className="absolute right-2 top-2 text-blue-500 text-xl">
-            ✔️
-          </span>
+          <span className="absolute right-2 top-2 text-blue-600">✔️</span>
         )}
       </div>
 
-      {/* 유효성 경고 */}
       {!isValid && touched && (
-        <div className="text-danger">
-          닉네임은 한글 또는 영문으로 2~5자 이내로 입력해 주세요.
-        </div>
+        <p id="nickname-error" role="alert" className="text-sm text-red-600">
+          닉네임은 한글/영문 2~5자로 입력하세요.
+        </p>
       )}
 
-      {/* 버튼 영역 */}
-      <div className="flex justify-between w-full mt-8">
-        <button onClick={onBack} className="text-gray underline">
-          이전으로
-        </button>
+      <div className="mt-6 flex w-full justify-between">
+        <Button text="이전으로" variant="ghost" size="md" onClick={onBack} />
         <Button
           text="다음"
+          size="lg"
           onClick={handleNext}
           disabled={!isValid}
-          size="large"
-          className={` ${
-            isValid ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'
-          }`}
-          iconPosition="right"
           icon={<FiArrowRight size={20} />}
+          iconPosition="right"
+          className={!isValid ? 'opacity-60' : ''}
         />
       </div>
     </div>

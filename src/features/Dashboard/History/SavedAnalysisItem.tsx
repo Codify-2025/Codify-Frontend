@@ -13,19 +13,20 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   if (record.type === 'group') {
     return (
       <div className="flex flex-col items-center">
-        <div
-          className="cursor-pointer border-2 border-[#E0E0E0] rounded-xl p-4 hover:shadow transition w-full h-60 flex flex-col justify-center"
+        <button
+          type="button"
+          className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
           onClick={() =>
-            navigate(`/result`, {
+            navigate('/result', {
               state: { fromSaved: true, recordId: record.id },
             })
           }
         >
-          <div className="h-full w-full bg-gray-100 rounded flex items-center justify-center text-gray-400">
+          <div className="flex h-full w-full items-center justify-center rounded bg-gray-50 text-gray-400 ring-1 ring-gray-100">
             네트워크 토폴로지 미리보기
           </div>
-        </div>
-        <p className="text-center mt-2 text-gray-600 w-full font-semibold">
+        </button>
+        <p className="mt-2 w-full text-center font-semibold text-gray-600">
           &lt;{record.assignmentName}&gt; 전체 파일 분석 결과
         </p>
       </div>
@@ -34,42 +35,45 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div
-        className="cursor-pointer border-2 border-[#E0E0E0] rounded-xl p-4 hover:shadow transition w-full h-60 flex flex-col justify-between"
+      <button
+        type="button"
+        className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
         onClick={() => {
+          if (!record.fileB) {
+            alert('비교 대상 파일 정보가 없습니다.');
+            return;
+          }
           navigate(
-            `/compare/${String(record.fileA.id)}/${String(record.fileB?.id)}`,
+            `/compare/${String(record.fileA.id)}/${String(record.fileB.id)}`,
             {
               state: { fromSaved: true, recordId: record.id },
             }
           );
         }}
       >
-        {/* 상단: 유사도 표시 */}
+        {/* 유사도 */}
         <div className="text-center">
-          <Text variant="body" weight="bold" className="text-red-600 text-xl">
+          <Text variant="body" weight="bold" className="text-xl text-red-600">
             유사도 {record.similarity}%
           </Text>
         </div>
 
-        {/* 중간: 제출 시간 정보 */}
-        <div className="flex flex-col items-start gap-2 text-gray-700">
+        {/* 파일/시간 */}
+        <div className="mt-3 flex flex-col gap-2 text-gray-700">
           <div>
             <span className="font-medium">{record.fileA.label}</span>{' '}
             <span className="text-blue-600">{record.fileA.submittedAt}</span>
           </div>
           <div>
-            <span className="font-medium">{record.fileB.label}</span>{' '}
-            <span className="text-blue-600">{record.fileB.submittedAt}</span>
+            <span className="font-medium">{record.fileB?.label ?? '-'}</span>{' '}
+            <span className="text-blue-600">
+              {record.fileB?.submittedAt ?? '-'}
+            </span>
           </div>
         </div>
+      </button>
 
-        {/* 하단: 고정된 빈 공간으로 정렬 조정 */}
-        <div className="h-4" />
-      </div>
-
-      {/* 하단 텍스트 (컨테이너 외부) */}
-      <p className="text-center mt-2 text-gray-600 w-full font-semibold">
+      <p className="mt-2 w-full text-center font-semibold text-gray-600">
         &lt;{record.assignmentName}&gt; {record.fileA.label}-
         {record.fileB.label} 코드 비교 결과
       </p>

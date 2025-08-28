@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
@@ -9,6 +9,7 @@ import { useQueryClient } from 'react-query';
 import { useSubjects } from '@hooks/useSubjects';
 import { useAddSubject } from '@hooks/useAddSubject';
 import { useAccessToken } from '@hooks/useAccessToken';
+import classNames from 'classnames';
 
 const SubjectSelectPage: React.FC = () => {
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -24,159 +25,201 @@ const SubjectSelectPage: React.FC = () => {
 
   const subjects = subjectData?.result ?? [];
 
-  const filteredSubjects = subjects.filter((name) =>
-    name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSubjects = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return subjects;
+    return subjects.filter((name) => name.toLowerCase().includes(q));
+  }, [subjects, searchTerm]);
+
+  const handleSelect = useCallback(
+    (name: string) => {
+      if (selectedName === name) {
+        setSelectedName(null);
+        setNewSubjectName('');
+        setSelectedSubject(null);
+      } else {
+        setSelectedName(name);
+        setNewSubjectName(name);
+        setSelectedSubject({ name, code: name });
+      }
+    },
+    [selectedName, setSelectedSubject]
   );
 
-  const handleSelect = (name: string) => {
-    if (selectedName === name) {
-      // 이미 선택된 항목을 다시 클릭한 경우 선택 해제
-      setSelectedName(null);
-      setNewSubjectName('');
-      setSelectedSubject(null);
-    } else {
-      setSelectedName(name);
-      setNewSubjectName(name);
-      setSelectedSubject({ name, code: name });
+  const handleNext = useCallback(() => {
+    // 기존 과목 선택 → 바로 이동
+    if (selectedName) {
+      navigate('/assignment/name');
+      return;
     }
-  };
-
-  const handleNext = () => {
     const trimmedName = newSubjectName.trim();
     if (!trimmedName) return;
 
-    if (selectedName) {
-      navigate('/assignment/name');
-    } else {
-      addSubject(
-        { subjectName: trimmedName },
-        {
-          onSuccess: (data) => {
-            if (data.isSuccess && data.result) {
-              const { subjectId } = data.result;
+    // 새 과목 추가 → 성공 시 이동
+    addSubject(
+      { subjectName: trimmedName },
+      {
+        onSuccess: (data) => {
+          if (data.isSuccess && data.result) {
+            const { subjectId } = data.result;
+            setSelectedSubject({
+              name: trimmedName,
+              code: subjectId.toString(),
+            });
+            queryClient.invalidateQueries(['subjects']);
+            navigate('/assignment/name');
+          } else {
+            alert('과목 추가 응답이 올바르지 않습니다.');
+          }
+        },
+        onError: () => alert('과목 추가에 실패했습니다.'),
+      }
+    );
+  }, [
+    addSubject,
+    navigate,
+    newSubjectName,
+    queryClient,
+    selectedName,
+    setSelectedSubject,
+  ]);
 
-              setSelectedSubject({
-                name: trimmedName,
-                code: subjectId.toString(),
-              });
-
-              queryClient.invalidateQueries(['subjects']);
-              navigate('/assignment/name');
-            } else {
-              alert('과목 추가 응답이 올바르지 않습니다.');
-            }
-          },
-          onError: () => {
-            alert('과목 추가에 실패했습니다.');
-          },
-        }
-      );
-    }
+  const onEnterNewSubject: React.KeyboardEventHandler<HTMLInputElement> = (
+    e
+  ) => {
+    if (e.key === 'Enter' && newSubjectName.trim() && !isAdding) handleNext();
   };
 
-  const isValid = !!newSubjectName.trim();
+  const canProceed = Boolean(selectedName) || newSubjectName.trim().length > 0;
+  const showEmptyState = !isLoading && filteredSubjects.length === 0;
 
   return (
     <Layout>
-      <div className="flex flex-col items-start justify-center px-6 py-16 space-y-12 w-full max-w-4xl mx-auto">
-        {/* 안내 영역 */}
-        <div className="bg-blue-50 w-full rounded-xl p-6 space-y-2">
-          <Text variant="body" weight="bold" color="primary">
+      <div className="mx-auto w-full max-w-5xl px-6 py-14 space-y-12">
+        {/* 진행 배너 */}
+        <div className="w-full rounded-2xl bg-blue-50/70 p-6 ring-1 ring-blue-100">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
             유사도 분석 진행
-          </Text>
-          <Text variant="body" weight="medium" color="gray">
-            0. 과목 선택
+          </div>
+          <Text variant="body" weight="medium" className="mt-3 text-gray-700">
+            <span className="font-semibold text-blue-700">0단계.</span> 과목
+            선택
           </Text>
         </div>
 
-        {/* 본문 영역 */}
-        <div className="w-full space-y-12">
-          <Text variant="heading" weight="bold">
+        {/* 타이틀 */}
+        <div className="space-y-2">
+          <Text as="h1" variant="h2" weight="bold">
             과목을 선택하거나 새로 추가해 주세요
           </Text>
+          <Text variant="body" color="muted">
+            기존 목록에서 선택하거나, 없다면 새 과목을 입력해 다음 단계로
+            진행합니다.
+          </Text>
+        </div>
 
-          {/* 기존 과목 목록 */}
-          <div className="space-y-4">
-            {/* 텍스트 + 검색창 나란히 */}
-            <div className="flex items-center justify-between w-full">
-              <Text variant="body" weight="medium">
-                기존 과목
-              </Text>
+        {/* 기존 과목 + 검색 */}
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <Text variant="body" weight="medium" className="text-gray-800">
+              기존 과목
+            </Text>
 
-              {/* 검색창 + 아이콘 */}
-              <div className="relative w-72">
-                <input
-                  type="text"
-                  placeholder="과목 검색"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 pr-10 border-b border-gray-300 text-sm focus:outline-none"
-                />
-                <FiSearch
-                  className="absolute right-2 top-2.5 text-gray-400"
-                  size={18}
-                />
+            {/* 검색창 */}
+            <label className="relative w-full max-w-xs" aria-label="과목 검색">
+              <input
+                type="text"
+                placeholder="과목 검색"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-10 py-2.5 text-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+              <FiSearch
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+            </label>
+          </div>
+
+          {/* 과목 그리드 */}
+          <div className="min-h-[56px]">
+            {isLoading ? (
+              // 로딩 스켈레톤
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-10 animate-pulse rounded-full bg-gray-100"
+                  />
+                ))}
               </div>
-            </div>
-
-            {/* 과목 리스트 (가로 스크롤) */}
-            <div className="w-full max-w-3xl overflow-x-auto pt-1">
-              <div className="flex gap-3 min-w-max pr-4 pb-2">
-                {isLoading ? (
-                  <Text variant="caption" color="gray">
-                    불러오는 중...
-                  </Text>
-                ) : filteredSubjects.length > 0 ? (
-                  filteredSubjects.map((name) => (
+            ) : showEmptyState ? (
+              <div className="rounded-xl border border-gray-200 p-6 text-center">
+                <Text variant="body" color="muted">
+                  검색 결과가 없어요. 아래에서 새 과목을 추가해 주세요.
+                </Text>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {filteredSubjects.map((name) => {
+                  const selected = selectedName === name;
+                  return (
                     <button
                       key={name}
                       onClick={() => handleSelect(name)}
-                      className={`px-4 py-2 rounded-full border whitespace-nowrap transition ${
-                        selectedName === name
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'border-gray-300 text-gray-700 hover:border-blue-300'
-                      }`}
+                      className={classNames(
+                        'h-10 rounded-full border px-4 text-sm transition',
+                        selected
+                          ? 'border-blue-500 bg-blue-600 text-white shadow-sm'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                      )}
+                      aria-pressed={selected}
                     >
                       {name}
                     </button>
-                  ))
-                ) : (
-                  <Text variant="caption" color="gray" className="pl-1">
-                    검색 결과 없음
-                  </Text>
-                )}
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
+        </section>
 
-          {/* 새 과목 입력 */}
-          <div className="space-y-2 w-full max-w-2xl">
-            <Text variant="body" weight="medium">
-              새 과목 추가
-            </Text>
+        {/* 새 과목 입력 */}
+        <section className="space-y-3">
+          <Text variant="body" weight="medium" className="text-gray-800">
+            새 과목 추가
+          </Text>
+
+          <div className="w-full max-w-xl space-y-2">
             <input
               type="text"
               placeholder="예: 컴퓨터네트워크"
               value={newSubjectName}
               onChange={(e) => {
                 setNewSubjectName(e.target.value);
-                setSelectedName(null); // 기존 선택 해제
+                setSelectedName(null);
               }}
-              className="w-full py-3 px-4 border-b border-gray-300 text-xl focus:outline-none placeholder:text-gray-400"
+              onKeyDown={onEnterNewSubject}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-lg placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              aria-label="새 과목 입력"
             />
+            <Text variant="caption" color="muted">
+              Enter 키를 눌러 다음 단계로 이동할 수 있어요.
+            </Text>
           </div>
-        </div>
+        </section>
 
         {/* 다음 버튼 */}
-        <div className="self-end pt-16">
+        <div className="flex justify-end pt-6">
           <Button
             text="다음"
             variant="primary"
-            size="large"
+            size="lg"
             onClick={handleNext}
-            disabled={!isValid || isAdding}
+            disabled={!canProceed || isAdding}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
+            ariaLabel="다음 단계로 이동"
           />
         </div>
       </div>

@@ -11,16 +11,30 @@ interface TermsModalProps {
 
 const TermsModal: React.FC<TermsModalProps> = ({ title, content, onClose }) => {
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-lg max-w-lg w-full p-6 space-y-6">
-        <Text variant="heading" weight="bold" className="text-xl">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 px-4">
+      <div
+        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="terms-modal-title"
+        aria-describedby="terms-modal-content"
+      >
+        <Text
+          id="terms-modal-title"
+          variant="h3"
+          weight="bold"
+          className="mb-3"
+        >
           {title}
         </Text>
-        <div className="text-sm text-gray-700 max-h-60 overflow-y-auto whitespace-pre-line">
+        <div
+          id="terms-modal-content"
+          className="max-h-72 overflow-y-auto whitespace-pre-line rounded-lg bg-gray-50 p-4 text-sm text-gray-700 ring-1 ring-gray-100"
+        >
           {content}
         </div>
-        <div className="flex justify-end">
-          <Button text="닫기" onClick={onClose} />
+        <div className="mt-5 flex justify-end">
+          <Button text="닫기" variant="secondary" size="md" onClick={onClose} />
         </div>
       </div>
     </div>,

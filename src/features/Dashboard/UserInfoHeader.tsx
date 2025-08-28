@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Button from '@components/Button';
+import Text from '@components/Text';
 import { useSubjectStore } from '@stores/useSubjectStore';
 
 interface Subject {
@@ -9,7 +10,6 @@ interface Subject {
 
 const UserInfoHeader: React.FC = () => {
   const [isSubjectOpen, setSubjectOpen] = useState(false);
-
   const { selectedSubject, setSelectedSubject } = useSubjectStore();
 
   const user = {
@@ -22,64 +22,88 @@ const UserInfoHeader: React.FC = () => {
     ] as Subject[],
   };
 
+  const handleToggle = () => setSubjectOpen((prev) => !prev);
+
   return (
-    <div className="max-w-7xl mx-auto px-8 pt-10 pb-4 relative">
-      {/* 비밀번호 변경 버튼 - 우측 상단 */}
-      <div className="absolute top-10 right-8">
-        <Button text="비밀번호 변경하기" variant="secondary" size="medium" />
+    <header className="relative mt-8">
+      {/* 상단 우측: 비밀번호 변경 */}
+      <div className="absolute right-0 top-0">
+        <Button text="비밀번호 변경하기" variant="secondary" size="sm" />
       </div>
 
-      {/* 사용자명 + 아이디 */}
-      <div className="flex items-end gap-2 mb-4">
-        <h1 className="text-3xl font-bold">{user.name}</h1>
-        <span className="text-lg text-gray-600 font-normal">({user.id})</span>
-      </div>
+      {/* 사용자 카드 */}
+      <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 ring-1 ring-blue-100">
+        <div className="flex flex-col gap-1 pr-40">
+          <Text as="h1" variant="h2" weight="bold" className="text-gray-900">
+            {user.name}{' '}
+            <span className="ml-2 align-middle text-base font-normal text-gray-600">
+              ({user.id})
+            </span>
+          </Text>
 
-      {/* 유사도 검사 횟수 */}
-      <p className="text-base text-gray-700 mb-4">
-        진행한 유사도 검사 횟수:{' '}
-        <span className="text-blue-600 font-semibold">{user.testCount}회</span>
-      </p>
+          <Text variant="body" className="text-gray-700">
+            진행한 유사도 검사:{' '}
+            <span className="font-semibold text-blue-700">
+              {user.testCount}회
+            </span>
+          </Text>
 
-      {/* 과목 아코디언 */}
-      <div className="mb-6">
-        <button
-          onClick={() => {
-            setSubjectOpen((prev) => !prev);
-            // 버튼 다시 누르면 선택 해제
-            setSelectedSubject(null);
-          }}
-          className="border border-gray-300 rounded-full px-4 py-1 text-base text-gray-700 hover:bg-gray-50"
-        >
-          관리 중인 과목 {isSubjectOpen ? '▲' : '▼'}
-        </button>
+          {/* 과목 선택 토글 */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-expanded={isSubjectOpen}
+              aria-controls="subject-panel"
+              className="rounded-full border border-gray-200 bg-white px-4 py-1 text-sm text-gray-700 shadow-sm hover:bg-gray-50"
+            >
+              관리 중인 과목 {isSubjectOpen ? '▲' : '▼'}
+            </button>
+          </div>
+        </div>
 
+        {/* 과목 선택 패널 */}
         {isSubjectOpen && (
-          <div className="mt-2 border border-gray-300 rounded-md overflow-hidden w-fit text-base text-gray-800 shadow-sm">
-            {user.subjects.map((subj, idx) => {
-              const isSelected = subj.code === selectedSubject?.code;
-
-              return (
-                <div
-                  key={subj.code}
-                  onClick={() => setSelectedSubject(subj)}
-                  className={`
-              px-4 py-2 cursor-pointer 
-              ${isSelected ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-50'}
-              ${idx !== user.subjects.length - 1 ? 'border-b border-gray-200' : ''}
-            `}
-                >
-                  {subj.name} ({subj.code})
-                </div>
-              );
-            })}
+          <div
+            id="subject-panel"
+            role="region"
+            aria-label="관리 중인 과목 목록"
+            className="mt-4 w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              {user.subjects.map((subj) => {
+                const isSelected = subj.code === selectedSubject?.code;
+                return (
+                  <button
+                    key={subj.code}
+                    type="button"
+                    onClick={() =>
+                      setSelectedSubject(
+                        isSelected ? null : { name: subj.name, code: subj.code }
+                      )
+                    }
+                    aria-pressed={isSelected}
+                    className={[
+                      'flex items-center justify-between px-4 py-3 text-left transition',
+                      'border-b border-gray-100 last:border-b-0 sm:last:border-b',
+                      isSelected
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'hover:bg-gray-50 text-gray-800',
+                    ].join(' ')}
+                  >
+                    <span className="truncate">{subj.name}</span>
+                    <span className="text-xs text-gray-400">{subj.code}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* 하단 구분선 */}
-      <hr className="border-t border-gray-300" />
-    </div>
+      {/* 구분선 */}
+      <div className="mt-6 h-px w-full bg-gray-200" />
+    </header>
   );
 };
 

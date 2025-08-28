@@ -15,6 +15,12 @@ interface Props {
   };
 }
 
+const edgeColor = (s: number) =>
+  s >= 90 ? '#ef4444' : s >= 75 ? '#f59e0b' : s >= 60 ? '#3b82f6' : '#94a3b8';
+
+const edgeWidth = (s: number) =>
+  s >= 90 ? 8 : s >= 75 ? 6 : s >= 60 ? 4 : s >= 40 ? 2 : 1;
+
 const SimilarityGraph: React.FC<Props> = ({
   nodes,
   edges,
@@ -29,48 +35,37 @@ const SimilarityGraph: React.FC<Props> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // vis-network용 노드 데이터셋
     const visNodes = new DataSet(
-      nodes.map((node) => ({
-        id: node.id,
-        label: node.label,
-        title: undefined, // 중복 툴팁 방지
+      nodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        title: undefined, // 기본 툴팁 제거
         fixed: { x: true, y: true },
       }))
     );
 
-    // vis-network용 엣지 데이터셋
     const visEdges = new DataSet(
-      edges.map((edge) => ({
-        id: `${edge.from}-${edge.to}`,
-        from: edge.from,
-        to: edge.to,
-        label: `${edge.similarity}%`,
-        width:
-          edge.similarity > 90
-            ? 10
-            : edge.similarity > 75
-              ? 7
-              : edge.similarity > 60
-                ? 4
-                : edge.similarity > 40
-                  ? 2
-                  : 1,
+      edges.map((e) => ({
+        id: `${e.from}-${e.to}`,
+        from: e.from,
+        to: e.to,
+        label: `${e.similarity}%`,
+        width: edgeWidth(e.similarity),
         color: {
-          color: edge.similarity > 80 ? 'red' : 'gray',
+          color: edgeColor(e.similarity),
+          hover: edgeColor(e.similarity),
+          highlight: edgeColor(e.similarity),
         },
-        font: { align: 'middle' },
+        font: { align: 'middle', color: '#475569', size: 12 },
       }))
     );
 
-    // interaction 기본 옵션 처리
     const {
       dragNodes = false,
       zoomView = false,
       dragView = false,
     } = interactionOptions ?? {};
 
-    // 네트워크 그래프 초기화
     const network = new Network(
       containerRef.current,
       { nodes: visNodes, edges: visEdges },
@@ -79,16 +74,15 @@ const SimilarityGraph: React.FC<Props> = ({
         layout: { randomSeed: 42 },
         nodes: {
           shape: 'dot',
-          size: 20,
+          size: 18,
           fixed: true,
           physics: false,
+          color: { background: '#0ea5e9', border: '#0284c7' },
         },
-        edges: {
-          smooth: true,
-        },
+        edges: { smooth: true },
         interaction: {
           hover: true,
-          tooltipDelay: 200,
+          tooltipDelay: 120,
           zoomView,
           dragView,
           dragNodes,
@@ -99,15 +93,17 @@ const SimilarityGraph: React.FC<Props> = ({
 
     networkRef.current = network;
 
-    // 노드 hover 이벤트
+    // Hover select 효과 추가(가독성↑)
     network.on('hoverNode', (params) => {
+      network.selectNodes([params.node]);
       const node = nodes.find((n) => n.id === params.node);
       if (node) onNodeHover?.(node);
     });
+    network.on('blurNode', () => network.unselectAll());
 
-    // 엣지 hover 이벤트
     network.on('hoverEdge', (params) => {
-      const [fromId, toId] = params.edge.split('-');
+      network.selectEdges([params.edge]);
+      const [fromId, toId] = String(params.edge).split('-');
       const edge = edges.find(
         (e) =>
           (e.from === fromId && e.to === toId) ||
@@ -115,27 +111,23 @@ const SimilarityGraph: React.FC<Props> = ({
       );
       if (edge) onEdgeHover?.(edge);
     });
+    network.on('blurEdge', () => network.unselectAll());
 
-    // 엣지 클릭 이벤트
     network.on('click', (params) => {
       if (params.edges.length === 0) return;
-
-      const [fromId, toId] = params.edges[0].split('-');
+      const [fromId, toId] = String(params.edges[0]).split('-');
       const edge = edges.find(
         (e) =>
           (e.from === fromId && e.to === toId) ||
           (e.from === toId && e.to === fromId)
       );
-
       if (edge) onEdgeClick?.(edge);
     });
 
-    return () => {
-      network.destroy();
-    };
+    return () => network.destroy();
   }, [nodes, edges, onNodeHover, onEdgeHover, onEdgeClick, interactionOptions]);
 
-  return <div ref={containerRef} className="w-full h-[500px]" />;
+  return <div ref={containerRef} className="h-[520px] w-full" />;
 };
 
 export default SimilarityGraph;

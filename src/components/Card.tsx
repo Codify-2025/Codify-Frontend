@@ -11,14 +11,19 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ title, children, footer, className }) => {
   return (
-    <div className={classNames('bg-white rounded-lg shadow-md p-4', className)}>
+    <div
+      className={classNames(
+        'rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200',
+        className
+      )}
+    >
       {title && (
-        <Text variant="heading" weight="bold" color="gray" className="mb-2">
+        <Text as="h3" variant="heading" weight="bold" className="mb-2">
           {title}
         </Text>
       )}
       <div className="mb-4">{children}</div>
-      {footer && <div className="border-t pt-2 mt-2">{footer}</div>}
+      {footer && <div className="mt-2 border-t pt-2">{footer}</div>}
     </div>
   );
 };
