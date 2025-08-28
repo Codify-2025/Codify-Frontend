@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import Layout from '@components/Layout';
 import FileUpload from './FileUpload';
 import Text from '@components/Text';
@@ -14,6 +14,8 @@ const UploadPage: React.FC = () => {
   const { name, week } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
   const [openGuide, setOpenGuide] = useState(false);
+  const guideId = useId();
+  const guideHeadingId = useId();
 
   const handleStartAnalysis = () => navigate('/analysis/loading');
 
@@ -62,6 +64,7 @@ const UploadPage: React.FC = () => {
               onClick={() => setOpenGuide((v) => !v)}
               className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-700 hover:bg-gray-50"
               aria-expanded={openGuide}
+              aria-controls={guideId}
             >
               {openGuide ? '가이드 숨기기' : '가이드 보기'}
             </button>
@@ -70,8 +73,15 @@ const UploadPage: React.FC = () => {
 
         {/* 업로드 가이드 (접기/펼치기) */}
         {openGuide && (
-          <div className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-gray-800">
-            <div className="font-medium">업로드 규칙</div>
+          <div
+            id={guideId}
+            role="region"
+            aria-labelledby={guideHeadingId}
+            className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-gray-800"
+          >
+            <div id={guideHeadingId} className="font-medium">
+              업로드 규칙
+            </div>
             <ul className="space-y-1">
               <li>
                 📌 파일명은 <strong>학번_이름.cpp</strong> 형식으로 제출해
