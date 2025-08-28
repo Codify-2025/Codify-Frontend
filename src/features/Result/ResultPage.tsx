@@ -17,6 +17,9 @@ import type { FileData as StoreFileData } from '@stores/useSelectedFileStore';
 
 const THRESHOLD = 80;
 
+const PIE = { BELOW: '기준 이하', ABOVE: '기준 초과' } as const;
+type PieSegment = (typeof PIE)[keyof typeof PIE];
+
 /** dummyFiles 형태(느슨) */
 type DummyLike = {
   id: string;
@@ -171,6 +174,11 @@ const ResultPage: React.FC = () => {
       .slice(0, 5);
   }, [nodes, edges]);
 
+  // nodes로부터 빠른 조회 맵 (FileNode)
+  const nodeById = useMemo(() => {
+    return new Map(nodes.map((n) => [n.id, n]));
+  }, [nodes]);
+
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -232,9 +240,28 @@ const ResultPage: React.FC = () => {
               }
               failedCount={edges.filter((e) => e.similarity < THRESHOLD).length}
               onHover={(segment) => {
-                const target: FileNode[] =
-                  segment === '기준 초과' ? nodes.slice(0, 2) : nodes.slice(2);
-                setHoveredFiles(target);
+                // 안전한 세그먼트 판별
+                const seg = String(segment) as PieSegment;
+                const isAbove = seg === PIE.ABOVE;
+
+                // 세그먼트에 해당하는 엣지들
+                const bucket = edges.filter((e) =>
+                  isAbove ? e.similarity >= THRESHOLD : e.similarity < THRESHOLD
+                );
+
+                // 엣지에 등장하는 모든 파일 id 수집
+                const relatedIds = new Set<string>();
+                for (const e of bucket) {
+                  relatedIds.add(e.from);
+                  relatedIds.add(e.to);
+                }
+
+                // id → 노드 매핑
+                const related = Array.from(relatedIds)
+                  .map((id) => nodeById.get(id))
+                  .filter((n): n is FileNode => Boolean(n));
+
+                setHoveredFiles(related);
               }}
             />
           </div>
