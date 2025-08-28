@@ -28,80 +28,89 @@ const StepAgreement: React.FC<StepAgreementProps> = ({
   };
 
   return (
-    <div className="space-y-10 py-14 max-w-2xl mx-auto">
-      <div className="space-y-3">
-        <Text variant="body" className="text-gray">
+    <div className="mx-auto max-w-2xl space-y-10 py-14">
+      {/* 헤더 */}
+      <div className="space-y-2">
+        <Text variant="body" color="muted">
           회원가입
         </Text>
-        <Text variant="heading" weight="bold">
+        <Text variant="h2" weight="bold">
           이용약관 동의
         </Text>
       </div>
 
-      <div
-        className={`flex w-full rounded-xl p-6 items-center cursor-pointer text-lg ${
-          allChecked ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
-        }`}
-        onClick={() => handleAllChange(!allChecked)}
+      {/* 전체 동의 토글 */}
+      <label
+        className={[
+          'flex w-full cursor-pointer items-center rounded-2xl p-5 transition-colors ring-1',
+          allChecked
+            ? 'bg-blue-600 text-white ring-blue-600'
+            : 'bg-gray-50 text-gray-800 ring-gray-200 hover:bg-gray-100',
+        ].join(' ')}
       >
         <input
           type="checkbox"
           checked={allChecked}
-          readOnly
-          className="mr-3 w-5 h-5"
+          onChange={(e) => handleAllChange(e.target.checked)}
+          className="mr-3 h-5 w-5 accent-blue-600"
         />
-        <span className="font-medium">전체 약관 동의</span>
-      </div>
+        <span className="text-lg font-semibold">전체 약관 동의</span>
+      </label>
 
-      <div className="space-y-5 pl-1">
-        <label className="flex items-center justify-between">
-          <div>
+      {/* 개별 항목 */}
+      <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <label className="inline-flex items-center">
             <input
               type="checkbox"
               checked={agree1}
               onChange={(e) => setFormData({ agree1: e.target.checked })}
-              className="mr-3"
+              className="mr-3 h-4 w-4 accent-blue-600"
             />
-            (필수) 이용 약관 동의
-          </div>
+            <span>(필수) 이용 약관 동의</span>
+          </label>
           <button
+            type="button"
             onClick={() => setModalContent('terms')}
-            className="text-blue-600 hover:underline"
+            className="text-sm text-blue-600 underline underline-offset-4 hover:text-blue-700"
           >
             상세 보기
           </button>
-        </label>
+        </div>
 
-        <label className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between">
+          <label className="inline-flex items-center">
             <input
               type="checkbox"
               checked={agree2}
               onChange={(e) => setFormData({ agree2: e.target.checked })}
-              className="mr-3"
+              className="mr-3 h-4 w-4 accent-blue-600"
             />
-            (필수) 개인정보 수집 동의
-          </div>
+            <span>(필수) 개인정보 수집 동의</span>
+          </label>
           <button
+            type="button"
             onClick={() => setModalContent('privacy')}
-            className="text-blue-600 hover:underline"
+            className="text-sm text-blue-600 underline underline-offset-4 hover:text-blue-700"
           >
             상세 보기
           </button>
-        </label>
+        </div>
       </div>
 
+      {/* 다음 버튼 */}
       <div className="flex justify-end">
         <Button
           text="다음"
           onClick={onNext}
+          size="lg"
           disabled={!allChecked}
-          size="large"
           iconPosition="right"
           icon={<PiArrowRight size={20} />}
         />
       </div>
 
+      {/* 모달 */}
       {modalContent === 'terms' && (
         <TermsModal
           title="이용 약관"

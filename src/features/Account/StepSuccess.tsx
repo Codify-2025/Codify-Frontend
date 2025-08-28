@@ -8,32 +8,25 @@ const StepSuccess: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-10 px-4 text-center">
-      {/* 아이콘 영역 */}
-      <FiCheckCircle className="text-green-500 text-9xl" />
-
-      {/* 완료 텍스트 */}
-      <Text variant="heading" weight="bold" className="text-4xl text-gray-800">
+    <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-8 px-4 text-center">
+      <FiCheckCircle className="text-9xl text-green-500" />
+      <Text variant="h2" weight="bold" className="text-gray-900">
         회원가입이 완료되었습니다!
       </Text>
-
-      {/* 부가 설명 */}
-      <Text variant="body" className="text-gray-600">
-        지금 바로 Codify의 기능을 사용해보세요.
+      <Text variant="body" color="muted">
+        지금 바로 Codify의 기능을 사용해 보세요.
       </Text>
-
-      {/* 버튼 */}
-      <div className="flex gap-4 mt-2">
+      <div className="mt-2 flex gap-3">
         <Button
           text="홈으로 가기"
           variant="secondary"
-          size="large"
+          size="lg"
           onClick={() => navigate('/')}
         />
         <Button
           text="로그인하러 가기"
           variant="primary"
-          size="large"
+          size="lg"
           onClick={() => navigate('/login')}
         />
       </div>
