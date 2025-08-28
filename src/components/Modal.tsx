@@ -33,7 +33,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, onClose, children }) => {
         )}
         <div className="mb-4">{children}</div>
         <div className="text-right">
-          <Button text="닫기" variant="secondary" onClick={onClose} />
+          <Button
+            type="button"
+            text="닫기"
+            variant="secondary"
+            onClick={onClose}
+          />
         </div>
       </div>
     </div>
