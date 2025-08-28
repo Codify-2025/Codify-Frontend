@@ -4,7 +4,7 @@ import classNames from 'classnames';
 interface ButtonProps {
   text: string;
   loadingText?: string;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
@@ -24,6 +24,7 @@ const VARIANT = {
   secondary:
     'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 shadow-sm',
   ghost: 'bg-transparent text-blue-700 hover:bg-blue-50',
+  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm',
 };
 
 const SIZE = {
