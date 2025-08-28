@@ -5,8 +5,10 @@ import DashboardMain from './DashboardMain';
 const DashboardPage = () => {
   return (
     <Layout>
-      <UserInfoHeader />
-      <DashboardMain />
+      <div className="mx-auto w-full max-w-7xl px-6">
+        <UserInfoHeader />
+        <DashboardMain />
+      </div>
     </Layout>
   );
 };

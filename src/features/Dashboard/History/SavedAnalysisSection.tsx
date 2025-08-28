@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import Text from '@components/Text';
 import { savedAnalysisRecords } from './SavedAnalysisDummy';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
-import SavedAnalysisItem from './SavedAnalysisItem';
 
 type SortOption = 'latest' | 'similarity';
 
@@ -10,106 +9,105 @@ const SavedAnalysisSection: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [search, setSearch] = useState('');
 
-  // 정렬된 리스트
+  // 정렬
   const sorted = useMemo(() => {
-    const cloned = [...savedAnalysisRecords];
+    const list = [...savedAnalysisRecords];
     if (sortOption === 'similarity') {
-      return cloned.sort((a, b) => {
+      return list.sort((a, b) => {
         if (a.type !== 'pair') return 1;
         if (b.type !== 'pair') return -1;
         return b.similarity - a.similarity;
       });
-    } else {
-      return cloned.sort(
-        (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-      );
     }
+    return list.sort(
+      (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+    );
   }, [sortOption]);
 
-  // 검색어 필터링
+  // 검색
   const filtered = useMemo(() => {
-    return sorted.filter((record) => {
-      const lower = search.toLowerCase();
-      const target =
-        `${record.assignmentName} ${'fileA' in record ? record.fileA.label : ''} ${'fileB' in record ? record.fileB.label : ''}`.toLowerCase();
-      return target.includes(lower);
+    const q = search.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((r) => {
+      const base =
+        `${r.assignmentName} ${'fileA' in r ? r.fileA.label : ''} ${'fileB' in r ? r.fileB.label : ''}`.toLowerCase();
+      return base.includes(q);
     });
   }, [sorted, search]);
 
-  // 주차별로 그룹핑
+  // 주차 그룹
   const groupedByWeek = useMemo(() => {
     const map = new Map<number, SavedAnalysisRecord[]>();
-    filtered.forEach((record) => {
-      const week = record.week;
-      if (!map.has(week)) map.set(week, []);
-      map.get(week)!.push(record);
+    filtered.forEach((r) => {
+      if (!map.has(r.week)) map.set(r.week, []);
+      map.get(r.week)!.push(r);
     });
-    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]); // week 오름차순
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
   }, [filtered]);
 
   return (
-    <section className="mt-12">
-      <Text variant="heading" weight="bold" className="mb-4">
+    <section className="mt-10">
+      <Text variant="h2" weight="bold" className="mb-3 text-gray-900">
         저장된 분석 기록
       </Text>
 
-      {/* 정렬 & 검색 */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4 text-lg">
+      {/* 컨트롤 바 */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex overflow-hidden rounded-lg border">
           <button
-            onClick={() => setSortOption('latest')}
-            className={`${
+            className={[
+              'px-4 py-2 text-sm transition',
               sortOption === 'latest'
-                ? 'text-blue-600 font-semibold'
-                : 'text-gray-500'
-            }`}
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700',
+            ].join(' ')}
+            onClick={() => setSortOption('latest')}
           >
             최신순
           </button>
-          <span className="text-gray-300">|</span>
           <button
-            onClick={() => setSortOption('similarity')}
-            className={`${
+            className={[
+              'border-l px-4 py-2 text-sm transition',
               sortOption === 'similarity'
-                ? 'text-blue-600 font-semibold'
-                : 'text-gray-500'
-            }`}
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700',
+            ].join(' ')}
+            onClick={() => setSortOption('similarity')}
           >
             유사도 높은 순
           </button>
         </div>
 
-        {/* 검색 입력창 */}
-        <div className="relative w-60">
+        <div className="relative w-full sm:w-72">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="과제/학생/주차별로 검색하기"
-            className="p-1 w-full pr-8 border-0 border-b border-gray-400 focus:outline-none focus:ring-0 focus:border-black placeholder-gray-400"
+            placeholder="과제/학생/주차 검색"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-3 pr-9 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-500">
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
           </span>
         </div>
       </div>
 
-      {/* 주차별 출력 */}
-      <div className="space-y-12 py-6">
+      {/* 목록 */}
+      <div className="space-y-10">
         {groupedByWeek.map(([week, records]) => (
           <div key={week}>
-            <div className="text-center text-lg font-semibold text-gray mb-4 rounded-md py-2 bg-blue-100">
+            <div className="rounded-md bg-blue-50 py-2 text-center text-sm font-semibold text-blue-700 ring-1 ring-blue-100">
               {week}주차
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              {records.map((record) => (
-                <SavedAnalysisItem key={record.id} record={record} />
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {records.map((r) => (
+                <SavedAnalysisItem key={r.id} record={r} />
               ))}
             </div>
           </div>
         ))}
         {groupedByWeek.length === 0 && (
-          <div className="text-center text-lg font-medium text-gray-400 py-20">
+          <div className="py-16 text-center text-gray-500">
             검색 결과가 없습니다.
           </div>
         )}
@@ -119,3 +117,5 @@ const SavedAnalysisSection: React.FC = () => {
 };
 
 export default SavedAnalysisSection;
+
+import SavedAnalysisItem from './SavedAnalysisItem';
