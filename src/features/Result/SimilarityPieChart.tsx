@@ -21,6 +21,7 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
     { name: '기준 이하', value: failedCount },
     { name: '기준 초과', value: passedCount },
   ];
+  const total = data.reduce((sum, d) => sum + d.value, 0);
 
   // ↑ any 대신 명시 타입 사용: 첫 번째 파라미터는 사용 안 하므로 unknown으로 안전 처리
   const handleEnter = (_entry: unknown, index: number) => {
@@ -48,9 +49,10 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
               dataKey="value"
               onMouseEnter={handleEnter}
               onMouseLeave={() => onHover?.(null)}
-              // ↑ any 제거: 라벨 props 타입 명시
               label={(props: { name: PieDatum['name']; percent: number }) =>
-                `${props.name} ${(props.percent * 100).toFixed(0)}%`
+                total
+                  ? `${props.name} ${(props.percent * 100).toFixed(0)}%`
+                  : ''
               }
             >
               {data.map((entry, i) => (
