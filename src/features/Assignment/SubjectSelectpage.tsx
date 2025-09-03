@@ -8,7 +8,6 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { useQueryClient } from 'react-query';
 import { useSubjects } from '@hooks/useSubjects';
 import { useAddSubject } from '@hooks/useAddSubject';
-import { useAccessToken } from '@hooks/useAccessToken';
 import classNames from 'classnames';
 
 const SubjectSelectPage: React.FC = () => {
@@ -19,9 +18,8 @@ const SubjectSelectPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const token = useAccessToken();
   const { data: subjects = [], isLoading } = useSubjects();
-  const { mutate: addSubject, isLoading: isAdding } = useAddSubject(token);
+  const { mutate: addSubject, isLoading: isAdding } = useAddSubject();
 
   const filteredSubjects = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
