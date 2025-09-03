@@ -2,8 +2,8 @@ import { addSubject, addSubjectRequest } from '@services/submit';
 import { useMutation } from 'react-query';
 import { addSubjectApiResponse } from 'types/submit';
 
-export const useAddSubject = (token: string) => {
+export const useAddSubject = () => {
   return useMutation<addSubjectApiResponse, Error, addSubjectRequest>({
-    mutationFn: (params) => addSubject(params, token),
+    mutationFn: (params) => addSubject(params),
   });
 };

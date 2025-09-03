@@ -1,12 +1,10 @@
-import { fetchSubject } from '@services/submit';
 import { useQuery } from 'react-query';
-import { viewSubjectApiResponse } from 'types/submit';
+import { fetchSubject } from '@services/submit';
 
-export const useSubjects = (token: string) => {
-  return useQuery<viewSubjectApiResponse>({
-    queryKey: ['subjects'],
-    queryFn: () => fetchSubject(token),
-    enabled: !!token,
-    staleTime: 1000 * 60 * 5,
+export const useSubjects = () =>
+  useQuery<string[], Error>(['subjects'], fetchSubject, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    staleTime: 5 * 60 * 1000,
   });
-};

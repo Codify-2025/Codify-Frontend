@@ -3,7 +3,6 @@ import {
   addSubjectApiResponse,
   addWeekApiResponse,
   analyzeApiResponse,
-  viewSubjectApiResponse,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
 import { addSubjectMock } from '@mocks/addSubjectMock';
@@ -18,46 +17,31 @@ export interface addSubjectRequest {
   subjectName: string;
 }
 
-export const addSubject = async (
-  { subjectName }: addSubjectRequest,
-  token: string
-): Promise<addSubjectApiResponse> => {
+export const addSubject = async ({
+  subjectName,
+}: addSubjectRequest): Promise<addSubjectApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return addSubjectMock;
   }
 
-  const response = await axiosInstance.post<addSubjectApiResponse>(
-    `/api/submit/subjects`,
-    { subjectName },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
+  const res = await axiosInstance.post<addSubjectApiResponse>(
+    '/api/submit/subjects',
+    { subjectName }
   );
-
-  return response.data;
+  return res.data;
 };
 
 /// 기존 과목 조회
 
-export const fetchSubject = async (
-  token: string
-): Promise<viewSubjectApiResponse> => {
+export const fetchSubject = async (): Promise<string[]> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return viewSubjectMock;
   }
 
-  const response = await axiosInstance.get<viewSubjectApiResponse>(
-    `/api/submit/subjects`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
-  return response.data;
+  const res = await axiosInstance.get<string[]>('/api/submit/subjects');
+  return res.data;
 };
 
 /// 과제 생성
