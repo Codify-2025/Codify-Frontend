@@ -20,10 +20,8 @@ const SubjectSelectPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const token = useAccessToken();
-  const { data: subjectData, isLoading } = useSubjects(token);
+  const { data: subjects = [], isLoading } = useSubjects();
   const { mutate: addSubject, isLoading: isAdding } = useAddSubject(token);
-
-  const subjects = subjectData?.result ?? [];
 
   const filteredSubjects = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -59,18 +57,10 @@ const SubjectSelectPage: React.FC = () => {
     addSubject(
       { subjectName: trimmedName },
       {
-        onSuccess: (data) => {
-          if (data.isSuccess && data.result) {
-            const { subjectId } = data.result;
-            setSelectedSubject({
-              name: trimmedName,
-              code: subjectId.toString(),
-            });
-            queryClient.invalidateQueries(['subjects']);
-            navigate('/assignment/name');
-          } else {
-            alert('과목 추가 응답이 올바르지 않습니다.');
-          }
+        onSuccess: (subjectId) => {
+          setSelectedSubject({ name: trimmedName, code: String(subjectId) });
+          queryClient.invalidateQueries(['subjects']);
+          navigate('/assignment/name');
         },
         onError: () => alert('과목 추가에 실패했습니다.'),
       }
