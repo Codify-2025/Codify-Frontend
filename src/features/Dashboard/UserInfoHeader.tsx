@@ -3,11 +3,6 @@ import Button from '@components/Button';
 import Text from '@components/Text';
 import { useSubjectStore } from '@stores/useSubjectStore';
 
-interface Subject {
-  name: string;
-  code: string;
-}
-
 const UserInfoHeader: React.FC = () => {
   const [isSubjectOpen, setSubjectOpen] = useState(false);
   const { selectedSubject, setSelectedSubject } = useSubjectStore();
@@ -17,9 +12,9 @@ const UserInfoHeader: React.FC = () => {
     id: '아이디',
     testCount: 3,
     subjects: [
-      { name: '프로그래밍 입문', code: '001' },
-      { name: '공학 수학', code: '002' },
-    ] as Subject[],
+      { id: '001', name: '프로그래밍 입문' },
+      { id: '002', name: '공학 수학' },
+    ],
   };
 
   const handleToggle = () => setSubjectOpen((prev) => !prev);
@@ -72,14 +67,20 @@ const UserInfoHeader: React.FC = () => {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2">
               {user.subjects.map((subj) => {
-                const isSelected = subj.code === selectedSubject?.code;
+                // 선택 비교: id가 있으면 id로, 없으면 name으로 폴백
+                const isSelected = selectedSubject
+                  ? selectedSubject.id
+                    ? subj.id === selectedSubject.id
+                    : subj.name === selectedSubject.name
+                  : false;
+
                 return (
                   <button
-                    key={subj.code}
+                    key={subj.id}
                     type="button"
                     onClick={() =>
                       setSelectedSubject(
-                        isSelected ? null : { name: subj.name, code: subj.code }
+                        isSelected ? null : { id: subj.id, name: subj.name }
                       )
                     }
                     aria-pressed={isSelected}
@@ -92,7 +93,7 @@ const UserInfoHeader: React.FC = () => {
                     ].join(' ')}
                   >
                     <span className="truncate">{subj.name}</span>
-                    <span className="text-xs text-gray-400">{subj.code}</span>
+                    <span className="text-xs text-gray-400">{subj.id}</span>
                   </button>
                 );
               })}

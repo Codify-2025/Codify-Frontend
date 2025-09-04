@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 
-interface Subject {
+interface SubjectRef {
+  id?: string;
   name: string;
-  code: string;
+  // code: string;
 }
 
 interface SubjectStore {
-  selectedSubject: Subject | null;
-  setSelectedSubject: (subject: Subject | null) => void;
+  selectedSubject: SubjectRef | null;
+  setSelectedSubject: (subject: SubjectRef | null) => void;
 }
 
 export const useSubjectStore = create<SubjectStore>((set) => ({

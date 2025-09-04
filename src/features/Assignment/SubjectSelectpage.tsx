@@ -21,10 +21,10 @@ const SubjectSelectPage: React.FC = () => {
   const { data: subjects = [], isLoading } = useSubjects();
   const { mutate: addSubject, isLoading: isAdding } = useAddSubject();
 
-  const filteredSubjects = useMemo(() => {
+  const filteredSubjects = useMemo<string[]>(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return subjects;
-    return subjects.filter((name) => name.toLowerCase().includes(q));
+    return subjects.filter((name: string) => name.toLowerCase().includes(q));
   }, [subjects, searchTerm]);
 
   const handleSelect = useCallback(
@@ -36,7 +36,7 @@ const SubjectSelectPage: React.FC = () => {
       } else {
         setSelectedName(name);
         setNewSubjectName(name);
-        setSelectedSubject({ name, code: name });
+        setSelectedSubject({ name });
       }
     },
     [selectedName, setSelectedSubject]
@@ -56,7 +56,7 @@ const SubjectSelectPage: React.FC = () => {
       { subjectName: trimmedName },
       {
         onSuccess: (subjectId) => {
-          setSelectedSubject({ name: trimmedName, code: String(subjectId) });
+          setSelectedSubject({ id: String(subjectId), name: trimmedName });
           queryClient.invalidateQueries(['subjects']);
           navigate('/assignment/name');
         },
@@ -149,7 +149,7 @@ const SubjectSelectPage: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {filteredSubjects.map((name) => {
+                {filteredSubjects.map((name: string) => {
                   const selected = selectedName === name;
                   return (
                     <button
