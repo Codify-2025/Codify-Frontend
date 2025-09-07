@@ -16,8 +16,8 @@ import DashboardPage from '@features/Dashboard/DashboardPage';
 import LoginPage from '@features/Account/LoginPage';
 import HomePage from '@features/Home/HomePage';
 import SignupPage from '@features/Account/SignupPage';
-import SubjectSelectPage from '@features/Assignment/SubjectSelectPage';
 import GlobalLoading from '@components/GlobalLoading';
+import SubjectSelectPage from '@features/Assignment/SubjectSelectPage';
 
 const App: React.FC = () => {
   return (
