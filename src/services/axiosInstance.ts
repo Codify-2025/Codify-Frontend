@@ -20,8 +20,10 @@ axiosInstance.interceptors.request.use((config) => {
   config.headers['USER-UUID'] = FIXED_UUID;
 
   // JSON 기본
-  if (!('Content-Type' in config.headers)) {
-    config.headers['Contenty-Type'] = 'application/json';
+  const method = (config.method || 'get').toLowerCase();
+  const hasBody = ['post', 'put', 'patch'].includes(method);
+  if (hasBody && !('Content-Type' in config.headers)) {
+    config.headers['Content-Type'] = 'application/json';
   }
 
   return config;
