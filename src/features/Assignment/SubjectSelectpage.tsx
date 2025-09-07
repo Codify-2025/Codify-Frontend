@@ -55,7 +55,7 @@ const SubjectSelectPage: React.FC = () => {
     addSubject(
       { subjectName: trimmedName },
       {
-        onSuccess: (subjectId) => {
+        onSuccess: ({ subjectId }) => {
           setSelectedSubject({ id: String(subjectId), name: trimmedName });
           queryClient.invalidateQueries(['subjects']);
           navigate('/assignment/name');
