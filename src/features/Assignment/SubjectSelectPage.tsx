@@ -8,7 +8,6 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { useQueryClient } from 'react-query';
 import { useSubjects } from '@hooks/useSubjects';
 import { useAddSubject } from '@hooks/useAddSubject';
-import { useAccessToken } from '@hooks/useAccessToken';
 import classNames from 'classnames';
 
 const SubjectSelectPage: React.FC = () => {
@@ -19,16 +18,13 @@ const SubjectSelectPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const token = useAccessToken();
-  const { data: subjectData, isLoading } = useSubjects(token);
-  const { mutate: addSubject, isLoading: isAdding } = useAddSubject(token);
+  const { data: subjects = [], isLoading } = useSubjects();
+  const { mutate: addSubject, isLoading: isAdding } = useAddSubject();
 
-  const subjects = subjectData?.result ?? [];
-
-  const filteredSubjects = useMemo(() => {
+  const filteredSubjects = useMemo<string[]>(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return subjects;
-    return subjects.filter((name) => name.toLowerCase().includes(q));
+    return subjects.filter((name: string) => name.toLowerCase().includes(q));
   }, [subjects, searchTerm]);
 
   const handleSelect = useCallback(
@@ -40,7 +36,7 @@ const SubjectSelectPage: React.FC = () => {
       } else {
         setSelectedName(name);
         setNewSubjectName(name);
-        setSelectedSubject({ name, code: name });
+        setSelectedSubject({ name });
       }
     },
     [selectedName, setSelectedSubject]
@@ -59,18 +55,10 @@ const SubjectSelectPage: React.FC = () => {
     addSubject(
       { subjectName: trimmedName },
       {
-        onSuccess: (data) => {
-          if (data.isSuccess && data.result) {
-            const { subjectId } = data.result;
-            setSelectedSubject({
-              name: trimmedName,
-              code: subjectId.toString(),
-            });
-            queryClient.invalidateQueries(['subjects']);
-            navigate('/assignment/name');
-          } else {
-            alert('과목 추가 응답이 올바르지 않습니다.');
-          }
+        onSuccess: ({ subjectId }) => {
+          setSelectedSubject({ id: String(subjectId), name: trimmedName });
+          queryClient.invalidateQueries(['subjects']);
+          navigate('/assignment/name');
         },
         onError: () => alert('과목 추가에 실패했습니다.'),
       }
@@ -161,7 +149,7 @@ const SubjectSelectPage: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {filteredSubjects.map((name) => {
+                {filteredSubjects.map((name: string) => {
                   const selected = selectedName === name;
                   return (
                     <button

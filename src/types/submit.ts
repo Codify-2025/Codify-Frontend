@@ -1,24 +1,7 @@
 /// 새로운 과목 추가
 
-export interface addSubjectResult {
-  subjectId: number;
-  message: string; // 성공 여부 안내 메시지
-}
-
 export interface addSubjectApiResponse {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-  result: addSubjectResult;
-}
-
-/// 기존 과목 조회
-
-export interface viewSubjectApiResponse {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-  result: string[];
+  subjectId: number;
 }
 
 // 과제 생성
