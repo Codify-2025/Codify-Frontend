@@ -1,12 +1,12 @@
 import { fetchMain } from '@services/dashboard';
 import { useQuery } from 'react-query';
-import { MainApiResponse } from 'types/dashboard';
+import { MainResponseData } from 'types/dashboard';
 
-export const useMainDashboard = (token: string) => {
-  return useQuery<MainApiResponse>({
+export const useMainDashboard = () => {
+  return useQuery<MainResponseData>({
     queryKey: ['mainDashboard'],
-    queryFn: () => fetchMain(token),
-    enabled: !!token,
+    queryFn: fetchMain,
     staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
   });
 };

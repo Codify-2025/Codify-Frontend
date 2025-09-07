@@ -67,8 +67,8 @@ export interface RecordApiResponse {
 /// 대시보드 메인
 
 export interface MainUser {
-  userId: number;
-  userName: string;
+  userId: string;
+  name: string;
 }
 
 export interface MainSubject {
@@ -80,10 +80,4 @@ export interface MainResponseData {
   user: MainUser;
   testCount: number; // 진행한 유사도 검사 횟수
   subjects: MainSubject[];
-}
-
-export interface MainApiResponse {
-  status: number;
-  success: boolean;
-  message: MainResponseData;
 }

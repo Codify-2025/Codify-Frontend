@@ -2,22 +2,28 @@ import React, { useState } from 'react';
 import Button from '@components/Button';
 import Text from '@components/Text';
 import { useSubjectStore } from '@stores/useSubjectStore';
+import { useMainDashboard } from '@hooks/useMainDashboard';
+import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 
 const UserInfoHeader: React.FC = () => {
   const [isSubjectOpen, setSubjectOpen] = useState(false);
   const { selectedSubject, setSelectedSubject } = useSubjectStore();
-
-  const user = {
-    name: '사용자명',
-    id: '아이디',
-    testCount: 3,
-    subjects: [
-      { id: '001', name: '프로그래밍 입문' },
-      { id: '002', name: '공학 수학' },
-    ],
-  };
+  const { data, isLoading, isError } = useMainDashboard();
 
   const handleToggle = () => setSubjectOpen((prev) => !prev);
+
+  // 선택 비교 함수
+  const isSelected = (id: string, name: string) => {
+    const s = selectedSubject;
+    if (!s) return false;
+    return s.id ? s.id === id : s.name === name;
+  };
+
+  // 로딩/에러
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !data) return <ErrorState />;
+
+  const { user, testCount, subjects } = data;
 
   return (
     <header className="relative mt-8">
@@ -32,15 +38,13 @@ const UserInfoHeader: React.FC = () => {
           <Text as="h1" variant="h2" weight="bold" className="text-gray-900">
             {user.name}{' '}
             <span className="ml-2 align-middle text-base font-normal text-gray-600">
-              ({user.id})
+              ({user.userId})
             </span>
           </Text>
 
           <Text variant="body" className="text-gray-700">
             진행한 유사도 검사:{' '}
-            <span className="font-semibold text-blue-700">
-              {user.testCount}회
-            </span>
+            <span className="font-semibold text-blue-700">{testCount}회</span>
           </Text>
 
           {/* 과목 선택 토글 */}
@@ -66,34 +70,38 @@ const UserInfoHeader: React.FC = () => {
             className="mt-4 w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2">
-              {user.subjects.map((subj) => {
-                // 선택 비교: id가 있으면 id로, 없으면 name으로 폴백
-                const isSelected = selectedSubject
-                  ? selectedSubject.id
-                    ? subj.id === selectedSubject.id
-                    : subj.name === selectedSubject.name
-                  : false;
-
+              {subjects.map((subj) => {
+                const selected = isSelected(
+                  subj.subjectId.toString(),
+                  subj.subjectName
+                );
                 return (
                   <button
-                    key={subj.id}
+                    key={subj.subjectId}
                     type="button"
                     onClick={() =>
                       setSelectedSubject(
-                        isSelected ? null : { id: subj.id, name: subj.name }
+                        selected
+                          ? null
+                          : {
+                              id: subj.subjectId.toString(),
+                              name: subj.subjectName,
+                            }
                       )
                     }
-                    aria-pressed={isSelected}
+                    aria-pressed={selected}
                     className={[
                       'flex items-center justify-between px-4 py-3 text-left transition',
                       'border-b border-gray-100 last:border-b-0 sm:last:border-b',
-                      isSelected
+                      selected
                         ? 'bg-blue-50 text-blue-700'
                         : 'hover:bg-gray-50 text-gray-800',
                     ].join(' ')}
                   >
-                    <span className="truncate">{subj.name}</span>
-                    <span className="text-xs text-gray-400">{subj.id}</span>
+                    <span className="truncate">{subj.subjectName}</span>
+                    <span className="text-xs text-gray-400">
+                      {subj.subjectId}
+                    </span>
                   </button>
                 );
               })}

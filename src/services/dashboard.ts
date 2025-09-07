@@ -1,6 +1,6 @@
 import {
   AccumulatedApiResponse,
-  MainApiResponse,
+  MainResponseData,
   RecordApiResponse,
 } from 'types/dashboard';
 import axiosInstance from './axiosInstance';
@@ -50,17 +50,13 @@ export const fetchRecord = async (
 
 /// 대시보드 메인
 
-export const fetchMain = async (token: string): Promise<MainApiResponse> => {
+export const fetchMain = async (): Promise<MainResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return mainMock;
   }
 
-  const response = await axiosInstance.get<MainApiResponse>(
-    `/api/dashboard/main`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  const response =
+    await axiosInstance.get<MainResponseData>(`/api/dashboard/main`);
   return response.data;
 };
