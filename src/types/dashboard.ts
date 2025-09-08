@@ -19,12 +19,6 @@ export interface AccumulatedResponseData {
   edges: AccumulatedEdge[];
 }
 
-export interface AccumulatedApiResponse {
-  status: number;
-  success: boolean;
-  message: AccumulatedResponseData;
-}
-
 /// 저장된 분석 기록
 
 export interface RecordNode {

@@ -1,5 +1,5 @@
 import {
-  AccumulatedApiResponse,
+  AccumulatedResponseData,
   MainResponseData,
   RecordResponseData,
 } from 'types/dashboard';
@@ -11,19 +11,17 @@ import { mainMock } from '@mocks/mainMock';
 /// 누적 네트워크 토폴로지
 
 export const fetchAccumulatedTopology = async (
-  assignmentName: string,
-  token: string
-): Promise<AccumulatedApiResponse> => {
+  subjectId: number
+): Promise<AccumulatedResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return accumulatedMock;
   }
 
-  const response = await axiosInstance.get<AccumulatedApiResponse>(
+  const response = await axiosInstance.get<AccumulatedResponseData>(
     `/api/dashboard/accumulate`,
     {
-      params: { assignmentName },
-      headers: { Authorization: `Bearer ${token}` },
+      params: { subjectId },
     }
   );
   return response.data;

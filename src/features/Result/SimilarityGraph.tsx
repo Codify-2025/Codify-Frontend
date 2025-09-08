@@ -96,20 +96,20 @@ const SimilarityGraph: React.FC<Props> = ({
       }))
     );
 
-    const {
-      dragNodes = false,
-      zoomView = false,
-      dragView = false,
-    } = interactionOptions ?? {};
+    // const {
+    //   dragNodes = false,
+    //   zoomView = false,
+    //   dragView = false,
+    // } = interactionOptions ?? {};
 
     const network = new Network(
       containerRef.current,
       { nodes: visNodes, edges: visEdges },
       {
         physics: {
-          enabled: true,
+          enabled: true, // 1) 처음엔 켜서 레이아웃 잡고
           solver: 'forceAtlas2Based',
-          stabilization: { iterations: 400 },
+          stabilization: { iterations: 300 },
           forceAtlas2Based: {
             gravitationalConstant: -50,
             centralGravity: 0.02,
@@ -119,6 +119,7 @@ const SimilarityGraph: React.FC<Props> = ({
             avoidOverlap: 1,
           },
         },
+        layout: { improvedLayout: true, randomSeed: 42 }, // 재랜더링 일관성
         nodes: {
           shape: 'dot',
           size: 20,
@@ -136,22 +137,29 @@ const SimilarityGraph: React.FC<Props> = ({
             strokeColor: '#1e293b',
           },
           borderWidth: 2,
+          physics: false, // 개별 노드는 물리 영향 받지 않게(흔들림 감소)
         },
         edges: {
           selectionWidth: 2,
           hoverWidth: 0,
           arrows: { to: { enabled: false } },
+          smooth: { enabled: true, type: 'dynamic', roundness: 0.5 },
         },
         interaction: {
           hover: true,
           tooltipDelay: 120,
-          zoomView,
-          dragView,
-          dragNodes,
+          zoomView: interactionOptions?.zoomView ?? false,
+          dragView: interactionOptions?.dragView ?? false,
+          dragNodes: interactionOptions?.dragNodes ?? false,
           selectable: true,
         },
       }
     );
+
+    // 안정화가 끝나면 물리 끄기 → 더 이상 안 흔들림
+    network.once('stabilized', () => {
+      network.setOptions({ physics: { enabled: false } });
+    });
 
     networkRef.current = network;
 
