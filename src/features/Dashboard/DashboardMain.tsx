@@ -1,17 +1,16 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import Text from '@components/Text';
 import { useSubjectStore } from '@stores/useSubjectStore';
 import AccumulatedSimilarityGraph from './AccumulatedSimilarityGraph';
 import SavedAnalysisSection from './History/SavedAnalysisSection';
-import { dummySavedRecords } from '@constants/dummySavedRecords';
-import { useSavedRecordStore } from '@stores/useSavedRecordStore';
+import { useRecord } from '@hooks/useRecord';
+import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 
 const DashboardMain: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
+  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
 
-  useEffect(() => {
-    useSavedRecordStore.getState().setRecords(dummySavedRecords);
-  }, []);
+  const { data, isLoading, isError } = useRecord(subjectId);
 
   if (!selectedSubject) {
     return (
@@ -28,6 +27,10 @@ const DashboardMain: React.FC = () => {
       </div>
     );
   }
+
+  // 로딩/에러
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !data) return <ErrorState />;
 
   return (
     <main className="py-8">

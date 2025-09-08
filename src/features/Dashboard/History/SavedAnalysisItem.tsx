@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
 import Text from '@components/Text';
+import { formatDateTimeKST, formatPercent01 } from '@utils/format';
 
 interface Props {
   record: SavedAnalysisRecord;
@@ -17,8 +18,8 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
           onClick={() =>
-            navigate('/result', {
-              state: { fromSaved: true, recordId: record.id },
+            navigate('/record/detail', {
+              state: { record },
             })
           }
         >
@@ -33,42 +34,32 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
     );
   }
 
+  // pair
+  const similarityText = formatPercent01(record.similarity ?? 0);
+  const aTime = formatDateTimeKST(record.fileA.submittedAt);
+  const bTime = formatDateTimeKST(record.fileB.submittedAt);
+
   return (
     <div className="flex flex-col items-center">
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-        onClick={() => {
-          if (!record.fileB) {
-            alert('비교 대상 파일 정보가 없습니다.');
-            return;
-          }
-          navigate(
-            `/compare/${String(record.fileA.id)}/${String(record.fileB.id)}`,
-            {
-              state: { fromSaved: true, recordId: record.id },
-            }
-          );
-        }}
+        onClick={() => navigate('/record/detail', { state: { record } })}
       >
-        {/* 유사도 */}
         <div className="text-center">
           <Text variant="body" weight="bold" className="text-xl text-red-600">
-            유사도 {record.similarity}%
+            유사도 {similarityText}
           </Text>
         </div>
 
-        {/* 파일/시간 */}
         <div className="mt-3 flex flex-col gap-2 text-gray-700">
           <div>
             <span className="font-medium">{record.fileA.label}</span>{' '}
-            <span className="text-blue-600">{record.fileA.submittedAt}</span>
+            <span className="text-blue-600">{aTime}</span>
           </div>
           <div>
-            <span className="font-medium">{record.fileB?.label ?? '-'}</span>{' '}
-            <span className="text-blue-600">
-              {record.fileB?.submittedAt ?? '-'}
-            </span>
+            <span className="font-medium">{record.fileB.label}</span>{' '}
+            <span className="text-blue-600">{bTime}</span>
           </div>
         </div>
       </button>

@@ -28,40 +28,28 @@ export interface AccumulatedApiResponse {
 /// 저장된 분석 기록
 
 export interface RecordNode {
-  id: string;
+  id: number;
   label: string;
-  submittedAt: string; // 제출 시간
 }
 
-export interface RecordWeekHistory {
+export interface RecordWeekData {
+  id: string;
+  from: number;
+  to: number;
   submittedFrom: string;
   submittedTo: string;
-  similarity: number;
-}
-
-export interface RecordWeekEdge {
-  id: string;
-  from: string;
-  to: string;
   value: number;
   width: number;
-  histories: RecordWeekHistory[];
 }
 
 export interface RecordEdge {
   week: number;
-  weekData: RecordWeekEdge[];
+  data: RecordWeekData[];
 }
 
 export interface RecordResponseData {
   nodes: RecordNode[];
   edges: RecordEdge[];
-}
-
-export interface RecordApiResponse {
-  status: number;
-  success: boolean;
-  message: RecordResponseData;
 }
 
 /// 대시보드 메인
