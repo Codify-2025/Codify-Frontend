@@ -17,7 +17,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         <button
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-          onClick={() => navigate(`/record/${record.id}`)}
+          onClick={() => navigate(`/result?week=${record.week}`)}
         >
           <div className="flex h-full w-full items-center justify-center rounded bg-gray-50 text-gray-400 ring-1 ring-gray-100">
             네트워크 토폴로지 미리보기
