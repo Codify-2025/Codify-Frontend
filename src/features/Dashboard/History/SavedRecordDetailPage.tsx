@@ -67,8 +67,9 @@ const SavedRecordDetailPage: React.FC = () => {
           assignmentName: subjectName,
           week,
           savedAt,
-          similarity: Math.round(
-            (typeof d.value === 'number' ? d.value : 0) * 100
+          similarity: Math.min(
+            1,
+            Math.max(0, Number.isFinite(Number(d.value)) ? Number(d.value) : 0)
           ),
           fileA: {
             id: fromId,
