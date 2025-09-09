@@ -8,6 +8,12 @@ import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 
 type SortOption = 'latest' | 'similarity';
 
+const clamp01 = (v: unknown) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+};
+
 const SavedAnalysisSection: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [search, setSearch] = useState('');
@@ -58,8 +64,8 @@ const SavedAnalysisSection: React.FC = () => {
           assignmentName: selectedSubject!.name,
           week,
           savedAt,
-          similarity: typeof d.value === 'number' ? d.value : 0,
-          width: typeof d.width === 'number' ? d.width : 0,
+          similarity: clamp01(Number(d.value)),
+          width: Number.isFinite(Number(d.width)) ? Number(d.width) : 0,
           fileA: {
             id: fromId,
             label: nameMap.get(fromId) ?? fromId,
