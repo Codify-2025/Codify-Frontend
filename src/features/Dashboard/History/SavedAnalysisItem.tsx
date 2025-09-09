@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
 import Text from '@components/Text';
+import { formatDateTimeKST, formatPercent01 } from '@utils/format';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 interface Props {
   record: SavedAnalysisRecord;
@@ -9,6 +11,8 @@ interface Props {
 
 const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   const navigate = useNavigate();
+  const { selectedSubject } = useSubjectStore();
+  const subjectId = selectedSubject ? String(selectedSubject.id) : undefined;
 
   if (record.type === 'group') {
     return (
@@ -16,11 +20,10 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         <button
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-          onClick={() =>
-            navigate('/result', {
-              state: { fromSaved: true, recordId: record.id },
-            })
-          }
+          onClick={() => {
+            if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+            navigate(`/subjects/${subjectId}/record/${record.id}`);
+          }}
         >
           <div className="flex h-full w-full items-center justify-center rounded bg-gray-50 text-gray-400 ring-1 ring-gray-100">
             네트워크 토폴로지 미리보기
@@ -33,49 +36,43 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
     );
   }
 
+  // pair
+  const similarityText = formatPercent01(record.similarity ?? 0);
+  const aTime = formatDateTimeKST(record.fileA.submittedAt);
+  const bTime = formatDateTimeKST(record.fileB?.submittedAt || '');
+  const bLabel = record.fileB?.label ?? '(미제출)';
+
   return (
     <div className="flex flex-col items-center">
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
         onClick={() => {
-          if (!record.fileB) {
-            alert('비교 대상 파일 정보가 없습니다.');
-            return;
-          }
-          navigate(
-            `/compare/${String(record.fileA.id)}/${String(record.fileB.id)}`,
-            {
-              state: { fromSaved: true, recordId: record.id },
-            }
-          );
+          if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+          navigate(`/subjects/${subjectId}/record/${record.id}`);
         }}
       >
-        {/* 유사도 */}
         <div className="text-center">
           <Text variant="body" weight="bold" className="text-xl text-red-600">
-            유사도 {record.similarity}%
+            유사도 {similarityText}
           </Text>
         </div>
 
-        {/* 파일/시간 */}
         <div className="mt-3 flex flex-col gap-2 text-gray-700">
           <div>
             <span className="font-medium">{record.fileA.label}</span>{' '}
-            <span className="text-blue-600">{record.fileA.submittedAt}</span>
+            <span className="text-blue-600">{aTime}</span>
           </div>
           <div>
-            <span className="font-medium">{record.fileB?.label ?? '-'}</span>{' '}
-            <span className="text-blue-600">
-              {record.fileB?.submittedAt ?? '-'}
-            </span>
+            <span className="font-medium">{bLabel}</span>{' '}
+            <span className="text-blue-600">{bTime}</span>
           </div>
         </div>
       </button>
 
       <p className="mt-2 w-full text-center font-semibold text-gray-600">
-        &lt;{record.assignmentName}&gt; {record.fileA.label}-
-        {record.fileB.label} 코드 비교 결과
+        &lt;{record.assignmentName}&gt; {record.fileA.label}-{bLabel} 코드 비교
+        결과
       </p>
     </div>
   );

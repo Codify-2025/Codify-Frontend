@@ -15,11 +15,27 @@ interface Props {
   };
 }
 
+const brand = {
+  nodeBg: '#2563eb', // tailwind blue-600
+  nodeBorder: '#1d4ed8', // blue-700
+  edgeLow: '#94a3b8', // slate-400
+  edgeMid: '#3b82f6', // blue-500
+  edgeHigh: '#f59e0b', // amber-500
+  edgeVery: '#ef4444', // red-500
+  label: '#334155', // slate-700
+};
+
 const edgeColor = (s: number) =>
-  s >= 90 ? '#ef4444' : s >= 75 ? '#f59e0b' : s >= 60 ? '#3b82f6' : '#94a3b8';
+  s >= 90
+    ? brand.edgeVery
+    : s >= 75
+      ? brand.edgeHigh
+      : s >= 60
+        ? brand.edgeMid
+        : brand.edgeLow;
 
 const edgeWidth = (s: number) =>
-  s >= 90 ? 8 : s >= 75 ? 6 : s >= 60 ? 4 : s >= 40 ? 2 : 1;
+  s >= 90 ? 10 : s >= 75 ? 7 : s >= 60 ? 5 : s >= 40 ? 3 : 2;
 
 const SimilarityGraph: React.FC<Props> = ({
   nodes,
@@ -35,17 +51,29 @@ const SimilarityGraph: React.FC<Props> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // 동일 페어 중복 제거
+    const dedupEdges = (() => {
+      const m = new Map<string, FileEdge>();
+      for (const e of edges) {
+        const [x, y] = e.from <= e.to ? [e.from, e.to] : [e.to, e.from];
+        const k = `${x}-${y}`;
+        const prev = m.get(k);
+        if (!prev || e.similarity > prev.similarity)
+          m.set(k, { ...e, from: x, to: y });
+      }
+      return Array.from(m.values());
+    })();
+
     const visNodes = new DataSet(
       nodes.map((n) => ({
         id: n.id,
         label: n.label,
-        title: undefined, // 기본 툴팁 제거
-        fixed: { x: true, y: true },
+        title: undefined,
       }))
     );
 
     const visEdges = new DataSet(
-      edges.map((e) => ({
+      dedupEdges.map((e) => ({
         id: `${e.from}-${e.to}`,
         from: e.from,
         to: e.to,
@@ -56,44 +84,86 @@ const SimilarityGraph: React.FC<Props> = ({
           hover: edgeColor(e.similarity),
           highlight: edgeColor(e.similarity),
         },
-        font: { align: 'middle', color: '#475569', size: 12 },
+        font: {
+          align: 'middle',
+          color: brand.label,
+          size: 14,
+          face: 'Inter, ui-sans-serif',
+          strokeWidth: 2,
+          strokeColor: '#ffffff',
+        },
+        smooth: { enabled: true, type: 'dynamic', roundness: 0.5 },
       }))
     );
 
-    const {
-      dragNodes = false,
-      zoomView = false,
-      dragView = false,
-    } = interactionOptions ?? {};
+    // const {
+    //   dragNodes = false,
+    //   zoomView = false,
+    //   dragView = false,
+    // } = interactionOptions ?? {};
 
     const network = new Network(
       containerRef.current,
       { nodes: visNodes, edges: visEdges },
       {
-        physics: { enabled: false },
-        layout: { randomSeed: 42 },
+        physics: {
+          enabled: true, // 1) 처음엔 켜서 레이아웃 잡고
+          solver: 'forceAtlas2Based',
+          stabilization: { iterations: 300 },
+          forceAtlas2Based: {
+            gravitationalConstant: -50,
+            centralGravity: 0.02,
+            springLength: 200,
+            springConstant: 0.04,
+            damping: 0.4,
+            avoidOverlap: 1,
+          },
+        },
+        layout: { improvedLayout: true, randomSeed: 42 }, // 재랜더링 일관성
         nodes: {
           shape: 'dot',
-          size: 18,
-          fixed: true,
-          physics: false,
-          color: { background: '#0ea5e9', border: '#0284c7' },
+          size: 20,
+          color: {
+            background: brand.nodeBg,
+            border: brand.nodeBorder,
+            highlight: brand.nodeBg,
+            hover: brand.nodeBg,
+          },
+          font: {
+            color: '#ffffff',
+            size: 16,
+            face: 'Inter, ui-sans-serif',
+            strokeWidth: 3,
+            strokeColor: '#1e293b',
+          },
+          borderWidth: 2,
+          // physics: false, // 개별 노드는 물리 영향 받지 않게(흔들림 감소)
         },
-        edges: { smooth: true },
+        edges: {
+          selectionWidth: 2,
+          hoverWidth: 0,
+          arrows: { to: { enabled: false } },
+          smooth: { enabled: true, type: 'dynamic', roundness: 0.5 },
+        },
         interaction: {
           hover: true,
           tooltipDelay: 120,
-          zoomView,
-          dragView,
-          dragNodes,
+          zoomView: interactionOptions?.zoomView ?? false,
+          dragView: interactionOptions?.dragView ?? false,
+          dragNodes: interactionOptions?.dragNodes ?? false,
           selectable: true,
         },
       }
     );
 
+    // 안정화가 끝나면 물리 끄기 → 더 이상 안 흔들림
+    network.once('stabilized', () => {
+      network.setOptions({ physics: { enabled: false } });
+    });
+
     networkRef.current = network;
 
-    // Hover select 효과 추가(가독성↑)
+    // 이벤트 연결
     network.on('hoverNode', (params) => {
       network.selectNodes([params.node]);
       const node = nodes.find((n) => n.id === params.node);
@@ -104,7 +174,7 @@ const SimilarityGraph: React.FC<Props> = ({
     network.on('hoverEdge', (params) => {
       network.selectEdges([params.edge]);
       const [fromId, toId] = String(params.edge).split('-');
-      const edge = edges.find(
+      const edge = dedupEdges.find(
         (e) =>
           (e.from === fromId && e.to === toId) ||
           (e.from === toId && e.to === fromId)
@@ -116,7 +186,7 @@ const SimilarityGraph: React.FC<Props> = ({
     network.on('click', (params) => {
       if (params.edges.length === 0) return;
       const [fromId, toId] = String(params.edges[0]).split('-');
-      const edge = edges.find(
+      const edge = dedupEdges.find(
         (e) =>
           (e.from === fromId && e.to === toId) ||
           (e.from === toId && e.to === fromId)
@@ -127,7 +197,7 @@ const SimilarityGraph: React.FC<Props> = ({
     return () => network.destroy();
   }, [nodes, edges, onNodeHover, onEdgeHover, onEdgeClick, interactionOptions]);
 
-  return <div ref={containerRef} className="h-[520px] w-full" />;
+  return <div ref={containerRef} className="h-[560px] w-full" />;
 };
 
 export default SimilarityGraph;

@@ -2,6 +2,7 @@ export type AnalysisType = 'group' | 'pair';
 
 export interface BaseAnalysisRecord {
   id: string;
+  subjectId: number;
   assignmentName: string;
   week: number;
   type: AnalysisType;
@@ -25,6 +26,7 @@ export interface PairAnalysisRecord extends BaseAnalysisRecord {
     submittedAt: string;
   };
   similarity: number;
+  width?: number;
 }
 
 export type SavedAnalysisRecord = GroupAnalysisRecord | PairAnalysisRecord;

@@ -1,17 +1,40 @@
 import React, { useMemo, useState } from 'react';
 import Text from '@components/Text';
 import SimilarityGraph from '@features/Result/SimilarityGraph';
-import { dummyAssignments } from '@constants/dummyAssignments';
-import { accumulateSimilarityData } from '@utils/accumulateSimilarity';
+import { useSubjectStore } from '@stores/useSubjectStore';
+import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
+import { useAccumulatedTopology } from '@hooks/useAccumulatedTopology';
 
 const AccumulatedSimilarityGraph: React.FC = () => {
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
+  const { selectedSubject } = useSubjectStore();
+
+  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
+  const { data, isLoading, isError } = useAccumulatedTopology(subjectId);
 
   // 누적 유사도 데이터
-  const { nodes, edges } = useMemo(
-    () => accumulateSimilarityData(dummyAssignments),
-    []
-  );
+  const { nodes, edges } = useMemo(() => {
+    if (!data) return { nodes: [], edges: [] };
+
+    const nodes = data.nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label,
+      submittedAt: '',
+    }));
+
+    const edges = data.edges.map((e) => ({
+      from: String(e.from),
+      to: String(e.to),
+      similarity: Math.round((e.value ?? 0) * 100),
+      count: e.count,
+      width: e.width,
+    }));
+
+    return { nodes, edges };
+  }, [data]);
+
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !data) return <ErrorState />;
 
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-10">
@@ -21,14 +44,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
           <Text variant="h3" weight="bold" className="text-gray-900">
             전체 네트워크
           </Text>
-          <div className="hidden gap-2 lg:flex">
-            <span className="rounded-md bg-red-50 px-2 py-1 text-xs text-red-700">
-              유사도↑
-            </span>
-            <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">
-              유사도↓
-            </span>
-          </div>
         </div>
 
         <SimilarityGraph
@@ -43,13 +58,18 @@ const AccumulatedSimilarityGraph: React.FC = () => {
             const connected = edges.filter(
               (e) => e.from === node.id || e.to === node.id
             );
-            const connectedNames = connected.map((e) => {
-              const otherId = e.from === node.id ? e.to : e.from;
-              return nodes.find((n) => n.id === otherId)?.label;
-            });
+
+            const connectedNames = connected
+              .map((e) => {
+                const otherId = e.from === node.id ? e.to : e.from;
+                const other = nodes.find((n) => n.id === otherId);
+                return other?.label ?? otherId;
+              })
+              .filter(Boolean);
+
             setHoverInfo(
               [
-                `📄 학생명: ${node.label}`,
+                '📄 학생명: ' + node.label,
                 '',
                 ...connectedNames.map((n) => `• ${n}`),
               ].join('\n')
@@ -84,12 +104,11 @@ const AccumulatedSimilarityGraph: React.FC = () => {
               {edges
                 .filter((e) => (e.count ?? 0) >= 2)
                 .map((e) => {
-                  const from = nodes.find((n) => n.id === e.from);
-                  const to = nodes.find((n) => n.id === e.to);
                   return (
                     <tr key={`${e.from}-${e.to}`} className="border-t">
                       <td className="px-3 py-2">
-                        {from?.label} ↔ {to?.label}
+                        {nodes.find((n) => n.id === e.from)?.label ?? e.from} ↔{' '}
+                        {nodes.find((n) => n.id === e.to)?.label ?? e.to}
                       </td>
                       <td className="px-3 py-2 font-semibold text-red-600">
                         {e.similarity}%

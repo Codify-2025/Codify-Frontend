@@ -1,29 +1,101 @@
 import React, { useMemo, useState } from 'react';
 import Text from '@components/Text';
-import { savedAnalysisRecords } from './SavedAnalysisDummy';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
 import SavedAnalysisItem from './SavedAnalysisItem';
+import { useSubjectStore } from '@stores/useSubjectStore';
+import { useRecord } from '@hooks/useRecord';
+import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 
 type SortOption = 'latest' | 'similarity';
+
+const clamp01 = (v: unknown) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+};
 
 const SavedAnalysisSection: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [search, setSearch] = useState('');
+  const { selectedSubject } = useSubjectStore();
+
+  const subjectIdNum = Number(selectedSubject?.id);
+  const hasSubject = !!selectedSubject && Number.isFinite(subjectIdNum);
+
+  const { data, isLoading, isError } = useRecord(
+    hasSubject ? subjectIdNum : undefined
+  );
+
+  // 응답 -> 화면 모델 어댑트
+  const records: SavedAnalysisRecord[] = useMemo(() => {
+    const msg = data;
+    if (!msg || !hasSubject) return [];
+
+    const nameMap = new Map<string, string>();
+    for (const n of msg.nodes ?? []) {
+      nameMap.set(String(n.id), n.label ?? '');
+    }
+
+    const list: SavedAnalysisRecord[] = [];
+    const dupCounter = new Map<string, number>();
+
+    for (const e of msg.edges ?? []) {
+      const week = Number(e.week) || 0;
+
+      for (const d of e.data ?? []) {
+        const fromId = String(d.from);
+        const toId = String(d.to);
+        const [a, b] = [fromId, toId].sort();
+        const submittedFrom = d.submittedFrom ?? '';
+        const submittedTo = d.submittedTo ?? '';
+        const baseId = `${week}__${a}-${b}__${submittedFrom}__${submittedTo}`;
+
+        const next = (dupCounter.get(baseId) ?? 0) + 1;
+        dupCounter.set(baseId, next);
+        const uniqueId = next === 1 ? baseId : `${baseId}__${next}`;
+
+        const savedAt =
+          submittedTo || submittedFrom || new Date().toISOString();
+
+        list.push({
+          id: uniqueId,
+          subjectId: subjectIdNum,
+          type: 'pair',
+          assignmentName: selectedSubject!.name,
+          week,
+          savedAt,
+          similarity: clamp01(Number(d.value)),
+          width: Number.isFinite(Number(d.width)) ? Number(d.width) : 0,
+          fileA: {
+            id: fromId,
+            label: nameMap.get(fromId) ?? fromId,
+            submittedAt: d.submittedFrom ?? savedAt,
+          },
+          fileB: {
+            id: toId,
+            label: nameMap.get(toId) ?? toId,
+            submittedAt: d.submittedTo ?? savedAt,
+          },
+        });
+      }
+    }
+    return list;
+  }, [data, hasSubject, selectedSubject, subjectIdNum]);
 
   // 정렬
   const sorted = useMemo(() => {
-    const list = [...savedAnalysisRecords];
+    const list = [...records];
     if (sortOption === 'similarity') {
       return list.sort((a, b) => {
         if (a.type !== 'pair') return 1;
         if (b.type !== 'pair') return -1;
-        return b.similarity - a.similarity;
+        return (b.similarity ?? 0) - (a.similarity ?? 0);
       });
     }
     return list.sort(
       (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     );
-  }, [sortOption]);
+  }, [records, sortOption]);
 
   // 검색
   const filtered = useMemo(() => {
@@ -31,7 +103,7 @@ const SavedAnalysisSection: React.FC = () => {
     if (!q) return sorted;
     return sorted.filter((r) => {
       const base =
-        `${r.assignmentName} ${'fileA' in r ? r.fileA.label : ''} ${'fileB' in r ? r.fileB.label : ''} ${r.week}주차 ${r.week}`.toLowerCase();
+        `${r.assignmentName} ${'fileA' in r ? r.fileA.label : ''} ${'fileB' in r ? r.fileB.label : ''} ${r.week}주차`.toLowerCase();
       return base.includes(q);
     });
   }, [sorted, search]);
@@ -45,6 +117,10 @@ const SavedAnalysisSection: React.FC = () => {
     });
     return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
   }, [filtered]);
+
+  if (!hasSubject) return null;
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !data) return <ErrorState />;
 
   return (
     <section className="mt-10">
@@ -95,13 +171,13 @@ const SavedAnalysisSection: React.FC = () => {
 
       {/* 목록 */}
       <div className="space-y-10">
-        {groupedByWeek.map(([week, records]) => (
+        {groupedByWeek.map(([week, items]) => (
           <div key={week}>
             <div className="rounded-md bg-blue-50 py-2 text-center text-sm font-semibold text-blue-700 ring-1 ring-blue-100">
               {week}주차
             </div>
             <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {records.map((r) => (
+              {items.map((r) => (
                 <SavedAnalysisItem key={r.id} record={r} />
               ))}
             </div>

@@ -1,7 +1,7 @@
 import {
-  AccumulatedApiResponse,
-  MainApiResponse,
-  RecordApiResponse,
+  AccumulatedResponseData,
+  MainResponseData,
+  RecordResponseData,
 } from 'types/dashboard';
 import axiosInstance from './axiosInstance';
 import { accumulatedMock } from '@mocks/accumulatedMock';
@@ -11,19 +11,17 @@ import { mainMock } from '@mocks/mainMock';
 /// 누적 네트워크 토폴로지
 
 export const fetchAccumulatedTopology = async (
-  assignmentName: string,
-  token: string
-): Promise<AccumulatedApiResponse> => {
+  subjectId: number
+): Promise<AccumulatedResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return accumulatedMock;
   }
 
-  const response = await axiosInstance.get<AccumulatedApiResponse>(
+  const response = await axiosInstance.get<AccumulatedResponseData>(
     `/api/dashboard/accumulate`,
     {
-      params: { assignmentName },
-      headers: { Authorization: `Bearer ${token}` },
+      params: { subjectId },
     }
   );
   return response.data;
@@ -32,17 +30,17 @@ export const fetchAccumulatedTopology = async (
 /// 저장된 분석 기록
 
 export const fetchRecord = async (
-  token: string
-): Promise<RecordApiResponse> => {
+  subjectId: number
+): Promise<RecordResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return recordMock;
   }
 
-  const response = await axiosInstance.get<RecordApiResponse>(
+  const response = await axiosInstance.get<RecordResponseData>(
     `/api/dashboard/record`,
     {
-      headers: { Authorization: `Bearer ${token}` },
+      params: { subjectId },
     }
   );
   return response.data;
@@ -50,17 +48,13 @@ export const fetchRecord = async (
 
 /// 대시보드 메인
 
-export const fetchMain = async (token: string): Promise<MainApiResponse> => {
+export const fetchMain = async (): Promise<MainResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return mainMock;
   }
 
-  const response = await axiosInstance.get<MainApiResponse>(
-    `/api/dashboard/main`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  const response =
+    await axiosInstance.get<MainResponseData>(`/api/dashboard/main`);
   return response.data;
 };

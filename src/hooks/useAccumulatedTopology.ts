@@ -1,15 +1,12 @@
 import { fetchAccumulatedTopology } from '@services/dashboard';
+import { AccumulatedResponseData } from '@typings/dashboard';
 import { useQuery } from 'react-query';
-import { AccumulatedApiResponse } from 'types/dashboard';
 
-export const useAccumulatedTopology = (
-  assignmentName: string,
-  token: string
-) => {
-  return useQuery<AccumulatedApiResponse>({
-    queryKey: ['accumulatedTopology', assignmentName],
-    queryFn: () => fetchAccumulatedTopology(assignmentName, token),
-    enabled: !!assignmentName && !!token,
+export const useAccumulatedTopology = (subjectId: number | undefined) => {
+  return useQuery<AccumulatedResponseData>({
+    queryKey: ['accumulatedTopology', subjectId],
+    queryFn: () => fetchAccumulatedTopology(subjectId!),
+    enabled: !!subjectId,
     staleTime: 1000 * 60 * 5,
   });
 };

@@ -95,7 +95,7 @@ const ResultPage: React.FC = () => {
   // 1) 스토어에 저장·비교에 쓰는 원본 데이터(스토어 타입으로 정규화)
   const fileDataList: StoreFileData[] = useMemo(
     () => normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>),
-    [dummyFiles]
+    []
   );
 
   // 2) 그래프 전용 노드 파생
