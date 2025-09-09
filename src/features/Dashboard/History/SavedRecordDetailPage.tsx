@@ -8,22 +8,32 @@ import SimilarityGraph from '@features/Result/SimilarityGraph';
 import type { FileNode, FileEdge } from 'types/similarity';
 import { formatDateTimeKST, formatPercent01 } from '@utils/format';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
-import { useSubjectStore } from '@stores/useSubjectStore';
 import type {
   SavedAnalysisRecord,
   PairAnalysisRecord,
 } from './SavedAnalysisType';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 const SavedRecordDetailPage: React.FC = () => {
   const nav = useNavigate();
-  const { recordId } = useParams<{ recordId: string }>();
+  const { subjectId: subjectIdParam, recordId } = useParams<{
+    subjectId: string;
+    recordId: string;
+  }>();
 
-  // 현재 선택된 과목 기준으로 기록 API 호출
+  const subjectId = Number(subjectIdParam);
+  const subjectIdValid = Number.isFinite(subjectId);
+
+  // 과목명 표시
   const { selectedSubject } = useSubjectStore();
-  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
-  const { data, isLoading, isError } = useRecord(subjectId);
+  const subjectName = selectedSubject?.name ?? '';
 
-  // API 응답 -> SavedAnalysisRecord 리스트로 어댑트 후, URL의 recordId로 대상 찾기
+  // 과목 id가 유효할 때만 조회
+  const { data, isLoading, isError } = useRecord(
+    subjectIdValid ? subjectId : undefined
+  );
+
+  // API 응답 → 화면 모델로 변환 후 recordId 대상 찾기
   const rec = useMemo<PairAnalysisRecord | undefined>(() => {
     if (!data || !recordId) return undefined;
 
@@ -33,7 +43,6 @@ const SavedRecordDetailPage: React.FC = () => {
       nameMap.set(String(n.id), n.label ?? String(n.id));
     }
 
-    // edges를 화면 모델로 변환
     const records: SavedAnalysisRecord[] = [];
     for (const e of data.edges ?? []) {
       const week = Number(e.week) || 0;
@@ -47,7 +56,7 @@ const SavedRecordDetailPage: React.FC = () => {
         records.push({
           id,
           type: 'pair',
-          assignmentName: selectedSubject?.name ?? '',
+          assignmentName: subjectName,
           week,
           savedAt,
           similarity: Math.round(
@@ -70,26 +79,23 @@ const SavedRecordDetailPage: React.FC = () => {
     return records.find((r) => r.id === recordId) as
       | PairAnalysisRecord
       | undefined;
-  }, [data, recordId, selectedSubject?.name]);
+  }, [data, recordId, subjectName]);
 
-  // 그래프용 nodes/edges (해당 주차만, 동일 페어는 최대 유사도로 1개)
+  // 그래프 데이터(해당 주차만, 동일 페어는 최대 유사도 1개로)
   const { nodes, edges } = useMemo(() => {
     if (!data || !rec)
       return { nodes: [] as FileNode[], edges: [] as FileEdge[] };
 
-    // id -> label
     const labelById = new Map<string, string>();
-    for (const n of data.nodes ?? []) {
+    for (const n of data.nodes ?? [])
       labelById.set(String(n.id), n.label ?? String(n.id));
-    }
 
-    // 해당 주차 raw
     const weekItem = (data.edges ?? []).find(
       (e) => Number(e.week) === Number(rec.week)
     );
     const raw = weekItem?.data ?? [];
 
-    // 등장하는 id 수집 → nodes
+    // nodes
     const idSet = new Set<string>();
     for (const d of raw) {
       idSet.add(String(d.from));
@@ -98,18 +104,18 @@ const SavedRecordDetailPage: React.FC = () => {
     const nodes: FileNode[] = Array.from(idSet).map((id) => ({
       id,
       label: labelById.get(id) ?? id,
-      submittedAt: '', // 주차 전체 그래프에서는 제출시각 노출 X
+      submittedAt: '', // 주차 전체 그래프에서는 시간 미표시
     }));
 
-    // 동일 페어 병합 (최대 similarity)
+    // edges (동일 페어 병합)
     const edgeMap = new Map<string, FileEdge>();
     for (const d of raw) {
-      const a = String(d.from);
-      const b = String(d.to);
+      const a = String(d.from),
+        b = String(d.to);
       const [x, y] = a <= b ? [a, b] : [b, a];
-      const key = `${x}-${y}`;
       const ratio = Number.isFinite(Number(d.value)) ? Number(d.value) : 0;
       const sim = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+      const key = `${x}-${y}`;
       const prev = edgeMap.get(key);
       if (!prev || sim > prev.similarity)
         edgeMap.set(key, { from: x, to: y, similarity: sim });
@@ -118,20 +124,20 @@ const SavedRecordDetailPage: React.FC = () => {
     return { nodes, edges: Array.from(edgeMap.values()) };
   }, [data, rec]);
 
+  // 선택된 쌍 강조
   const highlightedEdges = useMemo<FileEdge[]>(() => {
     if (!rec) return edges;
-    const a = String(rec.fileA.id);
-    const b = String(rec.fileB.id);
-    return edges.map((e) => {
-      const isSelected =
-        (e.from === a && e.to === b) || (e.from === b && e.to === a);
-      return isSelected
+    const a = String(rec.fileA.id),
+      b = String(rec.fileB.id);
+    return edges.map((e) =>
+      (e.from === a && e.to === b) || (e.from === b && e.to === a)
         ? { ...e, similarity: Math.min(100, e.similarity + 3) }
-        : e;
-    });
+        : e
+    );
   }, [edges, rec]);
 
-  // 로딩/에러/레코드 없음 처리
+  // 상태 처리
+  if (!subjectIdValid) return <ErrorState />;
   if (isLoading) return <LoadingSkeleton />;
   if (isError || !data) return <ErrorState />;
   if (!rec) {
@@ -244,9 +250,7 @@ const SavedRecordDetailPage: React.FC = () => {
             text="해당 두 파일 비교로 이동"
             variant="primary"
             onClick={() =>
-              nav(`/compare/${String(rec.fileA.id)}/${String(rec.fileB.id)}`, {
-                state: { fromSaved: true, recordId: rec.id },
-              })
+              nav(`/compare/${String(rec.fileA.id)}/${String(rec.fileB.id)}`)
             }
           />
         </div>

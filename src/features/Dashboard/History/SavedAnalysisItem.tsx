@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
 import Text from '@components/Text';
 import { formatDateTimeKST, formatPercent01 } from '@utils/format';
+import { useSubjectStore } from '@stores/useSubjectStore';
 
 interface Props {
   record: SavedAnalysisRecord;
@@ -10,6 +11,8 @@ interface Props {
 
 const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   const navigate = useNavigate();
+  const { selectedSubject } = useSubjectStore();
+  const subjectId = selectedSubject ? String(selectedSubject.id) : undefined;
 
   if (record.type === 'group') {
     return (
@@ -17,7 +20,10 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         <button
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-          onClick={() => navigate(`/result?week=${record.week}`)}
+          onClick={() => {
+            if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+            navigate(`/subjects/${subjectId}/record/${record.id}`);
+          }}
         >
           <div className="flex h-full w-full items-center justify-center rounded bg-gray-50 text-gray-400 ring-1 ring-gray-100">
             네트워크 토폴로지 미리보기
@@ -40,7 +46,10 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-        onClick={() => navigate(`/record/${record.id}`)}
+        onClick={() => {
+          if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+          navigate(`/subjects/${subjectId}/record/${record.id}`);
+        }}
       >
         <div className="text-center">
           <Text variant="body" weight="bold" className="text-xl text-red-600">
