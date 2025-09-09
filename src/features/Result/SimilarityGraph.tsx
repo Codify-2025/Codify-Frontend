@@ -137,7 +137,7 @@ const SimilarityGraph: React.FC<Props> = ({
             strokeColor: '#1e293b',
           },
           borderWidth: 2,
-          physics: false, // 개별 노드는 물리 영향 받지 않게(흔들림 감소)
+          // physics: false, // 개별 노드는 물리 영향 받지 않게(흔들림 감소)
         },
         edges: {
           selectionWidth: 2,
