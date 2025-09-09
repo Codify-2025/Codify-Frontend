@@ -17,11 +17,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         <button
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-          onClick={() =>
-            navigate('/record/detail', {
-              state: { record },
-            })
-          }
+          onClick={() => navigate(`/record/${record.id}`)}
         >
           <div className="flex h-full w-full items-center justify-center rounded bg-gray-50 text-gray-400 ring-1 ring-gray-100">
             네트워크 토폴로지 미리보기
@@ -44,7 +40,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-        onClick={() => navigate('/record/detail', { state: { record } })}
+        onClick={() => navigate(`/record/${record.id}`)}
       >
         <div className="text-center">
           <Text variant="body" weight="bold" className="text-xl text-red-600">

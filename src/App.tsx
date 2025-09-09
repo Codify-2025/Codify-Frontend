@@ -41,7 +41,7 @@ const App: React.FC = () => {
           <Route path="/compare/:from/:to" element={<ComparePage />} />
           <Route path="/decision" element={<PlagiarismDecisionPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/record/detail" element={<SavedRecordDetailPage />} />
+          <Route path="/record/:recordId" element={<SavedRecordDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
         </Routes>

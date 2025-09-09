@@ -1,43 +1,95 @@
 import React, { useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import Button from '@components/Button';
-import { PairAnalysisRecord, SavedAnalysisRecord } from './SavedAnalysisType';
 import { useRecord } from '@hooks/useRecord';
 import SimilarityGraph from '@features/Result/SimilarityGraph';
 import type { FileNode, FileEdge } from 'types/similarity';
 import { formatDateTimeKST, formatPercent01 } from '@utils/format';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
-
-function isPair(r: SavedAnalysisRecord | undefined): r is PairAnalysisRecord {
-  return !!r && r.type === 'pair';
-}
+import { useSubjectStore } from '@stores/useSubjectStore';
+import type {
+  SavedAnalysisRecord,
+  PairAnalysisRecord,
+} from './SavedAnalysisType';
 
 const SavedRecordDetailPage: React.FC = () => {
   const nav = useNavigate();
-  const { state } = useLocation() as {
-    state?: { record?: SavedAnalysisRecord };
-  };
-  const rec = state?.record;
+  const { recordId } = useParams<{ recordId: string }>();
 
-  const subjectId = isPair(rec) ? rec.subjectId : undefined;
+  // 현재 선택된 과목 기준으로 기록 API 호출
+  const { selectedSubject } = useSubjectStore();
+  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
   const { data, isLoading, isError } = useRecord(subjectId);
 
+  // API 응답 -> SavedAnalysisRecord 리스트로 어댑트 후, URL의 recordId로 대상 찾기
+  const rec = useMemo<PairAnalysisRecord | undefined>(() => {
+    if (!data || !recordId) return undefined;
+
+    // id -> label 매핑
+    const nameMap = new Map<string, string>();
+    for (const n of data.nodes ?? []) {
+      nameMap.set(String(n.id), n.label ?? String(n.id));
+    }
+
+    // edges를 화면 모델로 변환
+    const records: SavedAnalysisRecord[] = [];
+    for (const e of data.edges ?? []) {
+      const week = Number(e.week) || 0;
+      for (const d of e.data ?? []) {
+        const fromId = String(d.from);
+        const toId = String(d.to);
+        const savedAt =
+          d.submittedTo ?? d.submittedFrom ?? new Date().toISOString();
+        const id = d.id ?? `${week}-${fromId}-${toId}-${savedAt}`;
+
+        records.push({
+          id,
+          type: 'pair',
+          assignmentName: selectedSubject?.name ?? '',
+          week,
+          savedAt,
+          similarity: Math.round(
+            (typeof d.value === 'number' ? d.value : 0) * 100
+          ),
+          fileA: {
+            id: fromId,
+            label: nameMap.get(fromId) ?? fromId,
+            submittedAt: d.submittedFrom ?? savedAt,
+          },
+          fileB: {
+            id: toId,
+            label: nameMap.get(toId) ?? toId,
+            submittedAt: d.submittedTo ?? savedAt,
+          },
+        } as PairAnalysisRecord);
+      }
+    }
+
+    return records.find((r) => r.id === recordId) as
+      | PairAnalysisRecord
+      | undefined;
+  }, [data, recordId, selectedSubject?.name]);
+
+  // 그래프용 nodes/edges (해당 주차만, 동일 페어는 최대 유사도로 1개)
   const { nodes, edges } = useMemo(() => {
-    if (!data || !isPair(rec))
+    if (!data || !rec)
       return { nodes: [] as FileNode[], edges: [] as FileEdge[] };
 
+    // id -> label
     const labelById = new Map<string, string>();
-    for (const n of data.nodes ?? [])
+    for (const n of data.nodes ?? []) {
       labelById.set(String(n.id), n.label ?? String(n.id));
+    }
 
+    // 해당 주차 raw
     const weekItem = (data.edges ?? []).find(
       (e) => Number(e.week) === Number(rec.week)
     );
     const raw = weekItem?.data ?? [];
 
-    // 등장 id 수집 → nodes
+    // 등장하는 id 수집 → nodes
     const idSet = new Set<string>();
     for (const d of raw) {
       idSet.add(String(d.from));
@@ -46,46 +98,47 @@ const SavedRecordDetailPage: React.FC = () => {
     const nodes: FileNode[] = Array.from(idSet).map((id) => ({
       id,
       label: labelById.get(id) ?? id,
-      submittedAt: '',
+      submittedAt: '', // 주차 전체 그래프에서는 제출시각 노출 X
     }));
 
-    // 동일 페어 병합 (최대 유사도 선택)
+    // 동일 페어 병합 (최대 similarity)
     const edgeMap = new Map<string, FileEdge>();
     for (const d of raw) {
       const a = String(d.from);
       const b = String(d.to);
-      const [x, y] = a <= b ? [a, b] : [b, a]; // 정렬된 페어 키
+      const [x, y] = a <= b ? [a, b] : [b, a];
       const key = `${x}-${y}`;
       const sim = Math.round((typeof d.value === 'number' ? d.value : 0) * 100);
-
       const prev = edgeMap.get(key);
-      if (!prev || sim > prev.similarity) {
+      if (!prev || sim > prev.similarity)
         edgeMap.set(key, { from: x, to: y, similarity: sim });
-      }
     }
-    const edges = Array.from(edgeMap.values());
-    return { nodes, edges };
+
+    return { nodes, edges: Array.from(edgeMap.values()) };
   }, [data, rec]);
 
   const highlightedEdges = useMemo<FileEdge[]>(() => {
-    if (!isPair(rec)) return edges;
+    if (!rec) return edges;
     const a = String(rec.fileA.id);
     const b = String(rec.fileB.id);
     return edges.map((e) => {
-      const isSelectedPair =
+      const isSelected =
         (e.from === a && e.to === b) || (e.from === b && e.to === a);
-      return isSelectedPair
+      return isSelected
         ? { ...e, similarity: Math.min(100, e.similarity + 3) }
         : e;
     });
   }, [edges, rec]);
 
-  if (!isPair(rec)) {
+  // 로딩/에러/레코드 없음 처리
+  if (isLoading) return <LoadingSkeleton />;
+  if (isError || !data) return <ErrorState />;
+  if (!rec) {
     return (
       <Layout>
         <div className="mx-auto max-w-3xl px-6 py-12">
           <Text variant="h3" weight="bold" className="text-gray-900">
-            기록 정보를 찾을 수 없어요.
+            기록을 찾을 수 없어요.
           </Text>
           <Button
             className="mt-6"
@@ -97,9 +150,6 @@ const SavedRecordDetailPage: React.FC = () => {
       </Layout>
     );
   }
-
-  if (isLoading) return <LoadingSkeleton />;
-  if (isError || !data) return <ErrorState />;
 
   const simText = formatPercent01(rec.similarity);
   const aTime = formatDateTimeKST(rec.fileA.submittedAt);
