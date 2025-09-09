@@ -108,7 +108,8 @@ const SavedRecordDetailPage: React.FC = () => {
       const b = String(d.to);
       const [x, y] = a <= b ? [a, b] : [b, a];
       const key = `${x}-${y}`;
-      const sim = Math.round((typeof d.value === 'number' ? d.value : 0) * 100);
+      const ratio = Number.isFinite(Number(d.value)) ? Number(d.value) : 0;
+      const sim = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
       const prev = edgeMap.get(key);
       if (!prev || sim > prev.similarity)
         edgeMap.set(key, { from: x, to: y, similarity: sim });
