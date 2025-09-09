@@ -39,7 +39,8 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   // pair
   const similarityText = formatPercent01(record.similarity ?? 0);
   const aTime = formatDateTimeKST(record.fileA.submittedAt);
-  const bTime = formatDateTimeKST(record.fileB.submittedAt);
+  const bTime = formatDateTimeKST(record.fileB?.submittedAt || '');
+  const bLabel = record.fileB?.label ?? '(미제출)';
 
   return (
     <div className="flex flex-col items-center">
@@ -63,15 +64,15 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
             <span className="text-blue-600">{aTime}</span>
           </div>
           <div>
-            <span className="font-medium">{record.fileB.label}</span>{' '}
+            <span className="font-medium">{bLabel}</span>{' '}
             <span className="text-blue-600">{bTime}</span>
           </div>
         </div>
       </button>
 
       <p className="mt-2 w-full text-center font-semibold text-gray-600">
-        &lt;{record.assignmentName}&gt; {record.fileA.label}-
-        {record.fileB.label} 코드 비교 결과
+        &lt;{record.assignmentName}&gt; {record.fileA.label}-{bLabel} 코드 비교
+        결과
       </p>
     </div>
   );
