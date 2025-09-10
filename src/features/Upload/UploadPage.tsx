@@ -77,7 +77,8 @@ const UploadPage: React.FC = () => {
             id={guideId}
             role="region"
             aria-labelledby={guideHeadingId}
-            className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-gray-800"
+            className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700
+               dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
           >
             <div id={guideHeadingId} className="font-medium">
               업로드 규칙
