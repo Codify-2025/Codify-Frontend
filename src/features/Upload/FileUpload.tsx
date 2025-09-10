@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import JSZip from 'jszip';
 import FileItem from './FileItem';
-import Button from '@components/Button';
 import Text from '@components/Text';
 import Notification from '@components/Notification';
 import FileCompareModal from './FileCompareModal';
@@ -39,19 +38,15 @@ const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
 
 const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileData[]>([]);
-  const { items, enqueue, cancel, start } = useUploader(3);
+  const { items, enqueue, start } = useUploader(3); // cancel 제거
   const { assignmentId, week } = useAssignmentStore();
 
   const [notification, setNotification] = useState<string | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
   const [existingFile, setExistingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const startRequestedRef = React.useRef<MetaDeriver | null>(null);
   const fileKey = (f: File) => `${f.name}::${f.size}::${f.lastModified}`;
-
-  const findUploaderIndex = (f: File) =>
-    items.findIndex((it) => fileKey(it.file) === fileKey(f));
 
   // 업로드 상태/진행률 매핑
   const uploaderMap = React.useMemo(() => {
@@ -289,7 +284,6 @@ const FileUpload: React.FC = () => {
 
   // 메인 핸들러
   const handleFileProcessing = async (newFiles: File[]) => {
-    // 런타임 가드
     if (assignmentId == null || week == null) {
       setNotification(
         '과제/주차 정보가 없습니다. 이전 단계에서 과제를 다시 선택해 주세요.'
@@ -297,8 +291,6 @@ const FileUpload: React.FC = () => {
       setTimeout(() => setNotification(null), 3000);
       return;
     }
-
-    // null 아님이 보장된 number를 로컬 상수로 캡처
     const aId: number = assignmentId;
     const wk: number = week;
 
@@ -321,7 +313,6 @@ const FileUpload: React.FC = () => {
       }
     }
 
-    // 결과 처리
     if (batchFileDatas.length === 0) {
       showBatchNotification(results.invalid, results.duplicate, results.added);
       return;
@@ -347,13 +338,12 @@ const FileUpload: React.FC = () => {
       };
     };
 
-    // 혼합 상황 요약 알림
     if (results.invalid.length || results.duplicate.length) {
       showBatchNotification(results.invalid, results.duplicate, results.added);
     }
   };
 
-  // 기타 UI 핸들러
+  // 파일 입력/드롭
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
     void handleFileProcessing(newFiles);
@@ -366,11 +356,8 @@ const FileUpload: React.FC = () => {
     const newFiles = Array.from(e.dataTransfer.files);
     void handleFileProcessing(newFiles);
   };
-  const handleRemove = (fd: FileData) => {
-    const idx = findUploaderIndex(fd.file);
-    if (idx >= 0) cancel(idx);
-    setFiles((prev) => prev.filter((f) => f.id !== fd.id));
-  };
+
+  // 중복 파일 모달
   const addFile = (file: File) => {
     const { studentId, studentName, submittedAt } = extractFileMeta(file);
     const newFile: FileData = {
@@ -383,20 +370,9 @@ const FileUpload: React.FC = () => {
     };
     setFiles((prev) => [...prev, newFile]);
   };
-  const handleSelectFile = (id: string) =>
-    setSelectedFiles((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    );
-  const handleSelectAll = () =>
-    setSelectedFiles((prev) =>
-      prev.length === files.length ? [] : files.map((f) => f.id)
-    );
-  const handleDeleteSelected = () => {
-    setFiles((prev) => prev.filter((f) => !selectedFiles.includes(f.id)));
-    setSelectedFiles([]);
-  };
   const handleFileSelection = (selectedFile: File) => {
     if (selectedFile === duplicateFile && existingFile) {
+      // 기존 파일을 대체 (삭제 기능 대신 '대체'만 유지)
       setFiles((prev) => prev.filter((f) => f.file.name !== existingFile.name));
       addFile(duplicateFile);
     }
@@ -459,27 +435,6 @@ const FileUpload: React.FC = () => {
           <Text variant="caption" weight="medium" color="primary">
             파일 목록 ({files.length})
           </Text>
-          <div className="flex items-center gap-3">
-            <label className="inline-flex items-center gap-1 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={
-                  selectedFiles.length === files.length && files.length > 0
-                }
-                onChange={handleSelectAll}
-                className="accent-blue-600"
-              />
-              전체 선택
-            </label>
-            <Button
-              text="선택 삭제"
-              variant="secondary"
-              size="sm"
-              className="px-3 py-1 text-sm"
-              onClick={handleDeleteSelected}
-              disabled={selectedFiles.length === 0}
-            />
-          </div>
         </div>
 
         <div className="h-0.5 w-full bg-gray-100" />
@@ -498,20 +453,11 @@ const FileUpload: React.FC = () => {
                   key={fd.id}
                   className="rounded-lg bg-white px-3 py-2 shadow-sm"
                 >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedFiles.includes(fd.id)}
-                      onChange={() => handleSelectFile(fd.id)}
-                      className="accent-blue-600"
-                    />
-                    <FileItem
-                      fileData={fd}
-                      onRemove={() => handleRemove(fd)}
-                      externalStage={stage}
-                      externalProgress={progress}
-                    />
-                  </div>
+                  <FileItem
+                    fileData={fd}
+                    externalStage={stage}
+                    externalProgress={progress}
+                  />
                 </div>
               );
             })
