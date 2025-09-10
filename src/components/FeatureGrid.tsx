@@ -23,41 +23,45 @@ const FEATURES = [
 
 export default function FeatureGrid() {
   return (
-    <section id="features" className="w-full">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="grid gap-8 md:grid-cols-3">
-          {FEATURES.map((f) => (
-            <article
-              key={f.title}
-              className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
-            >
-              {/* 고정 비율 박스: 16:10 (원하면 4:3, 16:9 등으로 변경) */}
-              <div className="overflow-hidden rounded-xl border border-gray-100 aspect-[16/10]">
-                <img
-                  src={f.img}
-                  alt={`${f.title} 스크린샷`}
-                  loading="lazy"
-                  decoding="async"
-                  sizes="(min-width: 768px) 33vw, 100vw"
-                  className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105"
-                />
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
+      {FEATURES.map((f) => (
+        <article
+          key={f.title}
+          className="group rounded-2xl border border-gray-200 bg-white p-4 md:p-5 lg:p-6 shadow-sm transition hover:shadow-md"
+        >
+          <div className="overflow-hidden rounded-xl border border-gray-100 aspect-[16/9]">
+            <img
+              src={f.img}
+              alt={`${f.title} 스크린샷`}
+              loading="lazy"
+              decoding="async"
+              sizes="(min-width: 1024px) 28vw, (min-width: 768px) 33vw, 100vw"
+              className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105"
+            />
+          </div>
 
-              <div className="mt-5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{f.icon}</span>
-                  <Text as="h3" variant="h3" weight="semibold">
-                    {f.title}
-                  </Text>
-                </div>
-                <Text variant="body" color="muted">
-                  {f.desc}
-                </Text>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
+          <div className="mt-4 md:mt-5 space-y-1.5 md:space-y-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-2xl md:text-3xl shrink-0">{f.icon}</span>
+              <Text
+                as="h3"
+                variant="h3"
+                weight="semibold"
+                className="!text-lg md:!text-xl truncate"
+              >
+                {f.title}
+              </Text>
+            </div>
+            <Text
+              variant="body"
+              color="muted"
+              className="block w-full max-w-none !text-sm md:!text-base leading-relaxed break-keep"
+            >
+              {f.desc}
+            </Text>
+          </div>
+        </article>
+      ))}
+    </div>
   );
 }

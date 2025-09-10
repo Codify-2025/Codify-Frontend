@@ -1,5 +1,4 @@
 import React from 'react';
-import { FiTrash2 } from 'react-icons/fi';
 
 interface FileData {
   id: string;
@@ -13,7 +12,6 @@ interface FileData {
 
 interface FileItemProps {
   fileData: FileData;
-  onRemove: () => void;
   externalStage?:
     | 'idle'
     | 'presigning'
@@ -38,7 +36,6 @@ const formatDate = (date?: Date): string => {
 
 const FileItem: React.FC<FileItemProps> = ({
   fileData,
-  onRemove,
   externalStage,
   externalProgress,
 }) => {
@@ -81,7 +78,7 @@ const FileItem: React.FC<FileItemProps> = ({
         </div>
       </div>
 
-      {/* 우측: 진행바/상태 + 삭제 */}
+      {/* 우측: 진행바/상태 */}
       <div className="flex shrink-0 items-center gap-2">
         <div className="relative h-2 w-28 overflow-hidden rounded bg-gray-200">
           <div
@@ -92,14 +89,6 @@ const FileItem: React.FC<FileItemProps> = ({
         <span className="w-14 text-right text-xs text-gray-600">
           {mappedStatus === 'uploading' ? `${progress}%` : mappedStatus}
         </span>
-
-        <button
-          onClick={onRemove}
-          aria-label="파일 삭제"
-          className="rounded p-1 hover:bg-red-50"
-        >
-          <FiTrash2 className="text-red-500" />
-        </button>
       </div>
     </div>
   );

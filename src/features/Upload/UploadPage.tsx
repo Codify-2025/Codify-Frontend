@@ -22,19 +22,29 @@ const UploadPage: React.FC = () => {
   return (
     <Layout>
       <div className="mx-auto flex w-full max-w-screen-lg flex-col space-y-8 px-6 py-10">
-        {/* 상단 정보 영역 */}
+        {/* 상단 진행 배너 */}
         <div className="w-full rounded-2xl bg-blue-50/70 p-6 ring-1 ring-blue-100">
-          <Text variant="body" weight="bold" color="primary">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+              유사도 분석 진행
+            </span>
+
             {selectedSubject?.name && (
-              <span className="text-gray">{selectedSubject.name} </span>
+              <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+                과목: {selectedSubject.name}
+              </span>
             )}
-            <span className="text-gray-900">
-              {name}-{week}주차{' '}
-            </span>{' '}
-            과제 유사도 분석 진행
-          </Text>
-          <Text variant="body" color="muted">
-            3. 파일 업로드
+
+            {name && week != null && (
+              <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
+                과제: {name} - {week}주차
+              </span>
+            )}
+          </div>
+
+          <Text variant="body" className="mt-3 text-gray-700">
+            <span className="font-semibold text-blue-700">3단계.</span> 파일
+            업로드
           </Text>
         </div>
 
@@ -77,7 +87,8 @@ const UploadPage: React.FC = () => {
             id={guideId}
             role="region"
             aria-labelledby={guideHeadingId}
-            className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-gray-800"
+            className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700
+               dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200"
           >
             <div id={guideHeadingId} className="font-medium">
               업로드 규칙
