@@ -309,8 +309,15 @@ const FileUpload: React.FC = () => {
   const handleFileProcessing = async (newFiles: File[]) => {
     if (!validateAssignmentContext()) return;
 
-    const aId: number = effectiveAssignmentId!;
-    const wk: number = effectiveWeek!;
+    if (effectiveAssignmentId == null || effectiveWeek == null) {
+      console.error(
+        'Assignment context validation failed but execution continued'
+      );
+      return;
+    }
+
+    const aId: number = effectiveAssignmentId;
+    const wk: number = effectiveWeek;
 
     const batchFileDatas: FileData[] = [];
     const metaMap = new Map<File, Meta>();
@@ -357,14 +364,18 @@ const FileUpload: React.FC = () => {
       return m;
     };
 
-    console.log(batchFiles.map((f) => f.name));
+    console.log(
+      '[FileUpload] Enqueueing files:',
+      batchFiles.map((f) => f.name)
+    );
     enqueue(batchFiles);
 
+    // deriver를 먼저 캡처하여 race condition 방지
+    const currentDeriver = startRequestedRef.current;
     requestAnimationFrame(() => {
-      if (startRequestedRef.current) {
-        const deriver = startRequestedRef.current;
+      if (currentDeriver && startRequestedRef.current === currentDeriver) {
         startRequestedRef.current = null;
-        start(deriver);
+        start(currentDeriver);
       }
     });
 
