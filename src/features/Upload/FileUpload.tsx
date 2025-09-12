@@ -35,11 +35,34 @@ type MetaBase = {
 type MetaDeriver = (file: File, index: number) => MetaBase;
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
+const ENABLE_UPLOAD_DEV = import.meta.env.VITE_ENABLE_UPLOAD_DEV === 'true';
+
+function getNumberFromQS(param: string) {
+  const v = new URLSearchParams(window.location.search).get(param);
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+const DEV_ASSIGNMENT_ID =
+  getNumberFromQS('assignmentId') ??
+  Number(import.meta.env.VITE_DEV_ASSIGNMENT_ID ?? 1);
+
+const DEV_WEEK =
+  getNumberFromQS('week') ?? Number(import.meta.env.VITE_DEV_WEEK ?? 1);
 
 const FileUpload: React.FC = () => {
   const [files, setFiles] = useState<FileData[]>([]);
-  const { items, enqueue, start } = useUploader(3); // cancel 제거
+  const { items, enqueue, start } = useUploader(3);
   const { assignmentId, week } = useAssignmentStore();
+
+  const [devAssignmentId, setDevAssignmentId] =
+    useState<number>(DEV_ASSIGNMENT_ID);
+  const [devWeek, setDevWeek] = useState<number>(DEV_WEEK);
+
+  // 유효한 assignment/week 얻기 (실서비스는 store, 미선택시 dev fallback)
+  const effectiveAssignmentId =
+    assignmentId ?? (ENABLE_UPLOAD_DEV ? devAssignmentId : undefined);
+  const effectiveWeek = week ?? (ENABLE_UPLOAD_DEV ? devWeek : undefined);
 
   const [notification, setNotification] = useState<string | null>(null);
   const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
@@ -60,6 +83,16 @@ const FileUpload: React.FC = () => {
     return m;
   }, [items]);
 
+  const validateAssignmentContext = () => {
+    const ok = !(effectiveAssignmentId == null || effectiveWeek == null);
+    if (!ok) {
+      showTimedNotification(
+        '과제/주차 정보가 없습니다. (개발용 기본값 또는 쿼리스트링으로 지정하세요)'
+      );
+    }
+    return ok;
+  };
+
   const getStage = (f: File): Stage | undefined =>
     uploaderMap.get(fileKey(f))?.stage;
   const getProgress = (f: File) => uploaderMap.get(fileKey(f))?.progress ?? 0;
@@ -76,29 +109,21 @@ const FileUpload: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const validateAssignmentContext = () => {
-    if (!assignmentId || !week) {
-      showTimedNotification(
-        '과제/주차 정보가 없습니다. 이전 단계에서 과제를 다시 선택해 주세요.'
-      );
-      return false;
-    }
-    return true;
-  };
-
   const isSupported = (file: File) => {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-    return SUPPORTED_EXTENSIONS.includes(ext);
+    const ok = SUPPORTED_EXTENSIONS.includes(ext);
+    return ok;
   };
 
   const extractFileMeta = (file: File) => {
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
     const [studentId, studentName] = nameWithoutExt.split('_');
-    return {
+    const meta = {
       studentId: studentId || nameWithoutExt,
       studentName: studentName || nameWithoutExt,
       submittedAt: new Date(file.lastModified),
     };
+    return meta;
   };
 
   const extractFilesFromZip = async (zipFile: File): Promise<FileData[]> => {
@@ -138,7 +163,7 @@ const FileUpload: React.FC = () => {
       }
       return extractedFiles;
     } catch (e) {
-      console.error('ZIP 처리 실패:', e);
+      console.error('[FileUpload] ZIP 처리 실패:', e);
       return [];
     }
   };
@@ -165,7 +190,6 @@ const FileUpload: React.FC = () => {
       return;
     }
 
-    // 일부만 추가된 혼합 케이스
     const parts: string[] = [];
     if (added.length) parts.push(`${added.length}개 추가`);
     if (duplicate.length) parts.push(`중복 ${duplicate.length}개 제외`);
@@ -218,7 +242,6 @@ const FileUpload: React.FC = () => {
 
     if (isDup) {
       results.duplicate.push(file.name);
-      // 모달 트리거
       setDuplicateFile(file);
       setExistingFile(file);
       return;
@@ -284,17 +307,17 @@ const FileUpload: React.FC = () => {
 
   // 메인 핸들러
   const handleFileProcessing = async (newFiles: File[]) => {
-    if (assignmentId == null || week == null) {
-      setNotification(
-        '과제/주차 정보가 없습니다. 이전 단계에서 과제를 다시 선택해 주세요.'
+    if (!validateAssignmentContext()) return;
+
+    if (effectiveAssignmentId == null || effectiveWeek == null) {
+      console.error(
+        'Assignment context validation failed but execution continued'
       );
-      setTimeout(() => setNotification(null), 3000);
       return;
     }
-    const aId: number = assignmentId;
-    const wk: number = week;
 
-    if (!validateAssignmentContext()) return;
+    const aId: number = effectiveAssignmentId;
+    const wk: number = effectiveWeek;
 
     const batchFileDatas: FileData[] = [];
     const metaMap = new Map<File, Meta>();
@@ -318,10 +341,12 @@ const FileUpload: React.FC = () => {
       return;
     }
 
-    setFiles((prev) => [...prev, ...batchFileDatas]);
+    setFiles((prev) => {
+      const next = [...prev, ...batchFileDatas];
+      return next;
+    });
 
     const batchFiles = batchFileDatas.map((b) => b.file);
-    enqueue(batchFiles);
 
     startRequestedRef.current = (fileObj: File) => {
       const meta = metaMap.get(fileObj) ?? {
@@ -329,23 +354,59 @@ const FileUpload: React.FC = () => {
         studentName: 'Unknown',
         submittedAt: new Date(),
       };
-      return {
+      const m = {
         assignmentId: aId,
         week: wk,
         submissionDate: meta.submittedAt,
         studentId: meta.studentId,
         studentName: meta.studentName,
       };
+      return m;
     };
+
+    console.log(
+      '[FileUpload] Enqueueing files:',
+      batchFiles.map((f) => f.name)
+    );
+    enqueue(batchFiles);
+
+    // deriver를 먼저 캡처하여 race condition 방지
+    const currentDeriver = startRequestedRef.current;
+    requestAnimationFrame(() => {
+      if (currentDeriver && startRequestedRef.current === currentDeriver) {
+        startRequestedRef.current = null;
+        start(currentDeriver);
+      }
+    });
 
     if (results.invalid.length || results.duplicate.length) {
       showBatchNotification(results.invalid, results.duplicate, results.added);
     }
   };
 
-  // 파일 입력/드롭
+  // 개발용 샘플 파일 생성
+  const addSampleFiles = () => {
+    const f1 = new File(
+      [`// sample A\nint main(){return 0;}`],
+      '20230001_홍길동.cpp',
+      { type: 'text/x-c++src' }
+    );
+    const f2 = new File(
+      [`// sample B\nint sum(){return 42;}`],
+      '20230002_김철수.cpp',
+      { type: 'text/x-c++src' }
+    );
+    const f3 = new File(
+      [`// sample C\nint mul(){return 6*7;}`],
+      '20230003_이영희.cpp',
+      { type: 'text/x-c++src' }
+    );
+    void handleFileProcessing([f1, f2, f3]);
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
+    console.log(newFiles.map((f) => f.name));
     void handleFileProcessing(newFiles);
   };
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) =>
@@ -370,9 +431,9 @@ const FileUpload: React.FC = () => {
     };
     setFiles((prev) => [...prev, newFile]);
   };
+
   const handleFileSelection = (selectedFile: File) => {
     if (selectedFile === duplicateFile && existingFile) {
-      // 기존 파일을 대체 (삭제 기능 대신 '대체'만 유지)
       setFiles((prev) => prev.filter((f) => f.file.name !== existingFile.name));
       addFile(duplicateFile);
     }
@@ -393,7 +454,63 @@ const FileUpload: React.FC = () => {
   }, [items, start]);
 
   return (
-    <div className="mx-auto flex w-full max-w-screen-lg gap-8">
+    <div className="mx-auto flex w-full max-w-screen-lg flex-col gap-8">
+      {/* DEV 패널 */}
+      {ENABLE_UPLOAD_DEV && (
+        <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/60 p-3 text-sm text-blue-700">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-semibold">DEV Upload Panel</span>
+            <label className="flex items-center gap-1">
+              assignmentId
+              <input
+                type="number"
+                className="w-24 rounded border border-blue-200 bg-white px-2 py-1"
+                value={devAssignmentId}
+                onChange={(e) =>
+                  setDevAssignmentId(Number(e.target.value) || 1)
+                }
+              />
+            </label>
+            <label className="flex items-center gap-1">
+              week
+              <input
+                type="number"
+                className="w-16 rounded border border-blue-200 bg-white px-2 py-1"
+                value={devWeek}
+                onChange={(e) => setDevWeek(Number(e.target.value) || 1)}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={addSampleFiles}
+              className="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+            >
+              샘플 파일 3개 추가
+            </button>
+            <span className="text-xs text-blue-600">
+              쿼리스트링 override 예: <code>?assignmentId=10&week=3</code>
+            </span>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <span>queued: {items.length}</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (startRequestedRef.current) {
+                  const deriver = startRequestedRef.current;
+                  startRequestedRef.current = null;
+                  start(deriver);
+                }
+              }}
+              className="rounded bg-slate-700 px-2 py-1 text-white"
+            >
+              강제 start()
+            </button>
+          </div>
+        </div>
+      )}
+
       {duplicateFile && existingFile && (
         <FileCompareModal
           existingFile={existingFile}
@@ -404,64 +521,68 @@ const FileUpload: React.FC = () => {
       )}
 
       {/* 드래그&드롭 영역 */}
-      <div
-        className="flex h-[340px] flex-1 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white p-6 ring-1 ring-gray-200 transition hover:border-blue-300 hover:ring-blue-200"
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        aria-label="파일 업로드 드롭존"
-      >
-        <FiUploadCloud size={44} className="mb-3 text-blue-600" />
-        <Text variant="body" color="muted" className="text-center">
-          이곳에 파일을 드래그하거나 <br /> 클릭하여 업로드하세요
-        </Text>
-        <Text variant="caption" color="muted" className="mt-2">
-          허용: .cpp, .zip
-        </Text>
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileSelect}
-          accept=".cpp,.zip"
-        />
-      </div>
-
-      {/* 파일 리스트 영역 */}
-      <div className="flex w-1/2 min-w-[320px] flex-col">
-        {notification && <Notification message={notification} type="warning" />}
-        <div className="mb-2 flex items-center justify-between">
-          <Text variant="caption" weight="medium" color="primary">
-            파일 목록 ({files.length})
+      <div className="flex w-full gap-8">
+        <div
+          className="flex h-[340px] flex-1 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white p-6 ring-1 ring-gray-200 transition hover:border-blue-300 hover:ring-blue-200"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="파일 업로드 드롭존"
+        >
+          <FiUploadCloud size={44} className="mb-3 text-blue-600" />
+          <Text variant="body" color="muted" className="text-center">
+            이곳에 파일을 드래그하거나 <br /> 클릭하여 업로드하세요
           </Text>
+          <Text variant="caption" color="muted" className="mt-2">
+            허용: .cpp, .zip
+          </Text>
+          <input
+            type="file"
+            multiple
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileSelect}
+            accept=".cpp,.zip"
+          />
         </div>
 
-        <div className="h-0.5 w-full bg-gray-100" />
-
-        <div className="mt-3 max-h-[300px] space-y-2 overflow-y-auto rounded-xl bg-gray-50 p-3">
-          {files.length === 0 ? (
-            <Text variant="body" color="muted">
-              업로드된 파일이 없습니다.
-            </Text>
-          ) : (
-            files.map((fd) => {
-              const stage = getStage(fd.file);
-              const progress = getProgressPct(fd.file);
-              return (
-                <div
-                  key={fd.id}
-                  className="rounded-lg bg-white px-3 py-2 shadow-sm"
-                >
-                  <FileItem
-                    fileData={fd}
-                    externalStage={stage}
-                    externalProgress={progress}
-                  />
-                </div>
-              );
-            })
+        {/* 파일 리스트 영역 */}
+        <div className="flex w-1/2 min-w-[320px] flex-col">
+          {notification && (
+            <Notification message={notification} type="warning" />
           )}
+          <div className="mb-2 flex items-center justify-between">
+            <Text variant="caption" weight="medium" color="primary">
+              파일 목록 ({files.length})
+            </Text>
+          </div>
+
+          <div className="h-0.5 w-full bg-gray-100" />
+
+          <div className="mt-3 max-h-[300px] space-y-2 overflow-y-auto rounded-xl bg-gray-50 p-3">
+            {files.length === 0 ? (
+              <Text variant="body" color="muted">
+                업로드된 파일이 없습니다.
+              </Text>
+            ) : (
+              files.map((fd) => {
+                const stage = getStage(fd.file);
+                const progress = getProgressPct(fd.file);
+                return (
+                  <div
+                    key={fd.id}
+                    className="rounded-lg bg-white px-3 py-2 shadow-sm"
+                  >
+                    <FileItem
+                      fileData={fd}
+                      externalStage={stage}
+                      externalProgress={progress}
+                    />
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

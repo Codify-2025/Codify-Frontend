@@ -1,97 +1,84 @@
 import axios from 'axios';
 import axiosInstance from './axiosInstance';
-import type { PresignedResp, UploadMetaReq } from '@typings/upload';
-import {
-  makePresignedPutMock,
-  simulateS3UploadMock,
-  registerUploadSuccessMock,
-} from '@mocks/uploadMocks';
+
+export type PresignedPut = {
+  method: 'PUT';
+  url: string;
+  s3Key: string;
+  headers?: Record<string, string>;
+};
+
+export interface UploadMetaReq {
+  assignmentId: number;
+  fileName: string;
+  week: number;
+  submissionDate: string;
+  studentId: number;
+  studentName: string;
+  s3Key: string;
+}
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 // Presigned 발급
 export async function getPresignedUrl(
-  params: {
-    fileName: string;
-    contentType: string;
-    assignmentId: number;
-    week: number;
-    studentId: number;
-  },
+  params: { fileName: string; assignmentId: number },
   signal?: AbortSignal
-): Promise<PresignedResp> {
+): Promise<PresignedPut> {
   if (USE_MOCK) {
-    // PUT/POST 중 원하는 형태 반환
-    return makePresignedPutMock(params.fileName);
-    // return makePresignedPostMock(params.fileName);
+    return {
+      method: 'PUT',
+      url: 'https://example-s3/presigned-put',
+      s3Key: `mock/${params.fileName}`,
+    };
   }
 
-  const { data } = await axiosInstance.post('/api/presigned', params, {
-    headers:
-      import.meta.env.MODE === 'development' &&
-      import.meta.env.VITE_UPLOAD_DEV_PASSWORD
-        ? { 'x-dev-password': import.meta.env.VITE_UPLOAD_DEV_PASSWORD }
-        : {},
+  const { data } = await axiosInstance.get('/api/upload/presigned-url', {
+    params: { filename: params.fileName, assignmentId: params.assignmentId },
     signal,
   });
-  return data.result as PresignedResp;
+
+  return { method: 'PUT', url: data.preSignedUrl, s3Key: data.key };
 }
 
-// S3 업로드 (PUT/POST 모두 지원)
-export async function uploadToS3(
-  file: File,
-  presigned: PresignedResp,
-  onProgress?: (pct: number) => void,
-  signal?: AbortSignal
-) {
-  if (USE_MOCK) {
-    // 실제 네트워크 대신 진행률/ETag만 시뮬레이션
-    return simulateS3UploadMock(onProgress, signal);
-  }
-
-  if (presigned.method === 'PUT') {
-    const res = await axios.put(presigned.url, file, {
-      headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-        ...(presigned.headers || {}),
-      },
-      onUploadProgress: (e) =>
-        e.total && onProgress?.(Math.round((e.loaded / e.total) * 100)),
-      signal,
-    });
-    const etag = (res.headers?.etag as string | undefined)?.replaceAll('"', '');
-    return { etag };
-  } else {
-    const fd = new FormData();
-    Object.entries(presigned.fields).forEach(([k, v]) => fd.append(k, v));
-    fd.append('file', file);
-
-    const res = await axios.post(presigned.url, fd, {
-      onUploadProgress: (e) =>
-        e.total && onProgress?.(Math.round((e.loaded / e.total) * 100)),
-      signal,
-    });
-    const etag = (res.headers?.etag as string | undefined)?.replaceAll('"', '');
-    return { etag };
-  }
-}
-
-// 메타데이터 등록
+/**
+ * 업로드 등록 호출만 수행. 바디 없는 응답(201/204/200 등)도 모두 성공으로 처리.
+ * 실패 시 예외 throw.
+ */
 export async function registerUpload(
   meta: UploadMetaReq,
   signal?: AbortSignal
-) {
-  if (USE_MOCK) {
-    // 실제와 유사하게 약간의 지연 후 성공 응답 반환
-    await new Promise((r) => setTimeout(r, 200));
-    return registerUploadSuccessMock;
-  }
+): Promise<void> {
+  const payload = {
+    assignmentId: meta.assignmentId,
+    fileName: meta.fileName,
+    week: meta.week,
+    submissionDate: new Date(meta.submissionDate).toISOString(),
+    studentId: meta.studentId,
+    studentName: meta.studentName,
+    s3Key: meta.s3Key,
+  };
 
   try {
-    const { data } = await axiosInstance.post('/api/upload', meta, { signal });
-    return data;
-  } catch (error) {
-    console.error('Failed to register upload:', error);
-    throw error;
+    const res = await axiosInstance.post('/api/upload', payload, {
+      signal,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`Upload API failed. status=${res.status}`);
+    }
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const s = err.response?.status;
+      const msg =
+        err.response?.data?.message ??
+        err.message ??
+        'Upload API request failed.';
+      throw new Error(
+        s ? `Upload API ${s}: ${msg}` : `Upload API error: ${msg}`
+      );
+    }
+    throw err instanceof Error ? err : new Error('Unknown upload API error');
   }
 }

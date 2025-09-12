@@ -1,10 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import {
-  getPresignedUrl,
-  uploadToS3,
-  registerUpload,
-} from '@services/upload.api';
+import { getPresignedUrl, registerUpload } from '@services/upload.api';
 import { toLocalISOStringWithOffset } from '@utils/date';
 import type { UploadItemState } from '@typings/upload';
 
@@ -15,11 +11,15 @@ type MetaBase = {
   studentId: number;
   studentName: string;
 };
-
 type MetaDeriver = (file: File, index: number) => MetaBase;
 
 export function useUploader(concurrency = 3) {
   const [items, setItems] = useState<UploadItemState[]>([]);
+  const itemsRef = useRef<UploadItemState[]>([]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   const queueIndexRef = useRef<number>(0);
   const abortControllersRef = useRef<Record<number, AbortController>>({});
 
@@ -41,45 +41,42 @@ export function useUploader(concurrency = 3) {
   }, []);
 
   const cancel = useCallback((i: number) => {
-    const ac = abortControllersRef.current[i];
-    ac?.abort();
+    abortControllersRef.current[i]?.abort();
   }, []);
 
   const runOne = useCallback(
     async (i: number, metaOrDeriver: MetaBase | MetaDeriver) => {
-      // presign 이전에 AbortController 준비
       const ac = new AbortController();
       abortControllersRef.current[i] = ac;
 
-      // 최신 아이템 캡처 + presigning 표시
-      let target: UploadItemState | undefined;
-      setItems((prev) => {
-        target = prev[i];
-        return prev.map((it, idx) =>
-          idx === i ? { ...it, stage: 'presigning', error: undefined } : it
-        );
-      });
-
-      if (!target) {
-        // 인덱스가 유효하지 않으면 안전 종료
+      const current = itemsRef.current;
+      if (i < 0 || i >= current.length) {
         ac.abort();
         delete abortControllersRef.current[i];
         console.error(`Item at index ${i} not found`);
         return;
       }
 
-      // 파일 상단(또는 훅 안 최상단)에 추가
-      type UploadApiError = { message?: string; code?: string };
+      const target = current[i];
 
-      // AbortError 판별용 타입 가드
-      function isAbortError(e: unknown): boolean {
-        // DOM 환경/브라우저
-        if (typeof DOMException !== 'undefined' && e instanceof DOMException) {
-          return e.name === 'AbortError';
-        }
-        // 일부 런타임은 일반 Error로 전달
-        return e instanceof Error && e.name === 'AbortError';
+      // 이미 presigning/ uploading/ registering/ done/ error 면 스킵
+      if (target.stage !== 'idle') {
+        delete abortControllersRef.current[i];
+        return;
       }
+
+      // 1) presigning
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === i ? { ...it, stage: 'presigning', error: undefined } : it
+        )
+      );
+
+      const isAbortError = (e: unknown) =>
+        (typeof DOMException !== 'undefined' &&
+          e instanceof DOMException &&
+          e.name === 'AbortError') ||
+        (e instanceof Error && e.name === 'AbortError');
 
       try {
         const m: MetaBase =
@@ -87,80 +84,50 @@ export function useUploader(concurrency = 3) {
             ? (metaOrDeriver as MetaDeriver)(target.file, i)
             : (metaOrDeriver as MetaBase);
 
-        // presign에도 signal 전달
+        // 2) /api/upload/presigned-url → s3Key 수령
         const presigned = await getPresignedUrl(
-          {
-            fileName: target.file.name,
-            contentType: target.file.type || 'application/octet-stream',
-            assignmentId: m.assignmentId,
-            week: m.week,
-            studentId: m.studentId,
-          },
+          { fileName: target.file.name, assignmentId: m.assignmentId || 1 },
           ac.signal
         );
+        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-        // 취소가 이미 눌렸다면 즉시 중단
-        if (ac.signal.aborted) {
-          throw new DOMException('Aborted', 'AbortError');
-        }
-
-        // 업로드 시작 표시
+        // 3) registering (S3 PUT 없음)
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i
-              ? { ...it, stage: 'uploading', s3Key: presigned.s3Key }
+              ? { ...it, stage: 'registering', s3Key: presigned.s3Key }
               : it
           )
         );
 
-        // S3 업로드 (signal + 진행률 업데이트)
-        const { etag } = await uploadToS3(
-          target.file,
-          presigned,
-          (pct) =>
-            setItems((prev) =>
-              prev.map((it, idx) => (idx === i ? { ...it, progress: pct } : it))
-            ),
-          ac.signal
-        );
-
-        // 등록 단계 표시
-        setItems((prev) =>
-          prev.map((it, idx) =>
-            idx === i ? { ...it, stage: 'registering', etag } : it
-          )
-        );
-
-        // 메타 등록에도 signal 전달
+        // 4) /api/upload — 상태코드만 확인
         await registerUpload(
           {
-            assignmentId: m.assignmentId,
+            assignmentId: m.assignmentId || 1,
             fileName: target.file.name,
             week: m.week,
             submissionDate: toLocalISOStringWithOffset(m.submissionDate),
             studentId: m.studentId,
             studentName: m.studentName,
             s3Key: presigned.s3Key,
-            ...(etag ? { etag } : {}),
           },
           ac.signal
         );
 
-        // 완료
+        // 5) done
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i ? { ...it, stage: 'done', progress: 100 } : it
           )
         );
-      } catch (err: unknown) {
-        // 취소 케이스 일관 처리 (any 사용 금지)
-        const isCanceled =
+      } catch (err) {
+        const canceled =
           (axios.isAxiosError(err) && err.code === 'ERR_CANCELED') ||
           isAbortError(err);
 
-        const message = isCanceled
+        const message = canceled
           ? '업로드가 취소되었습니다.'
-          : axios.isAxiosError<UploadApiError>(err)
+          : axios.isAxiosError(err)
             ? (err.response?.data?.message ?? err.message)
             : err instanceof Error
               ? err.message
@@ -172,7 +139,6 @@ export function useUploader(concurrency = 3) {
           )
         );
       } finally {
-        // 컨트롤러 정리
         delete abortControllersRef.current[i];
       }
     },
@@ -181,23 +147,29 @@ export function useUploader(concurrency = 3) {
 
   const start = useCallback(
     async (metaOrDeriver: MetaBase | MetaDeriver) => {
-      queueIndexRef.current = 0;
-      const total = items.length;
+      // 이번에 돌릴 대상은 idle 상태인 아이템만 추출
+      const indicesToRun = itemsRef.current
+        .map((it, idx) => (it.stage === 'idle' ? idx : -1))
+        .filter((idx) => idx !== -1);
 
+      if (indicesToRun.length === 0) return;
+
+      let cursor = 0; // 이 배열용 커서
       async function worker() {
         while (true) {
-          const i = queueIndexRef.current++;
-          if (i >= total) break;
-          await runOne(i, metaOrDeriver);
+          const next = indicesToRun[cursor++];
+          if (next === undefined) break;
+          await runOne(next, metaOrDeriver);
         }
       }
 
-      const workers = Array.from({ length: Math.min(concurrency, total) }, () =>
-        worker()
+      const workers = Array.from(
+        { length: Math.min(concurrency, indicesToRun.length) },
+        () => worker()
       );
       await Promise.all(workers);
     },
-    [items, runOne, concurrency]
+    [runOne, concurrency]
   );
 
   const retry = useCallback(
