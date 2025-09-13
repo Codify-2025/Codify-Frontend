@@ -12,26 +12,33 @@ const AccumulatedSimilarityGraph: React.FC = () => {
   const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
   const { data, isLoading, isError } = useAccumulatedTopology(subjectId);
 
-  // 누적 유사도 데이터
   const { nodes, edges } = useMemo(() => {
     if (!data) return { nodes: [], edges: [] };
 
-    const nodes = data.nodes.map((n) => ({
-      id: String(n.id),
-      label: n.label,
-      submittedAt: '',
-    }));
+    // 1) 노드 id 유니크화 (+ 문자열로 강제)
+    const seen = new Set<string>();
+    const nodes = data.nodes.reduce<
+      { id: string; label: string; submittedAt: string }[]
+    >((acc, n) => {
+      const id = `${subjectId}:${String(n.id)}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        acc.push({ id, label: n.label, submittedAt: '' });
+      }
+      return acc;
+    }, []);
 
+    // 2) 엣지도 문자열 id로 통일
     const edges = data.edges.map((e) => ({
-      from: String(e.from),
-      to: String(e.to),
+      from: `${subjectId}:${String(e.from)}`,
+      to: `${subjectId}:${String(e.to)}`,
       similarity: Math.round((e.value ?? 0) * 100),
       count: e.count,
       width: e.width,
     }));
 
     return { nodes, edges };
-  }, [data]);
+  }, [data, subjectId]);
 
   if (isLoading) return <LoadingSkeleton />;
   if (isError || !data) return <ErrorState />;
