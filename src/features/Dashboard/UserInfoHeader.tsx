@@ -79,7 +79,7 @@ const UserInfoHeader: React.FC = () => {
                   <button
                     key={subj.subjectId}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setSelectedSubject(
                         selected
                           ? null
@@ -87,8 +87,10 @@ const UserInfoHeader: React.FC = () => {
                               id: subj.subjectId.toString(),
                               name: subj.subjectName,
                             }
-                      )
-                    }
+                      );
+                      // 과목 선택 후 패널 닫기
+                      setSubjectOpen(false);
+                    }}
                     aria-pressed={selected}
                     className={[
                       'flex items-center justify-between px-4 py-3 text-left transition',
