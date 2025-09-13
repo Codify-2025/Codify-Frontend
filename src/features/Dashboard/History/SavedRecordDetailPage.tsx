@@ -8,11 +8,9 @@ import SimilarityGraph from '@features/Result/SimilarityGraph';
 import type { FileNode, FileEdge } from 'types/similarity';
 import { formatDateTimeKST, formatPercent01 } from '@utils/format';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
-import type {
-  SavedAnalysisRecord,
-  PairAnalysisRecord,
-} from './SavedAnalysisType';
+import type { PairAnalysisRecord } from './SavedAnalysisType';
 import { useSubjectStore } from '@stores/useSubjectStore';
+import { buildSavedRecords } from '@utils/savedRecord.utils';
 
 const SavedRecordDetailPage: React.FC = () => {
   const nav = useNavigate();
@@ -20,6 +18,8 @@ const SavedRecordDetailPage: React.FC = () => {
     subjectId: string;
     recordId: string;
   }>();
+
+  const recordIdKey = recordId ? decodeURIComponent(recordId) : undefined;
 
   const subjectId = Number(subjectIdParam);
   const subjectIdValid = Number.isFinite(subjectId);
@@ -34,61 +34,17 @@ const SavedRecordDetailPage: React.FC = () => {
   );
 
   // API 응답 → 화면 모델로 변환 후 recordId 대상 찾기
+  const all = useMemo(
+    () => buildSavedRecords(data, subjectName),
+    [data, subjectName]
+  );
+
   const rec = useMemo<PairAnalysisRecord | undefined>(() => {
-    if (!data || !recordId) return undefined;
-
-    // id -> label 매핑
-    const nameMap = new Map<string, string>();
-    for (const n of data.nodes ?? []) {
-      nameMap.set(String(n.id), n.label ?? String(n.id));
-    }
-
-    // edges를 화면 모델로 변환 (목록과 동일한 ID 규칙 사용)
-    const records: SavedAnalysisRecord[] = [];
-    const dupCounter = new Map<string, number>();
-
-    for (const e of data.edges ?? []) {
-      const week = Number(e.week) || 0;
-      for (const d of e.data ?? []) {
-        const fromId = String(d.from);
-        const toId = String(d.to);
-        const submittedFrom = d.submittedFrom ?? '';
-        const submittedTo = d.submittedTo ?? '';
-        const baseId = `${week}__${[fromId, toId].sort().join('-')}__${submittedFrom}__${submittedTo}`;
-        const next = (dupCounter.get(baseId) ?? 0) + 1;
-        dupCounter.set(baseId, next);
-        const uniqueId = d.id ?? (next === 1 ? baseId : `${baseId}__${next}`);
-        const savedAt =
-          submittedTo || submittedFrom || new Date().toISOString();
-
-        records.push({
-          id: uniqueId,
-          type: 'pair',
-          assignmentName: subjectName,
-          week,
-          savedAt,
-          similarity: Math.min(
-            1,
-            Math.max(0, Number.isFinite(Number(d.value)) ? Number(d.value) : 0)
-          ),
-          fileA: {
-            id: fromId,
-            label: nameMap.get(fromId) ?? fromId,
-            submittedAt: d.submittedFrom ?? savedAt,
-          },
-          fileB: {
-            id: toId,
-            label: nameMap.get(toId) ?? toId,
-            submittedAt: d.submittedTo ?? savedAt,
-          },
-        } as PairAnalysisRecord);
-      }
-    }
-
-    return records.find((r) => r.id === recordId) as
+    if (!recordIdKey) return undefined;
+    return all.find((r) => r.id === recordIdKey) as
       | PairAnalysisRecord
       | undefined;
-  }, [data, recordId, subjectName]);
+  }, [all, recordIdKey]);
 
   // 그래프 데이터(해당 주차만, 동일 페어는 최대 유사도 1개로)
   const { nodes, edges } = useMemo(() => {
@@ -238,9 +194,6 @@ const SavedRecordDetailPage: React.FC = () => {
           <div className="mb-3 flex items-center justify-between">
             <Text variant="h3" weight="bold" className="text-gray-900">
               해당 주차 네트워크 토폴로지
-            </Text>
-            <Text variant="caption" color="muted">
-              선택된 쌍은 강조되어 표시됩니다.
             </Text>
           </div>
           <SimilarityGraph

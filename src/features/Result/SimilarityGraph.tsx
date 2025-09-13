@@ -37,6 +37,8 @@ const edgeColor = (s: number) =>
 const edgeWidth = (s: number) =>
   s >= 90 ? 10 : s >= 75 ? 7 : s >= 60 ? 5 : s >= 40 ? 3 : 2;
 
+type VisId = string | number;
+
 const SimilarityGraph: React.FC<Props> = ({
   nodes,
   edges,
@@ -51,10 +53,28 @@ const SimilarityGraph: React.FC<Props> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 동일 페어 중복 제거
+    // A. 노드 id를 문자열로 강제 + 중복 제거 (명시적 타입)
+    const uniqNodes: FileNode[] = Array.from(
+      nodes
+        .reduce<Map<string, FileNode>>((m, n) => {
+          const id = String(n.id);
+          m.set(id, { ...n, id }); // 동일 id면 마지막 항목으로 덮어씀
+          return m;
+        }, new Map())
+        .values()
+    );
+
+    // B. 엣지도 문자열 id로 정규화
+    const normalizedEdges = edges.map((e) => ({
+      ...e,
+      from: String(e.from),
+      to: String(e.to),
+    }));
+
+    // C. 동일 페어 중복 제거 (원래 로직 유지하되, 문자열 id 기반)
     const dedupEdges = (() => {
       const m = new Map<string, FileEdge>();
-      for (const e of edges) {
+      for (const e of normalizedEdges) {
         const [x, y] = e.from <= e.to ? [e.from, e.to] : [e.to, e.from];
         const k = `${x}-${y}`;
         const prev = m.get(k);
@@ -65,13 +85,8 @@ const SimilarityGraph: React.FC<Props> = ({
     })();
 
     const visNodes = new DataSet(
-      nodes.map((n) => ({
-        id: n.id,
-        label: n.label,
-        title: undefined,
-      }))
+      uniqNodes.map((n) => ({ id: n.id, label: n.label, title: undefined }))
     );
-
     const visEdges = new DataSet(
       dedupEdges.map((e) => ({
         id: `${e.from}-${e.to}`,
@@ -163,15 +178,14 @@ const SimilarityGraph: React.FC<Props> = ({
 
     networkRef.current = network;
 
-    // 이벤트 연결
-    network.on('hoverNode', (params) => {
+    // 이벤트 핸들러에서 nodes/edges도 uniq/normalized 기준으로 참조
+    network.on('hoverNode', (params: { node: VisId }) => {
       network.selectNodes([params.node]);
-      const node = nodes.find((n) => n.id === params.node);
+      const node = uniqNodes.find((n) => n.id === String(params.node));
       if (node) onNodeHover?.(node);
     });
-    network.on('blurNode', () => network.unselectAll());
 
-    network.on('hoverEdge', (params) => {
+    network.on('hoverEdge', (params: { edge: VisId }) => {
       network.selectEdges([params.edge]);
       const [fromId, toId] = String(params.edge).split('-');
       const edge = dedupEdges.find(
@@ -181,9 +195,8 @@ const SimilarityGraph: React.FC<Props> = ({
       );
       if (edge) onEdgeHover?.(edge);
     });
-    network.on('blurEdge', () => network.unselectAll());
 
-    network.on('click', (params) => {
+    network.on('click', (params: { edges: VisId[] }) => {
       if (params.edges.length === 0) return;
       const [fromId, toId] = String(params.edges[0]).split('-');
       const edge = dedupEdges.find(
@@ -194,7 +207,12 @@ const SimilarityGraph: React.FC<Props> = ({
       if (edge) onEdgeClick?.(edge);
     });
 
-    return () => network.destroy();
+    return () => {
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+    };
   }, [nodes, edges, onNodeHover, onEdgeHover, onEdgeClick, interactionOptions]);
 
   return <div ref={containerRef} className="h-[560px] w-full" />;

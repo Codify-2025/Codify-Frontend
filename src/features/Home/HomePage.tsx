@@ -14,10 +14,6 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
-  const scrollToFeatures = () => {
-    document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <Layout contentClassName="bg-white">
       <div className="min-h-screen">
@@ -66,14 +62,6 @@ const HomePage: React.FC = () => {
                   text="유사도 분석 시작하기"
                   size="lg"
                   onClick={() => navigate('/assignment/subject')}
-                  className="px-6 md:px-8 py-3 md:py-4 text-base md:text-lg"
-                />
-                <Button
-                  text="데모 살펴보기"
-                  variant="secondary"
-                  size="lg"
-                  onClick={scrollToFeatures}
-                  ariaLabel="기능 미리보기로 이동"
                   className="px-6 md:px-8 py-3 md:py-4 text-base md:text-lg"
                 />
               </div>

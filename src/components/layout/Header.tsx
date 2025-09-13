@@ -2,11 +2,11 @@ import React from 'react';
 import Button from '../Button';
 import Text from '../Text';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@stores/useAuthStore';
+// import { useAuthStore } from '@stores/useAuthStore';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, logout } = useAuthStore();
+  // const { isLoggedIn, logout } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -24,7 +24,7 @@ const Header: React.FC = () => {
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          {!isLoggedIn ? (
+          {/* {!isLoggedIn ? (
             <>
               <Button
                 text="로그인"
@@ -41,7 +41,7 @@ const Header: React.FC = () => {
                 navigate('/');
               }}
             />
-          )}
+          )} */}
 
           <Button
             text="대시보드"
