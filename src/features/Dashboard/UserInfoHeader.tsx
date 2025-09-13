@@ -28,9 +28,9 @@ const UserInfoHeader: React.FC = () => {
   return (
     <header className="relative mt-8">
       {/* 상단 우측: 비밀번호 변경 */}
-      <div className="absolute right-5 top-5">
+      {/* <div className="absolute right-5 top-5">
         <Button text="비밀번호 변경하기" variant="secondary" size="sm" />
-      </div>
+      </div> */}
 
       {/* 사용자 카드 */}
       <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 ring-1 ring-blue-100">
