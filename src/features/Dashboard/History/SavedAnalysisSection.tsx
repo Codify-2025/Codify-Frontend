@@ -5,14 +5,15 @@ import SavedAnalysisItem from './SavedAnalysisItem';
 import { useSubjectStore } from '@stores/useSubjectStore';
 import { useRecord } from '@hooks/useRecord';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
+import { buildSavedRecords } from '@utils/savedRecord.utils';
 
 type SortOption = 'latest' | 'similarity';
 
-const clamp01 = (v: unknown) => {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(1, Math.max(0, n));
-};
+// const clamp01 = (v: unknown) => {
+//   const n = Number(v);
+//   if (!Number.isFinite(n)) return 0;
+//   return Math.min(1, Math.max(0, n));
+// };
 
 const SavedAnalysisSection: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
@@ -28,58 +29,12 @@ const SavedAnalysisSection: React.FC = () => {
 
   // 응답 -> 화면 모델 어댑트
   const records: SavedAnalysisRecord[] = useMemo(() => {
-    const msg = data;
-    if (!msg || !hasSubject) return [];
+    if (!hasSubject) return [];
+    // 유틸로 일관된 규칙으로 생성
+    const built = buildSavedRecords(data, selectedSubject?.name ?? '');
 
-    const nameMap = new Map<string, string>();
-    for (const n of msg.nodes ?? []) {
-      nameMap.set(String(n.id), n.label ?? '');
-    }
-
-    const list: SavedAnalysisRecord[] = [];
-    const dupCounter = new Map<string, number>();
-
-    for (const e of msg.edges ?? []) {
-      const week = Number(e.week) || 0;
-
-      for (const d of e.data ?? []) {
-        const fromId = String(d.from);
-        const toId = String(d.to);
-        const [a, b] = [fromId, toId].sort();
-        const submittedFrom = d.submittedFrom ?? '';
-        const submittedTo = d.submittedTo ?? '';
-        const baseId = `${week}__${a}-${b}__${submittedFrom}__${submittedTo}`;
-
-        const next = (dupCounter.get(baseId) ?? 0) + 1;
-        dupCounter.set(baseId, next);
-        const uniqueId = next === 1 ? baseId : `${baseId}__${next}`;
-
-        const savedAt =
-          submittedTo || submittedFrom || new Date().toISOString();
-
-        list.push({
-          id: uniqueId,
-          subjectId: subjectIdNum,
-          type: 'pair',
-          assignmentName: selectedSubject!.name,
-          week,
-          savedAt,
-          similarity: clamp01(Number(d.value)),
-          width: Number.isFinite(Number(d.width)) ? Number(d.width) : 0,
-          fileA: {
-            id: fromId,
-            label: nameMap.get(fromId) ?? fromId,
-            submittedAt: d.submittedFrom ?? savedAt,
-          },
-          fileB: {
-            id: toId,
-            label: nameMap.get(toId) ?? toId,
-            submittedAt: d.submittedTo ?? savedAt,
-          },
-        });
-      }
-    }
-    return list;
+    // 섹션에서 필요하면 subjectId를 주입
+    return built.map((r) => ({ ...r, subjectId: subjectIdNum }));
   }, [data, hasSubject, selectedSubject, subjectIdNum]);
 
   // 정렬
