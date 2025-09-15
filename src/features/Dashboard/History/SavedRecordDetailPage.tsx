@@ -19,7 +19,14 @@ const SavedRecordDetailPage: React.FC = () => {
     recordId: string;
   }>();
 
-  const recordIdKey = recordId ? decodeURIComponent(recordId) : undefined;
+  const recordIdKey = useMemo(() => {
+    if (!recordId) return undefined;
+    try {
+      return decodeURIComponent(recordId);
+    } catch {
+      return recordId; // 이미 디코딩 되었거나 잘못된 인코딩인 경우 원본 사용
+    }
+  }, [recordId]);
 
   const subjectId = Number(subjectIdParam);
   const subjectIdValid = Number.isFinite(subjectId);
