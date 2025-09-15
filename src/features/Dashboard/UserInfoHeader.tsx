@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Button from '@components/Button';
+// import Button from '@components/Button';
 import Text from '@components/Text';
 import { useSubjectStore } from '@stores/useSubjectStore';
 import { useMainDashboard } from '@hooks/useMainDashboard';
@@ -28,9 +28,9 @@ const UserInfoHeader: React.FC = () => {
   return (
     <header className="relative mt-8">
       {/* 상단 우측: 비밀번호 변경 */}
-      <div className="absolute right-5 top-5">
+      {/* <div className="absolute right-5 top-5">
         <Button text="비밀번호 변경하기" variant="secondary" size="sm" />
-      </div>
+      </div> */}
 
       {/* 사용자 카드 */}
       <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 ring-1 ring-blue-100">
@@ -79,7 +79,7 @@ const UserInfoHeader: React.FC = () => {
                   <button
                     key={subj.subjectId}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setSelectedSubject(
                         selected
                           ? null
@@ -87,8 +87,10 @@ const UserInfoHeader: React.FC = () => {
                               id: subj.subjectId.toString(),
                               name: subj.subjectName,
                             }
-                      )
-                    }
+                      );
+                      // 과목 선택 후 패널 닫기
+                      setSubjectOpen(false);
+                    }}
                     aria-pressed={selected}
                     className={[
                       'flex items-center justify-between px-4 py-3 text-left transition',
