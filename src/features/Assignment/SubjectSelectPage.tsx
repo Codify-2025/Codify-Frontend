@@ -45,7 +45,8 @@ const SubjectSelectPage: React.FC = () => {
   const handleNext = useCallback(() => {
     // 기존 과목 선택 → 바로 이동
     if (selectedName) {
-      navigate('/assignment/name');
+      // navigate('/assignment/name');
+      navigate('/upload'); // 개발 단계 임시
       return;
     }
     const trimmedName = newSubjectName.trim();
@@ -58,7 +59,8 @@ const SubjectSelectPage: React.FC = () => {
         onSuccess: ({ subjectId }) => {
           setSelectedSubject({ id: String(subjectId), name: trimmedName });
           queryClient.invalidateQueries(['subjects']);
-          navigate('/assignment/name');
+          // navigate('/assignment/name');
+          navigate('/upload'); // 개발 단계 임시
         },
         onError: () => alert('과목 추가에 실패했습니다.'),
       }
