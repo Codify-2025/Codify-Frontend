@@ -48,9 +48,8 @@ const SavedRecordDetailPage: React.FC = () => {
 
   const rec = useMemo<PairAnalysisRecord | undefined>(() => {
     if (!recordIdKey) return undefined;
-    return all.find((r) => r.id === recordIdKey) as
-      | PairAnalysisRecord
-      | undefined;
+    const found = all.find((r) => r.id === recordIdKey);
+    return found?.type === 'pair' ? (found as PairAnalysisRecord) : undefined;
   }, [all, recordIdKey]);
 
   // 그래프 데이터(해당 주차만, 동일 페어는 최대 유사도 1개로)
