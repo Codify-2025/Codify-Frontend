@@ -13,6 +13,40 @@ type MetaBase = {
 };
 type MetaDeriver = (file: File, index: number) => MetaBase;
 
+// 1) presigned 응답 타입 보완
+type GetPresignedUrlResponse =
+  | { s3Key: string; url: string; headers?: Record<string, string> }
+  | { s3Key: string; putUrl: string; headers?: Record<string, string> };
+
+// 우리가 사용하는 표준화된 형태
+type PresignedPut = {
+  url: string;
+  s3Key: string;
+  headers?: Record<string, string>;
+};
+
+// S3 업로드 헬퍼
+async function uploadFileToS3(
+  file: File,
+  presigned: PresignedPut,
+  signal: AbortSignal,
+  onProgress?: (pct: number) => void
+) {
+  await axios.put(presigned.url, file, {
+    signal,
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      ...(presigned.headers ?? {}),
+    },
+    // 업로드 진행률(0~100)
+    onUploadProgress: (evt) => {
+      if (!onProgress || !evt.total) return;
+      const pct = Math.round((evt.loaded / evt.total) * 100);
+      onProgress(pct);
+    },
+  });
+}
+
 export function useUploader(concurrency = 3) {
   const [items, setItems] = useState<UploadItemState[]>([]);
   const itemsRef = useRef<UploadItemState[]>([]);
@@ -59,19 +93,13 @@ export function useUploader(concurrency = 3) {
 
       const target = current[i];
 
-      // 이미 presigning/ uploading/ registering/ done/ error 면 스킵
-      if (target.stage !== 'idle') {
+      // 진행 중/완료만 스킵, error/idle은 허용
+      if (target.stage !== 'idle' && target.stage !== 'error') {
         delete abortControllersRef.current[i];
         return;
       }
 
-      // 1) presigning
-      setItems((prev) =>
-        prev.map((it, idx) =>
-          idx === i ? { ...it, stage: 'presigning', error: undefined } : it
-        )
-      );
-
+      // AbortError 판별
       const isAbortError = (e: unknown) =>
         (typeof DOMException !== 'undefined' &&
           e instanceof DOMException &&
@@ -79,31 +107,72 @@ export function useUploader(concurrency = 3) {
         (e instanceof Error && e.name === 'AbortError');
 
       try {
+        // 1) presigning
+        setItems((prev) =>
+          prev.map((it, idx) =>
+            idx === i
+              ? { ...it, stage: 'presigning', error: undefined, progress: 0 }
+              : it
+          )
+        );
+
         const m: MetaBase =
           typeof metaOrDeriver === 'function'
             ? (metaOrDeriver as MetaDeriver)(target.file, i)
             : (metaOrDeriver as MetaBase);
 
-        // 2) /api/upload/presigned-url → s3Key 수령
-        const presigned = await getPresignedUrl(
-          { fileName: target.file.name, assignmentId: m.assignmentId || 1 },
+        // 2) /api/upload/presigned-url → s3Key + url 수령
+        const presignedRaw = (await getPresignedUrl(
+          { fileName: target.file.name, assignmentId: m.assignmentId ?? 1 },
           ac.signal
-        );
-        if (ac.signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        )) as GetPresignedUrlResponse;
 
-        // 3) registering (S3 PUT 없음)
+        // 'in' 연산자로 안전하게 URL 추출
+        const presigned: PresignedPut = {
+          url: 'url' in presignedRaw ? presignedRaw.url : presignedRaw.putUrl,
+          s3Key: presignedRaw.s3Key,
+          headers: presignedRaw.headers,
+        };
+
+        if (!presigned.url) {
+          throw new Error('Presigned URL을 받지 못했습니다.');
+        }
+
+        // 3) S3 PUT (업로드)
         setItems((prev) =>
           prev.map((it, idx) =>
             idx === i
-              ? { ...it, stage: 'registering', s3Key: presigned.s3Key }
+              ? {
+                  ...it,
+                  stage: 'uploading',
+                  s3Key: presigned.s3Key,
+                  progress: 0,
+                }
               : it
           )
         );
 
-        // 4) /api/upload — 상태코드만 확인
+        await uploadFileToS3(target.file, presigned, ac.signal, (pct) => {
+          // 업로드 구간의 진행률 반영(0~98%)
+          setItems((prev) =>
+            prev.map((it, idx) =>
+              idx === i
+                ? { ...it, progress: Math.min(98, Math.max(0, pct)) }
+                : it
+            )
+          );
+        });
+
+        // 4) 서버 등록(registering)
+        setItems((prev) =>
+          prev.map((it, idx) =>
+            idx === i ? { ...it, stage: 'registering', progress: 99 } : it
+          )
+        );
+
         await registerUpload(
           {
-            assignmentId: m.assignmentId || 1,
+            assignmentId: m.assignmentId ?? 1,
             fileName: target.file.name,
             week: m.week,
             submissionDate: toLocalISOStringWithOffset(m.submissionDate),
@@ -154,7 +223,7 @@ export function useUploader(concurrency = 3) {
 
       if (indicesToRun.length === 0) return;
 
-      let cursor = 0; // 이 배열용 커서
+      let cursor = 0;
       async function worker() {
         while (true) {
           const next = indicesToRun[cursor++];
