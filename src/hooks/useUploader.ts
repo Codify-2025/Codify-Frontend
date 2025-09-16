@@ -93,8 +93,8 @@ export function useUploader(concurrency = 3) {
 
       const target = current[i];
 
-      // 이미 진행 중/완료/에러면 스킵
-      if (target.stage !== 'idle') {
+      // 진행 중/완료만 스킵, error/idle은 허용
+      if (target.stage !== 'idle' && target.stage !== 'error') {
         delete abortControllersRef.current[i];
         return;
       }
@@ -123,7 +123,7 @@ export function useUploader(concurrency = 3) {
 
         // 2) /api/upload/presigned-url → s3Key + url 수령
         const presignedRaw = (await getPresignedUrl(
-          { fileName: target.file.name, assignmentId: m.assignmentId || 1 },
+          { fileName: target.file.name, assignmentId: m.assignmentId ?? 1 },
           ac.signal
         )) as GetPresignedUrlResponse;
 
@@ -172,7 +172,7 @@ export function useUploader(concurrency = 3) {
 
         await registerUpload(
           {
-            assignmentId: m.assignmentId || 1,
+            assignmentId: m.assignmentId ?? 1,
             fileName: target.file.name,
             week: m.week,
             submissionDate: toLocalISOStringWithOffset(m.submissionDate),
