@@ -123,7 +123,7 @@ export function useUploader(concurrency = 3) {
 
         // 2) /api/upload/presigned-url → s3Key + url 수령
         const presignedRaw = (await getPresignedUrl(
-          { fileName: target.file.name, assignmentId: m.assignmentId ?? 1 },
+          { fileName: target.file.name, assignmentId: m.assignmentId || 1 },
           ac.signal
         )) as GetPresignedUrlResponse;
 
@@ -172,7 +172,7 @@ export function useUploader(concurrency = 3) {
 
         await registerUpload(
           {
-            assignmentId: m.assignmentId ?? 1,
+            assignmentId: m.assignmentId || 1,
             fileName: target.file.name,
             week: m.week,
             submissionDate: toLocalISOStringWithOffset(m.submissionDate),
