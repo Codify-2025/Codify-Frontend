@@ -35,7 +35,10 @@ export const addSubject = async ({
 export const fetchSubject = async (): Promise<SubjectItem[]> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return viewSubjectMock as unknown as SubjectItem[];
+    return (viewSubjectMock as string[]).map((subjectName, idx) => ({
+      subjectId: idx + 1,
+      subjectName,
+    }));
   }
 
   const res = await axiosInstance.get<SubjectItem[]>('/api/submit/subjects');
