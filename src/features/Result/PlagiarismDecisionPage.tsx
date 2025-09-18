@@ -5,12 +5,16 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import { useDecisionStore } from '@stores/useDecisionStore';
 import { FiArrowLeft, FiAlertTriangle } from 'react-icons/fi';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
+import { useSelectedFileStore } from '@stores/useSelectedFileStore';
+import { usePlagiarismJudge } from '@hooks/usePlagiarismJudge';
 
 type DecisionLocationState = {
-  fileA: { id: string; label: string; submittedAt: string };
-  fileB: { id: string; label: string; submittedAt: string };
-  /** 0~1 또는 0~100 */
-  similarity: number;
+  studentFromId?: string | number;
+  studentToId?: string | number;
+  fileA?: { id: string; label: string; submittedAt: string };
+  fileB?: { id: string; label: string; submittedAt: string };
+  similarity?: number;
 };
 
 const toPercent = (v: number) => {
@@ -27,14 +31,34 @@ const PlagiarismDecisionPage: React.FC = () => {
   const location = useLocation();
   const { saveDecision } = useDecisionStore();
 
+  const { assignmentId, week } = useAssignmentStore();
+  const { selectedFileA, selectedFileB } = useSelectedFileStore();
+
   const state = location.state as DecisionLocationState | undefined;
 
-  if (!state?.fileA || !state?.fileB) {
+  // id 소스 결정
+  const studentFromId = state?.studentFromId ?? selectedFileA?.id;
+  const studentToId = state?.studentToId ?? selectedFileB?.id;
+
+  const ready = Boolean(assignmentId && week && studentFromId && studentToId);
+
+  const {
+    data: judge,
+    isLoading,
+    isError,
+  } = usePlagiarismJudge({
+    assignmentId: assignmentId ?? 0,
+    week: week ?? 0,
+    studentFromId: studentFromId ?? '',
+    studentToId: studentToId ?? '',
+  });
+
+  if (!ready) {
     return (
       <Layout>
         <div className="px-8 py-12">
           <Text variant="h3" weight="bold" className="mb-3 text-gray-900">
-            파일 정보가 존재하지 않습니다.
+            판단에 필요한 정보가 부족합니다.
           </Text>
           <Button
             text="결과 페이지로 이동"
@@ -46,8 +70,53 @@ const PlagiarismDecisionPage: React.FC = () => {
     );
   }
 
-  const { fileA, fileB } = state;
-  const similarityPct = toPercent(state.similarity);
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="px-8 py-12">
+          <Text variant="body" color="muted">
+            표절 판단 데이터를 불러오는 중...
+          </Text>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isError || !judge) {
+    return (
+      <Layout>
+        <div className="px-8 py-12">
+          <Text variant="body" color="muted">
+            표절 판단 데이터를 불러오지 못했습니다.
+          </Text>
+          <Button
+            text="뒤로가기"
+            variant="secondary"
+            onClick={() => navigate(-1)}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
+  // 파일 표시용
+  const fileA = state?.fileA ?? {
+    id: String(judge.student1.id),
+    label: judge.student1.name,
+    submittedAt: judge.student1.submittedTime,
+  };
+  const fileB = state?.fileB ?? {
+    id: String(judge.student2.id),
+    label: judge.student2.name,
+    submittedAt: judge.student2.submittedTime,
+  };
+
+  // 유사도
+  const similarityPct = toPercent(
+    Number.isFinite(state?.similarity as number)
+      ? (state!.similarity as number)
+      : judge.similarity
+  );
 
   const handleDecision = (isPlagiarism: boolean) => {
     saveDecision({ fileAId: fileA.id, fileBId: fileB.id, isPlagiarism });

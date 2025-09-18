@@ -1,12 +1,24 @@
-import { compareRequest, fetchJudge } from '@services/result';
 import { useQuery } from 'react-query';
-import { judgeApiResponse } from 'types/result';
+import { fetchJudge, judgeRequest } from '@services/result';
+import type { judgeResponseData } from 'types/result';
 
-export const usePlagiarismJudge = (params: compareRequest, token: string) => {
-  return useQuery<judgeApiResponse>({
-    queryKey: ['plagiarismJudge', params.student1, params.student2],
-    queryFn: () => fetchJudge(params, token),
-    enabled: !!token && !!params.student1 && !!params.student2,
+export const usePlagiarismJudge = (params: judgeRequest) => {
+  const enabled =
+    !!params.assignmentId &&
+    !!params.week &&
+    !!params.studentFromId &&
+    !!params.studentToId;
+
+  return useQuery<judgeResponseData>({
+    queryKey: [
+      'judge',
+      params.assignmentId,
+      params.week,
+      params.studentFromId,
+      params.studentToId,
+    ],
+    queryFn: () => fetchJudge(params),
+    enabled,
     staleTime: 1000 * 60 * 5,
   });
 };

@@ -1,11 +1,6 @@
-import {
-  judgeApiResponse,
-  saveApiResponse,
-  topologyApiResponse,
-} from 'types/result';
+import { saveApiResponse, topologyApiResponse } from 'types/result';
 import axiosInstance from './axiosInstance';
 import { topologyMock } from '@mocks/topologyMock';
-import { judgeMock } from '@mocks/judgeMock';
 import { saveMock } from '@mocks/saveMock';
 import axios, { AxiosResponse } from 'axios';
 
@@ -171,24 +166,55 @@ export const fetchCompare = async ({
 };
 
 /// 표절 판단
-export const fetchJudge = async (
-  { studentFromId, studentToId }: compareRequest,
-  token: string
-): Promise<judgeApiResponse> => {
+
+// judge 요청 파라미터 타입 (compareRequest 재사용 가능하지만 명시적으로 분리해도 OK)
+export interface judgeRequest {
+  assignmentId: number;
+  week: number;
+  studentFromId: string | number;
+  studentToId: string | number;
+}
+
+// judge 호출
+export const fetchJudge = async ({
+  assignmentId,
+  week,
+  studentFromId,
+  studentToId,
+}: judgeRequest): Promise<import('types/result').judgeResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return judgeMock;
+    const mock = (await import('@mocks/judgeMock'))
+      .judgeMock as import('types/result').judgeApiResponse;
+    return mock.message;
   }
 
+  // 오타 경로 대비
+  const tryOnce = async (fixedPath = false) => {
+    const base = fixedPath
+      ? '/api/result/assignments'
+      : '/api/result/assignmets';
+    const url = `${base}/${assignmentId}/judge`;
+    const resp = await axiosInstance.get<
+      import('types/result').judgeApiResponse
+    >(url, {
+      params: { studentFromId, studentToId, week },
+    });
+    return resp;
+  };
+
   try {
-    const response = await axiosInstance.get<judgeApiResponse>(
-      `/api/result/judge`,
-      {
-        params: { studentFromId, studentToId },
-        headers: { Authorization: `Bearer ${token}` },
+    let response: AxiosResponse<import('types/result').judgeApiResponse>;
+    try {
+      response = await tryOnce(false);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        response = await tryOnce(true);
+      } else {
+        throw err;
       }
-    );
-    return response.data;
+    }
+    return response.data.message;
   } catch (error) {
     console.error('fetchJudge error:', error);
     throw error;

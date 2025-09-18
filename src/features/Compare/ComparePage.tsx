@@ -176,9 +176,18 @@ const ComparePage: React.FC = () => {
     } else {
       navigate('/decision', {
         state: {
-          fileA: selectedFileA!,
-          fileB: selectedFileB!,
-          similarity: 0.95, // TODO: 실제 유사도로 교체
+          fileA: {
+            id: selectedFileA!.id,
+            label: selectedFileA!.label,
+            submittedAt: selectedFileA!.submittedAt,
+          },
+          fileB: {
+            id: selectedFileB!.id,
+            label: selectedFileB!.label,
+            submittedAt: selectedFileB!.submittedAt,
+          },
+          studentFromId: selectedFileA!.id,
+          studentToId: selectedFileB!.id,
         },
       });
     }
