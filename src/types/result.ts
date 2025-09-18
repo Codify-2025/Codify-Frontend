@@ -105,6 +105,28 @@ export interface topologyApiResponse {
 
 /// 유사도 코드 비교
 
+// --- [compare: Raw from server] ---
+export interface compareRawStudent {
+  id: string;
+  name: string;
+  fileName: string;
+  submissionTime: string;
+  code: string[];
+  lines: number[];
+}
+
+export interface compareRawResponse {
+  student1: compareRawStudent;
+  student2: compareRawStudent;
+}
+
+export interface compareApiResponse {
+  status: number;
+  success: boolean;
+  message: compareRawResponse;
+}
+
+// --- [compare: Mapped for UI] ---
 export interface compareCode {
   code: string[];
   lines: number[];
@@ -121,12 +143,6 @@ export interface compareStudent {
 export interface compareResponseData {
   student1: compareStudent;
   student2: compareStudent;
-}
-
-export interface compareApiResponse {
-  status: number;
-  success: boolean;
-  message: compareResponseData;
 }
 
 /// 표절 판단

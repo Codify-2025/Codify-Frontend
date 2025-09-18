@@ -1,14 +1,13 @@
 import {
-  compareApiResponse,
   judgeApiResponse,
   saveApiResponse,
   topologyApiResponse,
 } from 'types/result';
 import axiosInstance from './axiosInstance';
 import { topologyMock } from '@mocks/topologyMock';
-import { compareMock } from '@mocks/compareMock';
 import { judgeMock } from '@mocks/judgeMock';
 import { saveMock } from '@mocks/saveMock';
+import axios, { AxiosResponse } from 'axios';
 
 /// 유사도 분석 결과 그래프
 export interface fetchGraphRequest {
@@ -96,28 +95,75 @@ export const fetchTopology = async (
 
 /// 유사도 코드 비교
 export interface compareRequest {
-  student1: string;
-  student2: string;
+  assignmentId: number;
+  week: number;
+  studentFromId: string | number;
+  studentToId: string | number;
 }
 
-export const fetchCompare = async (
-  { student1, student2 }: compareRequest,
-  token: string
-): Promise<compareApiResponse> => {
+const toCompareStudent = (
+  s: import('types/result').compareRawStudent
+): import('types/result').compareStudent => ({
+  id: s.id,
+  name: s.name,
+  fileName: s.fileName,
+  submissionTime: s.submissionTime,
+  code: { code: s.code, lines: s.lines },
+});
+
+export const fetchCompare = async ({
+  assignmentId,
+  week,
+  studentFromId,
+  studentToId,
+}: compareRequest): Promise<import('types/result').compareResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return compareMock;
+    const mock = (await import('@mocks/compareMock'))
+      .compareMock as import('types/result').compareApiResponse;
+    const raw =
+      mock.message as unknown as import('types/result').compareRawResponse;
+    return {
+      student1: toCompareStudent(raw.student1),
+      student2: toCompareStudent(raw.student2),
+    };
   }
 
+  // 1차: (오타 버전) assignmets
+  const tryOnce = async (fixedPath = false) => {
+    const base = fixedPath
+      ? '/api/result/assignments'
+      : '/api/result/assignmets';
+    const url = `${base}/${assignmentId}/compare`;
+    const resp = await axiosInstance.get<
+      import('types/result').compareApiResponse
+    >(url, {
+      params: { studentFromId, studentToId, week },
+    });
+    return resp;
+  };
+
   try {
-    const response = await axiosInstance.get<compareApiResponse>(
-      `/api/result/compare`,
-      {
-        params: { student1, student2 },
-        headers: { Authorization: `Bearer ${token}` },
+    let response: AxiosResponse<import('types/result').compareApiResponse>;
+
+    try {
+      response = await tryOnce(false);
+    } catch (err: unknown) {
+      // 404면 정식 스펠링으로 재시도
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        response = await tryOnce(true);
+      } else {
+        throw err; // unknown 그대로 전달
       }
-    );
-    return response.data;
+    }
+
+    const raw = response.data
+      .message as import('types/result').compareRawResponse;
+
+    return {
+      student1: toCompareStudent(raw.student1),
+      student2: toCompareStudent(raw.student2),
+    };
   } catch (error) {
     console.error('fetchCompare error:', error);
     throw error;
@@ -126,7 +172,7 @@ export const fetchCompare = async (
 
 /// 표절 판단
 export const fetchJudge = async (
-  { student1, student2 }: compareRequest,
+  { studentFromId, studentToId }: compareRequest,
   token: string
 ): Promise<judgeApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
@@ -138,7 +184,7 @@ export const fetchJudge = async (
     const response = await axiosInstance.get<judgeApiResponse>(
       `/api/result/judge`,
       {
-        params: { student1, student2 },
+        params: { studentFromId, studentToId },
         headers: { Authorization: `Bearer ${token}` },
       }
     );
