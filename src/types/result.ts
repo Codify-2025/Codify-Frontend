@@ -29,12 +29,6 @@ export interface graphRawMessage {
   filterPairs: graphRawFilterPairs;
 }
 
-export interface graphApiResponse {
-  status: number;
-  success: boolean;
-  message: graphRawMessage;
-}
-
 export interface graphNode {
   id: string;
   label: string;

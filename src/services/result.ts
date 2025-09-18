@@ -22,12 +22,12 @@ export const fetchGraph = async ({
 
   try {
     const response = await axiosInstance.get<
-      import('types/result').graphApiResponse
+      import('types/result').graphRawMessage
     >(`/api/result/graph`, {
       params: { assignmentId, week },
     });
 
-    const raw = response.data.message;
+    const raw = response.data;
 
     // nodes 매핑 (id -> string)
     const nodes = raw.nodes.map((n) => ({

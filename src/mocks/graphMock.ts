@@ -1,35 +1,32 @@
-import { graphApiResponse } from 'types/result';
+import { graphRawMessage } from 'types/result';
 
-export const graphMock: graphApiResponse = {
-  status: 200,
-  success: true,
-  message: {
-    nodes: [
-      { id: '21000000', label: 'Student A' },
-      { id: '21000001', label: 'Student B' },
-      { id: '21000002', label: 'Student C' },
+export const graphMock: graphRawMessage = {
+  nodes: [
+    {
+      id: 9007199254740991,
+      label: 'string',
+    },
+  ],
+  filterSummary: {
+    total: 1073741824,
+    aboveThreshold: 1073741824,
+    belowThreshold: 1073741824,
+    threshold: 0.1,
+  },
+  filterPairs: {
+    aboveThreshold: [
+      {
+        fromId: 9007199254740991,
+        toId: 9007199254740991,
+        similarity: 0.1,
+      },
     ],
-    filterSummary: {
-      total: 3,
-      aboveThreshold: 2,
-      belowThreshold: 1,
-      threshold: 0.7,
-    },
-    filteredPairs: {
-      aboveThreshold: [
-        {
-          from: '21000000',
-          to: '21000001',
-          similarity: 0.88,
-        },
-      ],
-      belowThreshold: [
-        {
-          from: '21000001',
-          to: '21000002',
-          similarity: 0.6,
-        },
-      ],
-    },
+    belowThreshold: [
+      {
+        fromId: 9007199254740991,
+        toId: 9007199254740991,
+        similarity: 0.1,
+      },
+    ],
   },
 };
