@@ -1,8 +1,9 @@
 import { useQuery } from 'react-query';
 import { fetchSubject } from '@services/submit';
+import { SubjectItem } from '@typings/submit';
 
 export const useSubjects = () =>
-  useQuery<string[], Error>(['subjects'], fetchSubject, {
+  useQuery<SubjectItem[], Error>(['subjects'], fetchSubject, {
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

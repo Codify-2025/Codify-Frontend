@@ -33,7 +33,13 @@ const SavedRecordDetailPage: React.FC = () => {
 
   // 과목명 표시
   const { selectedSubject } = useSubjectStore();
-  const subjectName = selectedSubject?.name ?? '';
+  const parsedSubjectId = subjectId ? Number(subjectId) : undefined;
+  const subjectName =
+    parsedSubjectId !== undefined &&
+    !Number.isNaN(parsedSubjectId) &&
+    selectedSubject?.subjectId === parsedSubjectId
+      ? (selectedSubject.subjectName ?? '')
+      : '';
 
   // 과목 id가 유효할 때만 조회
   const { data, isLoading, isError } = useRecord(

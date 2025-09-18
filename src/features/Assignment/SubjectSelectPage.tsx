@@ -12,7 +12,7 @@ import classNames from 'classnames';
 
 const SubjectSelectPage: React.FC = () => {
   const [newSubjectName, setNewSubjectName] = useState('');
-  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { setSelectedSubject } = useSubjectStore();
   const navigate = useNavigate();
@@ -21,32 +21,34 @@ const SubjectSelectPage: React.FC = () => {
   const { data: subjects = [], isLoading } = useSubjects();
   const { mutate: addSubject, isLoading: isAdding } = useAddSubject();
 
-  const filteredSubjects = useMemo<string[]>(() => {
+  const filteredSubjects = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return subjects;
-    return subjects.filter((name: string) => name.toLowerCase().includes(q));
+    return subjects.filter((s) => s.subjectName.toLowerCase().includes(q));
   }, [subjects, searchTerm]);
 
   const handleSelect = useCallback(
-    (name: string) => {
-      if (selectedName === name) {
-        setSelectedName(null);
+    (item: { subjectId: number; subjectName: string }) => {
+      if (selectedId === item.subjectId) {
+        setSelectedId(null);
         setNewSubjectName('');
         setSelectedSubject(null);
       } else {
-        setSelectedName(name);
-        setNewSubjectName(name);
-        setSelectedSubject({ name });
+        setSelectedId(item.subjectId);
+        setNewSubjectName(item.subjectName); // 입력란에도 채워주기(선택 가시성)
+        setSelectedSubject({
+          subjectId: item.subjectId,
+          subjectName: item.subjectName,
+        });
       }
     },
-    [selectedName, setSelectedSubject]
+    [selectedId, setSelectedSubject]
   );
 
   const handleNext = useCallback(() => {
     // 기존 과목 선택 → 바로 이동
-    if (selectedName) {
-      // navigate('/assignment/name');
-      navigate('/upload'); // 개발 단계 임시
+    if (selectedId !== null) {
+      navigate('/assignment/name');
       return;
     }
     const trimmedName = newSubjectName.trim();
@@ -56,11 +58,20 @@ const SubjectSelectPage: React.FC = () => {
     addSubject(
       { subjectName: trimmedName },
       {
-        onSuccess: ({ subjectId }) => {
-          setSelectedSubject({ id: String(subjectId), name: trimmedName });
+        onSuccess: ({ subjectId, subjectName }) => {
+          // 서버가 subjectName을 주면 그 값을, 아니면 사용자가 입력한 값을 사용
+          const finalName = subjectName ?? trimmedName;
+          setSelectedSubject({
+            subjectId: subjectId,
+            subjectName: finalName,
+          });
+          // 선택 상태도 동기화(선택 가시성 ↑)
+          setSelectedId(subjectId);
+          setNewSubjectName(finalName);
+          // 목록 갱신
           queryClient.invalidateQueries(['subjects']);
-          // navigate('/assignment/name');
-          navigate('/upload'); // 개발 단계 임시
+          // 다음 단계로
+          navigate('/assignment/name');
         },
         onError: () => alert('과목 추가에 실패했습니다.'),
       }
@@ -70,7 +81,7 @@ const SubjectSelectPage: React.FC = () => {
     navigate,
     newSubjectName,
     queryClient,
-    selectedName,
+    selectedId,
     setSelectedSubject,
   ]);
 
@@ -80,7 +91,7 @@ const SubjectSelectPage: React.FC = () => {
     if (e.key === 'Enter' && newSubjectName.trim() && !isAdding) handleNext();
   };
 
-  const canProceed = Boolean(selectedName) || newSubjectName.trim().length > 0;
+  const canProceed = selectedId !== null || newSubjectName.trim().length > 0;
   const showEmptyState = !isLoading && filteredSubjects.length === 0;
 
   return (
@@ -151,12 +162,12 @@ const SubjectSelectPage: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {filteredSubjects.map((name: string) => {
-                  const selected = selectedName === name;
+                {filteredSubjects.map((item) => {
+                  const selected = selectedId === item.subjectId;
                   return (
                     <button
-                      key={name}
-                      onClick={() => handleSelect(name)}
+                      key={item.subjectId}
+                      onClick={() => handleSelect(item)}
                       className={classNames(
                         'h-10 rounded-full border px-4 text-sm transition',
                         selected
@@ -165,7 +176,7 @@ const SubjectSelectPage: React.FC = () => {
                       )}
                       aria-pressed={selected}
                     >
-                      {name}
+                      {item.subjectName}
                     </button>
                   );
                 })}
@@ -187,7 +198,7 @@ const SubjectSelectPage: React.FC = () => {
               value={newSubjectName}
               onChange={(e) => {
                 setNewSubjectName(e.target.value);
-                setSelectedName(null);
+                setSelectedId(null);
               }}
               onKeyDown={onEnterNewSubject}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-lg placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"

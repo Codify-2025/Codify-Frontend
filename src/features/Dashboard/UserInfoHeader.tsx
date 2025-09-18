@@ -13,10 +13,10 @@ const UserInfoHeader: React.FC = () => {
   const handleToggle = () => setSubjectOpen((prev) => !prev);
 
   // 선택 비교 함수
-  const isSelected = (id: string, name: string) => {
+  const isSelected = (id: number, name: string) => {
     const s = selectedSubject;
     if (!s) return false;
-    return s.id ? s.id === id : s.name === name;
+    return s.subjectId ? s.subjectId === id : s.subjectName === name;
   };
 
   // 로딩/에러
@@ -71,10 +71,7 @@ const UserInfoHeader: React.FC = () => {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2">
               {subjects.map((subj) => {
-                const selected = isSelected(
-                  subj.subjectId.toString(),
-                  subj.subjectName
-                );
+                const selected = isSelected(subj.subjectId, subj.subjectName);
                 return (
                   <button
                     key={subj.subjectId}
@@ -84,8 +81,8 @@ const UserInfoHeader: React.FC = () => {
                         selected
                           ? null
                           : {
-                              id: subj.subjectId.toString(),
-                              name: subj.subjectName,
+                              subjectId: subj.subjectId,
+                              subjectName: subj.subjectName,
                             }
                       );
                       // 과목 선택 후 패널 닫기

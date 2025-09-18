@@ -9,7 +9,7 @@ const AccumulatedSimilarityGraph: React.FC = () => {
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
   const { selectedSubject } = useSubjectStore();
 
-  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
+  const subjectId = selectedSubject?.subjectId;
   const { data, isLoading, isError } = useAccumulatedTopology(subjectId);
 
   const { nodes, edges } = useMemo(() => {

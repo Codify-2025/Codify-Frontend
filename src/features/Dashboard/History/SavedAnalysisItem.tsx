@@ -12,7 +12,9 @@ interface Props {
 const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   const navigate = useNavigate();
   const { selectedSubject } = useSubjectStore();
-  const subjectId = selectedSubject ? String(selectedSubject.id) : undefined;
+  const subjectId = selectedSubject
+    ? String(selectedSubject?.subjectId)
+    : undefined;
 
   if (record.type === 'group') {
     return (

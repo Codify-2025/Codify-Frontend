@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
 interface SubjectRef {
-  id?: string;
-  name: string;
+  subjectId: number;
+  subjectName: string;
   // code: string;
 }
 

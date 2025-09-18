@@ -9,8 +9,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 import { useSubjectStore } from '@stores/useSubjectStore';
-import { useAccessToken } from '@hooks/useAccessToken';
-import { useAddWeek } from '@hooks/useAddWeek';
+import { useCreateAssignmentWithWeek } from '@hooks/useCreateAssignmentWithWeek';
 
 // ---------- 유틸: 주차 계산 ----------
 const getWeekNumber = (date: Date) => {
@@ -45,14 +44,13 @@ const fmt = (d: Date) => {
 const AssignmentWeekPage: React.FC = () => {
   const {
     name: assignmentName,
-    assignmentId,
     setDates,
     setWeek,
+    setAssignmentId,
   } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
-  const token = useAccessToken();
   const navigate = useNavigate();
-  const { mutate: addWeek, isLoading } = useAddWeek(token);
+  const { mutate: createAssignment, isLoading } = useCreateAssignmentWithWeek();
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -61,11 +59,17 @@ const AssignmentWeekPage: React.FC = () => {
 
   // 과제 누락 접근 가드
   useEffect(() => {
-    if (!assignmentId) {
-      alert('과제를 먼저 생성해주세요.');
+    // 과목 객체와 과제명 존재만 확인
+    if (!selectedSubject) {
+      alert('과목을 먼저 선택해주세요.');
+      navigate('/assignment/subject');
+      return;
+    }
+    if (!assignmentName || !assignmentName.trim()) {
+      alert('과제명을 먼저 입력해주세요.');
       navigate('/assignment/name');
     }
-  }, [assignmentId, navigate]);
+  }, [assignmentName, selectedSubject, navigate]);
 
   // 시작일 변경 시 기본적으로 7일 뒤로 마감일 보정
   useEffect(() => {
@@ -84,41 +88,56 @@ const AssignmentWeekPage: React.FC = () => {
   );
 
   const handleNext = useCallback(() => {
-    if (!startDate || !endDate) return;
-    const weekNumber = manualWeek ? Number(selectedWeek) : calculatedWeek;
+    if (!startDate || !endDate || !selectedSubject || !assignmentName) return;
 
+    const weekNumber = manualWeek ? Number(selectedWeek) : calculatedWeek;
     if (manualWeek && (!selectedWeek || isNaN(weekNumber) || weekNumber < 1)) {
       alert('주차를 1 이상의 숫자로 입력해주세요.');
       return;
     }
 
-    addWeek(
+    const subjectIdNum = selectedSubject?.subjectId;
+    if (!Number.isInteger(subjectIdNum) || subjectIdNum <= 0) {
+      alert('과목 ID가 올바르지 않습니다.');
+      return;
+    }
+
+    createAssignment(
       {
-        assignmentId: String(assignmentId),
+        subjectId: subjectIdNum,
+        assignmentName,
         startDate: fmt(startDate),
         endDate: fmt(endDate),
-        weekTitle: weekNumber,
+        week: weekNumber,
       },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
+          // 서버가 반환한 assignmentId 저장
+          setAssignmentId(res.assignmentId);
+          // 로컬 상태 업데이트
           setDates(startDate, endDate);
           setWeek(weekNumber);
+          // 업로드 페이지로
           navigate('/upload');
         },
-        onError: () => alert('주차 생성에 실패했습니다.'),
+        onError: () => {
+          alert('과제/주차 생성에 실패했습니다.');
+        },
       }
     );
   }, [
-    addWeek,
-    assignmentId,
     startDate,
     endDate,
+    assignmentName,
     manualWeek,
     selectedWeek,
     calculatedWeek,
-    navigate,
+    selectedSubject?.subjectId,
+    createAssignment,
+    setAssignmentId,
     setDates,
     setWeek,
+    navigate,
   ]);
 
   const nextDisabled = !startDate || !endDate || isLoading;
@@ -132,9 +151,9 @@ const AssignmentWeekPage: React.FC = () => {
             <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
               유사도 분석 진행
             </span>
-            {selectedSubject?.name && (
+            {selectedSubject?.subjectName && (
               <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
-                과목: {selectedSubject.name}
+                과목: {selectedSubject?.subjectName}
               </span>
             )}
             {assignmentName && (

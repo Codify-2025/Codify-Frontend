@@ -8,7 +8,7 @@ import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 
 const DashboardMain: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
-  const subjectId = selectedSubject ? Number(selectedSubject.id) : undefined;
+  const subjectId = selectedSubject?.subjectId;
 
   const { data, isLoading, isError } = useRecord(subjectId);
 
@@ -37,7 +37,7 @@ const DashboardMain: React.FC = () => {
       {/* 상단 과목 배지 */}
       <div className="mb-6 rounded-xl bg-blue-50 p-4 text-center ring-1 ring-blue-100">
         <Text variant="body" weight="bold">
-          <span className="text-primary">{selectedSubject.name}</span>
+          <span className="text-primary">{selectedSubject?.subjectName}</span>
         </Text>
       </div>
 

@@ -182,11 +182,11 @@ const ResultPage: React.FC = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-6 py-8">
-        {selectedSubject?.name && (
+        {selectedSubject?.subjectName && (
           <div className="mb-5 inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-blue-700">
             <span className="mr-2">📚</span>
             <Text variant="caption" weight="medium">
-              과목명: {selectedSubject.name}
+              과목명: {selectedSubject?.subjectName}
             </Text>
           </div>
         )}
