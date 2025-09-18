@@ -1,15 +1,12 @@
 import { fetchGraph, fetchGraphRequest } from '@services/result';
 import { useQuery } from 'react-query';
-import { graphApiResponse } from 'types/result';
+import type { graphMapped } from 'types/result';
 
-export const useSimilarityGraph = (
-  params: fetchGraphRequest,
-  token: string
-) => {
-  return useQuery<graphApiResponse>({
-    queryKey: ['similarityGraph', params.assignmentId, params.weekTitle],
-    queryFn: () => fetchGraph(params, token),
-    enabled: !!token && !!params.assignmentId && !!params.weekTitle,
+export const useSimilarityGraph = (params: fetchGraphRequest) => {
+  return useQuery<graphMapped>({
+    queryKey: ['similarityGraph', params.assignmentId, params.week],
+    queryFn: () => fetchGraph(params),
+    enabled: !!params.assignmentId && !!params.week,
     staleTime: 1000 * 60 * 5,
   });
 };

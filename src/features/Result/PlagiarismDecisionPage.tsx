@@ -5,12 +5,18 @@ import Text from '@components/Text';
 import Button from '@components/Button';
 import { useDecisionStore } from '@stores/useDecisionStore';
 import { FiArrowLeft, FiAlertTriangle } from 'react-icons/fi';
+import { useAssignmentStore } from '@stores/useAssignmentStore';
+import { useSelectedFileStore } from '@stores/useSelectedFileStore';
+import { usePlagiarismJudge } from '@hooks/usePlagiarismJudge';
+import { usePlagiarismSave } from '@hooks/usePlagiarismSave';
+import { saveStudentPayload } from '@typings/result';
 
 type DecisionLocationState = {
-  fileA: { id: string; label: string; submittedAt: string };
-  fileB: { id: string; label: string; submittedAt: string };
-  /** 0~1 또는 0~100 */
-  similarity: number;
+  studentFromId?: string | number;
+  studentToId?: string | number;
+  fileA?: { id: string; label: string; fileName?: string; submittedAt: string };
+  fileB?: { id: string; label: string; fileName?: string; submittedAt: string };
+  similarity?: number;
 };
 
 const toPercent = (v: number) => {
@@ -27,14 +33,36 @@ const PlagiarismDecisionPage: React.FC = () => {
   const location = useLocation();
   const { saveDecision } = useDecisionStore();
 
+  const { assignmentId, week } = useAssignmentStore();
+  const { selectedFileA, selectedFileB } = useSelectedFileStore();
+
+  const saveMutation = usePlagiarismSave();
+
   const state = location.state as DecisionLocationState | undefined;
 
-  if (!state?.fileA || !state?.fileB) {
+  // id 소스 결정
+  const studentFromId = state?.studentFromId ?? selectedFileA?.id;
+  const studentToId = state?.studentToId ?? selectedFileB?.id;
+
+  const ready = Boolean(assignmentId && week && studentFromId && studentToId);
+
+  const {
+    data: judge,
+    isLoading,
+    isError,
+  } = usePlagiarismJudge({
+    assignmentId: assignmentId ?? 0,
+    week: week ?? 0,
+    studentFromId: studentFromId ?? '',
+    studentToId: studentToId ?? '',
+  });
+
+  if (!ready) {
     return (
       <Layout>
         <div className="px-8 py-12">
           <Text variant="h3" weight="bold" className="mb-3 text-gray-900">
-            파일 정보가 존재하지 않습니다.
+            판단에 필요한 정보가 부족합니다.
           </Text>
           <Button
             text="결과 페이지로 이동"
@@ -46,17 +74,120 @@ const PlagiarismDecisionPage: React.FC = () => {
     );
   }
 
-  const { fileA, fileB } = state;
-  const similarityPct = toPercent(state.similarity);
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="px-8 py-12">
+          <Text variant="body" color="muted">
+            표절 판단 데이터를 불러오는 중...
+          </Text>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isError || !judge) {
+    return (
+      <Layout>
+        <div className="px-8 py-12">
+          <Text variant="body" color="muted">
+            표절 판단 데이터를 불러오지 못했습니다.
+          </Text>
+          <Button
+            text="뒤로가기"
+            variant="secondary"
+            onClick={() => navigate(-1)}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
+  // 파일 표시용
+  const fileA = state?.fileA ?? {
+    id: String(judge.student1.id),
+    label: judge.student1.name,
+    submittedAt: judge.student1.submittedTime,
+  };
+  const fileB = state?.fileB ?? {
+    id: String(judge.student2.id),
+    label: judge.student2.name,
+    submittedAt: judge.student2.submittedTime,
+  };
+
+  // 유사도
+  const similarityPct = toPercent(
+    Number.isFinite(state?.similarity as number)
+      ? (state!.similarity as number)
+      : judge.similarity
+  );
+
+  // judge, fileA, fileB 계산 이후에 아래 헬퍼로 payload 구성
+  const toStudent = (
+    who: 'student1' | 'student2',
+    fallback: {
+      id: string;
+      label: string;
+      submittedAt: string;
+      fileName?: string;
+    }
+  ): saveStudentPayload => {
+    const j = judge[who];
+    const parsedFromLabel = fallback.label.match(/\((.*?)\)\s*$/)?.[1] ?? '';
+    return {
+      id: j.id ?? fallback.id,
+      name: j.name ?? fallback.label,
+      fileName: fallback.fileName ?? parsedFromLabel,
+      submittedTime: j.submittedTime ?? fallback.submittedAt,
+    };
+  };
 
   const handleDecision = (isPlagiarism: boolean) => {
-    saveDecision({ fileAId: fileA.id, fileBId: fileB.id, isPlagiarism });
-    navigate('/result/save');
+    const s1 = toStudent('student1', fileA);
+    const s2 = toStudent('student2', fileB);
+    if (!s1.fileName || !s2.fileName) {
+      alert(
+        '파일명을 확인할 수 없어 저장할 수 없습니다. 비교 페이지에서 다시 시도하거나 파일명이 포함된 라벨로 이동해주세요.'
+      );
+      return;
+    }
+    const payload = {
+      assignmentId: assignmentId!, // ready 체크 이미 통과했음
+      week: week!,
+      plagiarize: isPlagiarism,
+      student1: s1,
+      student2: s2,
+    };
+
+    saveMutation.mutate(payload, {
+      onSuccess: () => {
+        // 로컬 스토어는 유지하되, 성공 후 페이지 이동
+        saveDecision({
+          fileAId: String(payload.student1.id),
+          fileBId: String(payload.student2.id),
+          isPlagiarism: isPlagiarism,
+        });
+        navigate('/result/save');
+      },
+      onError: () => {
+        alert('저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
+      },
+    });
   };
 
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-6 py-10">
+        {/* 결과 저장 상태 배지 */}
+        {saveMutation.isLoading && (
+          <div className="mb-3 text-sm text-blue-600">결과를 저장하는 중…</div>
+        )}
+        {saveMutation.isError && (
+          <div className="mb-3 text-sm text-red-600">
+            저장 실패. 다시 시도해주세요.
+          </div>
+        )}
+
         {/* 상단 헤더 */}
         <div className="mb-6 flex items-center justify-between">
           <Text variant="h2" weight="bold" className="text-gray-900">
@@ -156,14 +287,15 @@ const PlagiarismDecisionPage: React.FC = () => {
             variant="secondary"
             size="lg"
             onClick={() => handleDecision(false)}
+            disabled={saveMutation.isLoading}
           />
           <Button
             text="표절로 저장"
             variant="secondary"
             size="lg"
-            // Button에 danger 변형이 없으므로 className으로 강조
-            className="border-red-200 text-red-700 hover:bg-red-50"
+            className="border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
             onClick={() => handleDecision(true)}
+            disabled={saveMutation.isLoading}
           />
         </div>
       </div>

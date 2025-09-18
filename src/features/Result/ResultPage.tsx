@@ -14,11 +14,10 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { FiChevronRight } from 'react-icons/fi';
 import type { FileNode, FileEdge } from 'types/similarity';
 import type { FileData as StoreFileData } from '@stores/useSelectedFileStore';
+import { useSimilarityGraph } from '@hooks/useSimilarityGraph';
+import { useSimilarityTopology } from '@hooks/useSimilarityTopology';
 
 const THRESHOLD = 80;
-
-const PIE = { BELOW: '기준 이하', ABOVE: '기준 초과' } as const;
-type PieSegment = (typeof PIE)[keyof typeof PIE];
 
 /** dummyFiles 형태(느슨) */
 type DummyLike = {
@@ -75,7 +74,7 @@ const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { name, week } = useAssignmentStore();
+  const { name, week, assignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
   const { isLoggedIn } = useAuthStore();
 
@@ -126,13 +125,93 @@ const ResultPage: React.FC = () => {
     []
   );
 
+  // 1차 필터링 결과 그래프 데이터 로드
+  const {
+    data: graphData,
+    isLoading: isGraphLoading,
+    isError: isGraphError,
+  } = useSimilarityGraph({
+    assignmentId: assignmentId ?? 0, // enabled 조건이 걸려 있으니 0은 호출 안 됨
+    week: week ?? 0,
+  });
+
+  // --- PieChart props: 서버 summary 사용 ---
+  const passedCount = graphData?.summary.aboveThreshold ?? 0;
+  const failedCount = graphData?.summary.belowThreshold ?? 0;
+
+  // 파이 hover → 관련 파일 목록 구성 (서버 페어 데이터 사용)
+  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
+    if (!segment || !graphData) {
+      setHoveredFiles([]);
+      return;
+    }
+
+    const isAbove = segment === '기준 초과';
+    const bucket = isAbove
+      ? graphData.pairs.aboveThreshold
+      : graphData.pairs.belowThreshold;
+
+    const relatedIds = new Set<string>();
+    for (const e of bucket) {
+      relatedIds.add(e.from);
+      relatedIds.add(e.to);
+    }
+
+    const related = Array.from(relatedIds)
+      .map((id) => nodeById.get(id))
+      .filter((n): n is { id: string; label: string } => Boolean(n))
+      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
+
+    setHoveredFiles(related);
+  };
+
+  // 토폴로지 불러오기
+  const {
+    data: topoData,
+    isLoading: isTopoLoading,
+    isError: isTopoError,
+  } = useSimilarityTopology({
+    assignmentId: assignmentId ?? 0,
+    week: week ?? 0,
+  });
+
+  // --- API → UI 매핑: value(0~1) → similarity(%) ---
+  const apiNodes: FileNode[] = useMemo(() => {
+    if (!topoData?.message?.nodes) return [];
+    return topoData.message.nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label,
+      submittedAt: n.submittedAt ?? '-', // API ISO → 그대로 표시
+    }));
+  }, [topoData]);
+
+  const apiEdges: FileEdge[] = useMemo(() => {
+    if (!topoData?.message?.edges) return [];
+    return topoData.message.edges.map((e) => ({
+      from: String(e.from),
+      to: String(e.to),
+      similarity: Math.round((e.value ?? 0) * 100), // 0~1 → %
+    }));
+  }, [topoData]);
+
+  // 그래프에 실제로 넘길 데이터 (API 성공 시 교체)
+  const graphNodes = apiNodes.length > 0 ? apiNodes : nodes; // nodes: 기존 데모
+  const graphEdges = apiEdges.length > 0 ? apiEdges : edges; // edges: 기존 데모
+
   // KPI
   const kpi = useMemo(() => {
-    const totalFiles = nodes.length;
-    const pairCount = edges.length;
-    const flaggedPairs = edges.filter((e) => e.similarity >= THRESHOLD).length;
+    const totalFiles = graphNodes.length;
+    const pairCount = graphEdges.length;
+    const flaggedPairs = graphEdges.filter(
+      (e) => e.similarity >= THRESHOLD
+    ).length;
     return { totalFiles, pairCount, flaggedPairs };
-  }, [nodes, edges]);
+  }, [graphNodes, graphEdges]);
+
+  const nodeById = useMemo(() => {
+    if (!graphNodes) return new Map<string, { id: string; label: string }>();
+    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
+  }, [graphNodes]);
 
   const handleSave = () => {
     if (!isLoggedIn) {
@@ -173,11 +252,6 @@ const ResultPage: React.FC = () => {
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
   }, [nodes, edges]);
-
-  // nodes로부터 빠른 조회 맵 (FileNode)
-  const nodeById = useMemo(() => {
-    return new Map(nodes.map((n) => [n.id, n]));
-  }, [nodes]);
 
   return (
     <Layout>
@@ -234,36 +308,21 @@ const ResultPage: React.FC = () => {
         {/* 요약(파이) + 관련 파일 */}
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <SimilarityPieChart
-              passedCount={
-                edges.filter((e) => e.similarity >= THRESHOLD).length
-              }
-              failedCount={edges.filter((e) => e.similarity < THRESHOLD).length}
-              onHover={(segment) => {
-                // 안전한 세그먼트 판별
-                const seg = String(segment) as PieSegment;
-                const isAbove = seg === PIE.ABOVE;
-
-                // 세그먼트에 해당하는 엣지들
-                const bucket = edges.filter((e) =>
-                  isAbove ? e.similarity >= THRESHOLD : e.similarity < THRESHOLD
-                );
-
-                // 엣지에 등장하는 모든 파일 id 수집
-                const relatedIds = new Set<string>();
-                for (const e of bucket) {
-                  relatedIds.add(e.from);
-                  relatedIds.add(e.to);
-                }
-
-                // id → 노드 매핑
-                const related = Array.from(relatedIds)
-                  .map((id) => nodeById.get(id))
-                  .filter((n): n is FileNode => Boolean(n));
-
-                setHoveredFiles(related);
-              }}
-            />
+            {isGraphLoading ? (
+              <Text variant="caption" color="muted">
+                1차 필터링 요약 불러오는 중...
+              </Text>
+            ) : isGraphError ? (
+              <Text variant="caption" color="muted">
+                요약 불러오기에 실패했어요. 잠시 후 다시 시도해 주세요.
+              </Text>
+            ) : (
+              <SimilarityPieChart
+                passedCount={passedCount}
+                failedCount={failedCount}
+                onHover={handlePieHover}
+              />
+            )}
           </div>
 
           <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 text-blue-800 shadow-sm">
@@ -320,18 +379,18 @@ const ResultPage: React.FC = () => {
             </div>
 
             <SimilarityGraph
-              nodes={nodes}
-              edges={edges}
+              nodes={graphNodes}
+              edges={graphEdges}
               interactionOptions={{
                 zoomView: false,
                 dragView: false,
                 dragNodes: false,
               }}
               onNodeHover={(node) => {
-                const connectedFiles = edges
+                const connectedFiles = graphEdges
                   .filter((e) => e.from === node.id || e.to === node.id)
                   .map((e) =>
-                    nodes.find(
+                    graphNodes.find(
                       (n) => n.id === (e.from === node.id ? e.to : e.from)
                     )
                   )
@@ -347,8 +406,8 @@ const ResultPage: React.FC = () => {
                 );
               }}
               onEdgeHover={(edge) => {
-                const from = nodes.find((n) => n.id === edge.from);
-                const to = nodes.find((n) => n.id === edge.to);
+                const from = graphNodes.find((n) => n.id === edge.from);
+                const to = graphNodes.find((n) => n.id === edge.to);
                 if (from && to) {
                   setHoverInfo(
                     `🔗 유사도: ${edge.similarity}%\n📁 ${from.label} - ${to.label}\n🕒 ${from.submittedAt} / ${to.submittedAt}`
@@ -356,7 +415,6 @@ const ResultPage: React.FC = () => {
                 }
               }}
               onEdgeClick={(edge) => {
-                // ✅ 그래프 이벤트 → 스토어 타입으로 변환해 전달
                 const fileA = fileMap.get(edge.from);
                 const fileB = fileMap.get(edge.to);
                 if (fileA && fileB) {
@@ -365,6 +423,20 @@ const ResultPage: React.FC = () => {
                 }
               }}
             />
+
+            {/* 그래프 카드 상단에 API 상태 표시 */}
+            <div className="mb-2 text-xs">
+              {isTopoLoading && (
+                <span className="text-blue-600">
+                  네트워크 토폴로지 불러오는 중…
+                </span>
+              )}
+              {isTopoError && (
+                <span className="text-red-600">
+                  토폴로지 로딩 실패. 데모 데이터를 표시합니다.
+                </span>
+              )}
+            </div>
 
             <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-blue-800">
               {hoverInfo ? (
