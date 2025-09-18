@@ -35,20 +35,21 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
         1차 필터링 결과
       </Text>
       <Text variant="caption" color="muted" className="mb-4">
-        설정된 임계값을 기준으로 사전 필터링된 비율입니다.
+        설정된 임계값(0.8)을 기준으로 사전 필터링된 비율입니다.
       </Text>
 
-      <div className="mx-auto w-full max-w-xs">
-        <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
+      <div className="mx-auto w-full">
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart margin={{ top: 12, right: 12, bottom: 12, left: 12 }}>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              outerRadius={110}
+              outerRadius={100} // 110 → 100로 살짝 축소
               dataKey="value"
               onMouseEnter={handleEnter}
               onMouseLeave={() => onHover?.(null)}
+              labelLine={false} // 라벨 라인 제거로 겹침/잘림 감소
               label={(props: { name: PieDatum['name']; percent: number }) =>
                 total
                   ? `${props.name} ${(props.percent * 100).toFixed(0)}%`
