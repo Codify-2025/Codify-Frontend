@@ -29,9 +29,9 @@ const UploadPage: React.FC = () => {
               유사도 분석 진행
             </span>
 
-            {selectedSubject?.name && (
+            {selectedSubject?.subjectName && (
               <span className="inline-flex items-center rounded-full bg-blue-600/10 px-3 py-1 text-sm text-blue-700 ring-1 ring-blue-200">
-                과목: {selectedSubject.name}
+                과목: {selectedSubject?.subjectName}
               </span>
             )}
 
