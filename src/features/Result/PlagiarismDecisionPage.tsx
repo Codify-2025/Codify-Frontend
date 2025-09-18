@@ -8,6 +8,8 @@ import { FiArrowLeft, FiAlertTriangle } from 'react-icons/fi';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { usePlagiarismJudge } from '@hooks/usePlagiarismJudge';
+import { usePlagiarismSave } from '@hooks/usePlagiarismSave';
+import { saveStudentPayload } from '@typings/result';
 
 type DecisionLocationState = {
   studentFromId?: string | number;
@@ -33,6 +35,8 @@ const PlagiarismDecisionPage: React.FC = () => {
 
   const { assignmentId, week } = useAssignmentStore();
   const { selectedFileA, selectedFileB } = useSelectedFileStore();
+
+  const saveMutation = usePlagiarismSave();
 
   const state = location.state as DecisionLocationState | undefined;
 
@@ -118,14 +122,58 @@ const PlagiarismDecisionPage: React.FC = () => {
       : judge.similarity
   );
 
+  // judge, fileA, fileB 계산 이후에 아래 헬퍼로 payload 구성
+  const toStudent = (
+    who: 'student1' | 'student2',
+    fallback: { id: string; label: string; submittedAt: string }
+  ): saveStudentPayload => {
+    const j = judge[who]; // judge.student1 | judge.student2
+    return {
+      id: j.id ?? fallback.id,
+      name: j.name ?? fallback.label,
+      fileName: fallback.label || j.name || '', // 라벨을 파일명으로 사용
+      submittedTime: j.submittedTime ?? fallback.submittedAt,
+    };
+  };
+
   const handleDecision = (isPlagiarism: boolean) => {
-    saveDecision({ fileAId: fileA.id, fileBId: fileB.id, isPlagiarism });
-    navigate('/result/save');
+    const payload = {
+      assignmentId: assignmentId!, // ready 체크 이미 통과했음
+      week: week!,
+      plagiarize: isPlagiarism,
+      student1: toStudent('student1', fileA),
+      student2: toStudent('student2', fileB),
+    };
+
+    saveMutation.mutate(payload, {
+      onSuccess: () => {
+        // 로컬 스토어는 유지하되, 성공 후 페이지 이동
+        saveDecision({
+          fileAId: String(payload.student1.id),
+          fileBId: String(payload.student2.id),
+          isPlagiarism: isPlagiarism,
+        });
+        navigate('/result/save');
+      },
+      onError: () => {
+        alert('저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
+      },
+    });
   };
 
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-6 py-10">
+        {/* 결과 저장 상태 배지 */}
+        {saveMutation.isLoading && (
+          <div className="mb-3 text-sm text-blue-600">결과를 저장하는 중…</div>
+        )}
+        {saveMutation.isError && (
+          <div className="mb-3 text-sm text-red-600">
+            저장 실패. 다시 시도해주세요.
+          </div>
+        )}
+
         {/* 상단 헤더 */}
         <div className="mb-6 flex items-center justify-between">
           <Text variant="h2" weight="bold" className="text-gray-900">
@@ -225,14 +273,15 @@ const PlagiarismDecisionPage: React.FC = () => {
             variant="secondary"
             size="lg"
             onClick={() => handleDecision(false)}
+            disabled={saveMutation.isLoading}
           />
           <Button
             text="표절로 저장"
             variant="secondary"
             size="lg"
-            // Button에 danger 변형이 없으므로 className으로 강조
-            className="border-red-200 text-red-700 hover:bg-red-50"
+            className="border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
             onClick={() => handleDecision(true)}
+            disabled={saveMutation.isLoading}
           />
         </div>
       </div>

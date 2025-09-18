@@ -167,7 +167,21 @@ export interface judgeApiResponse {
 
 /// 결과 저장
 
-export interface saveApiResponse {
-  status: number;
-  success: boolean;
+export type saveApiResponse = string;
+
+// 요청에 넣을 학생 타입
+export interface saveStudentPayload {
+  id: number | string;
+  name: string;
+  fileName: string;
+  submittedTime: string;
+}
+
+// 저장 요청 본문 + 쿼리 파라미터(week)와 path 파라미터(assignmentId)
+export interface saveRequestPayload {
+  assignmentId: number;
+  week: number;
+  plagiarize: boolean;
+  student1: saveStudentPayload;
+  student2: saveStudentPayload;
 }

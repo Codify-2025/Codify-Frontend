@@ -221,6 +221,53 @@ export const fetchJudge = async ({
   }
 };
 
+/// 표절 판단 결과 저장
+export const savePlagiarismResult = async ({
+  assignmentId,
+  week,
+  plagiarize,
+  student1,
+  student2,
+}: import('types/result').saveRequestPayload): Promise<
+  import('types/result').saveApiResponse
+> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    await new Promise((r) => setTimeout(r, 300));
+    return 'OK(MOCK)';
+  }
+
+  const tryOnce = (fixedPath = false) => {
+    const base = fixedPath
+      ? '/api/result/assignments'
+      : '/api/result/assignmets';
+    const url = `${base}/${assignmentId}/save`;
+    return axiosInstance.post<import('types/result').saveApiResponse>(
+      url,
+      { plagiarize, student1, student2 },
+      {
+        params: { week },
+      }
+    );
+  };
+
+  try {
+    let resp: AxiosResponse<import('types/result').saveApiResponse>;
+    try {
+      resp = await tryOnce(false);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        resp = await tryOnce(true);
+      } else {
+        throw err;
+      }
+    }
+    return resp.data;
+  } catch (e) {
+    console.error('savePlagiarismResult error:', e);
+    throw e;
+  }
+};
+
 /// 결과 저장
 export interface saveStudent {
   id: string;
