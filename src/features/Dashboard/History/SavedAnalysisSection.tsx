@@ -20,7 +20,7 @@ const SavedAnalysisSection: React.FC = () => {
   const [search, setSearch] = useState('');
   const { selectedSubject } = useSubjectStore();
 
-  const subjectIdNum = Number(selectedSubject?.id);
+  const subjectIdNum = Number(selectedSubject?.subjectId);
   const hasSubject = !!selectedSubject && Number.isFinite(subjectIdNum);
 
   const { data, isLoading, isError } = useRecord(
@@ -31,7 +31,7 @@ const SavedAnalysisSection: React.FC = () => {
   const records: SavedAnalysisRecord[] = useMemo(() => {
     if (!hasSubject) return [];
     // 유틸로 일관된 규칙으로 생성
-    const built = buildSavedRecords(data, selectedSubject?.name ?? '');
+    const built = buildSavedRecords(data, selectedSubject?.subjectName ?? '');
 
     // 섹션에서 필요하면 subjectId를 주입
     return built.map((r) => ({ ...r, subjectId: subjectIdNum }));

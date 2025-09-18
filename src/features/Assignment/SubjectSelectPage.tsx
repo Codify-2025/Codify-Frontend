@@ -37,8 +37,8 @@ const SubjectSelectPage: React.FC = () => {
         setSelectedId(item.subjectId);
         setNewSubjectName(item.subjectName); // 입력란에도 채워주기(선택 가시성)
         setSelectedSubject({
-          id: String(item.subjectId),
-          name: item.subjectName,
+          subjectId: item.subjectId,
+          subjectName: item.subjectName,
         });
       }
     },
@@ -62,8 +62,8 @@ const SubjectSelectPage: React.FC = () => {
           // 서버가 subjectName을 주면 그 값을, 아니면 사용자가 입력한 값을 사용
           const finalName = subjectName ?? trimmedName;
           setSelectedSubject({
-            id: String(subjectId),
-            name: finalName,
+            subjectId: subjectId,
+            subjectName: finalName,
           });
           // 선택 상태도 동기화(선택 가시성 ↑)
           setSelectedId(subjectId);
