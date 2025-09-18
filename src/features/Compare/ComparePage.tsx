@@ -174,16 +174,24 @@ const ComparePage: React.FC = () => {
     if (!isLoggedIn) {
       navigate('/login', { state: { from: 'result' } });
     } else {
+      const extractFileName = (label: string) =>
+        label.match(/\((.*?)\)\s*$/)?.[1] ?? '';
+      const fileNameA =
+        compareData?.student1.fileName ?? extractFileName(selectedFileA!.label);
+      const fileNameB =
+        compareData?.student2.fileName ?? extractFileName(selectedFileB!.label);
       navigate('/decision', {
         state: {
           fileA: {
             id: selectedFileA!.id,
             label: selectedFileA!.label,
+            fileName: fileNameA,
             submittedAt: selectedFileA!.submittedAt,
           },
           fileB: {
             id: selectedFileB!.id,
             label: selectedFileB!.label,
+            fileName: fileNameB,
             submittedAt: selectedFileB!.submittedAt,
           },
           studentFromId: selectedFileA!.id,
