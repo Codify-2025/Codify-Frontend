@@ -62,7 +62,7 @@ const AssignmentWeekPage: React.FC = () => {
     // 과목 객체와 과제명 존재만 확인
     if (!selectedSubject) {
       alert('과목을 먼저 선택해주세요.');
-      navigate('/subject/select'); // 실제 과목 선택 경로로 수정
+      navigate('/assignment/subject');
       return;
     }
     if (!assignmentName || !assignmentName.trim()) {
