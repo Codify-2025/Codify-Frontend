@@ -1,5 +1,6 @@
-import { addSubjectApiResponse } from 'types/submit';
+import { AddSubjectApiResponse } from 'types/submit';
 
-export const addSubjectMock: addSubjectApiResponse = {
+export const addSubjectMock: AddSubjectApiResponse = {
   subjectId: 1,
+  subjectName: '컴퓨터 네트워크',
 };

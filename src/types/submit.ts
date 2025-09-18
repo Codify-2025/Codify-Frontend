@@ -7,7 +7,7 @@ export interface SubjectItem {
 
 /// 새로운 과목 추가
 
-export interface addSubjectApiResponse {
+export interface AddSubjectApiResponse {
   subjectId: number;
   subjectName: string;
 }

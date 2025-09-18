@@ -1,5 +1,5 @@
 import {
-  addSubjectApiResponse,
+  AddSubjectApiResponse,
   analyzeApiResponse,
   CreateAssignmentWithWeekResponse,
   SubjectItem,
@@ -17,13 +17,13 @@ export interface addSubjectRequest {
 
 export const addSubject = async ({
   subjectName,
-}: addSubjectRequest): Promise<addSubjectApiResponse> => {
+}: addSubjectRequest): Promise<AddSubjectApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return addSubjectMock;
   }
 
-  const res = await axiosInstance.post<addSubjectApiResponse>(
+  const res = await axiosInstance.post<AddSubjectApiResponse>(
     '/api/submit/subjects',
     { subjectName }
   );
