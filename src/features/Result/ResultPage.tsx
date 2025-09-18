@@ -14,11 +14,9 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { FiChevronRight } from 'react-icons/fi';
 import type { FileNode, FileEdge } from 'types/similarity';
 import type { FileData as StoreFileData } from '@stores/useSelectedFileStore';
+import { useSimilarityGraph } from '@hooks/useSimilarityGraph';
 
 const THRESHOLD = 80;
-
-const PIE = { BELOW: '기준 이하', ABOVE: '기준 초과' } as const;
-type PieSegment = (typeof PIE)[keyof typeof PIE];
 
 /** dummyFiles 형태(느슨) */
 type DummyLike = {
@@ -75,7 +73,7 @@ const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { name, week } = useAssignmentStore();
+  const { name, week, assignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
   const { isLoggedIn } = useAuthStore();
 
@@ -126,6 +124,52 @@ const ResultPage: React.FC = () => {
     []
   );
 
+  // 1차 필터링 결과 그래프 데이터 로드
+  const {
+    data: graphData,
+    isLoading: isGraphLoading,
+    isError: isGraphError,
+  } = useSimilarityGraph({
+    assignmentId: assignmentId ?? 0, // enabled 조건이 걸려 있으니 0은 호출 안 됨
+    week: week ?? 0,
+  });
+
+  // nodes 맵핑 (id -> node)
+  const nodeById = useMemo(() => {
+    if (!graphData) return new Map<string, { id: string; label: string }>();
+    return new Map(graphData.nodes.map((n) => [n.id, n]));
+  }, [graphData]);
+
+  // --- PieChart props: 서버 summary 사용 ---
+  const passedCount = graphData?.summary.aboveThreshold ?? 0;
+  const failedCount = graphData?.summary.belowThreshold ?? 0;
+
+  // 파이 hover → 관련 파일 목록 구성 (서버 페어 데이터 사용)
+  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
+    if (!segment || !graphData) {
+      setHoveredFiles([]);
+      return;
+    }
+
+    const isAbove = segment === '기준 초과';
+    const bucket = isAbove
+      ? graphData.pairs.aboveThreshold
+      : graphData.pairs.belowThreshold;
+
+    const relatedIds = new Set<string>();
+    for (const e of bucket) {
+      relatedIds.add(e.from);
+      relatedIds.add(e.to);
+    }
+
+    const related = Array.from(relatedIds)
+      .map((id) => nodeById.get(id))
+      .filter((n): n is { id: string; label: string } => Boolean(n))
+      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
+
+    setHoveredFiles(related);
+  };
+
   // KPI
   const kpi = useMemo(() => {
     const totalFiles = nodes.length;
@@ -173,11 +217,6 @@ const ResultPage: React.FC = () => {
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
   }, [nodes, edges]);
-
-  // nodes로부터 빠른 조회 맵 (FileNode)
-  const nodeById = useMemo(() => {
-    return new Map(nodes.map((n) => [n.id, n]));
-  }, [nodes]);
 
   return (
     <Layout>
@@ -234,36 +273,21 @@ const ResultPage: React.FC = () => {
         {/* 요약(파이) + 관련 파일 */}
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <SimilarityPieChart
-              passedCount={
-                edges.filter((e) => e.similarity >= THRESHOLD).length
-              }
-              failedCount={edges.filter((e) => e.similarity < THRESHOLD).length}
-              onHover={(segment) => {
-                // 안전한 세그먼트 판별
-                const seg = String(segment) as PieSegment;
-                const isAbove = seg === PIE.ABOVE;
-
-                // 세그먼트에 해당하는 엣지들
-                const bucket = edges.filter((e) =>
-                  isAbove ? e.similarity >= THRESHOLD : e.similarity < THRESHOLD
-                );
-
-                // 엣지에 등장하는 모든 파일 id 수집
-                const relatedIds = new Set<string>();
-                for (const e of bucket) {
-                  relatedIds.add(e.from);
-                  relatedIds.add(e.to);
-                }
-
-                // id → 노드 매핑
-                const related = Array.from(relatedIds)
-                  .map((id) => nodeById.get(id))
-                  .filter((n): n is FileNode => Boolean(n));
-
-                setHoveredFiles(related);
-              }}
-            />
+            {isGraphLoading ? (
+              <Text variant="caption" color="muted">
+                1차 필터링 요약 불러오는 중...
+              </Text>
+            ) : isGraphError ? (
+              <Text variant="caption" color="muted">
+                요약 불러오기에 실패했어요. 잠시 후 다시 시도해 주세요.
+              </Text>
+            ) : (
+              <SimilarityPieChart
+                passedCount={passedCount}
+                failedCount={failedCount}
+                onHover={handlePieHover}
+              />
+            )}
           </div>
 
           <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 text-blue-800 shadow-sm">

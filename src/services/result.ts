@@ -1,12 +1,10 @@
 import {
   compareApiResponse,
-  graphApiResponse,
   judgeApiResponse,
   saveApiResponse,
   topologyApiResponse,
 } from 'types/result';
 import axiosInstance from './axiosInstance';
-import { graphMock } from '@mocks/graphMock';
 import { topologyMock } from '@mocks/topologyMock';
 import { compareMock } from '@mocks/compareMock';
 import { judgeMock } from '@mocks/judgeMock';
@@ -14,28 +12,57 @@ import { saveMock } from '@mocks/saveMock';
 
 /// 유사도 분석 결과 그래프
 export interface fetchGraphRequest {
-  assignmentId: string;
-  weekTitle: number;
+  assignmentId: number;
+  week: number;
 }
 
-export const fetchGraph = async (
-  { assignmentId, weekTitle }: fetchGraphRequest,
-  token: string
-): Promise<graphApiResponse> => {
+const toPct = (v: number) => Math.round(v * 100);
+
+export const fetchGraph = async ({
+  assignmentId,
+  week,
+}: fetchGraphRequest): Promise<import('types/result').graphMapped> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return graphMock;
   }
 
   try {
-    const response = await axiosInstance.get<graphApiResponse>(
-      `/api/result/graph`,
-      {
-        params: { assignmentId, weekTitle },
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    return response.data;
+    const response = await axiosInstance.get<
+      import('types/result').graphApiResponse
+    >(`/api/result/graph`, {
+      params: { assignmentId, week },
+    });
+
+    const raw = response.data.message;
+
+    // nodes 매핑 (id -> string)
+    const nodes = raw.nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label,
+    }));
+
+    // threshold 0~1 → %
+    const summary = {
+      total: raw.filterSummary.total,
+      aboveThreshold: raw.filterSummary.aboveThreshold,
+      belowThreshold: raw.filterSummary.belowThreshold,
+      threshold: toPct(raw.filterSummary.threshold),
+    };
+
+    // pairs 매핑 (fromId/toId → string, similarity → %)
+    const mapPairs = (arr: import('types/result').graphRawPairItem[]) =>
+      arr.map((p) => ({
+        from: String(p.fromId),
+        to: String(p.toId),
+        similarity: toPct(p.similarity),
+      }));
+
+    const pairs = {
+      aboveThreshold: mapPairs(raw.filterPairs.aboveThreshold),
+      belowThreshold: mapPairs(raw.filterPairs.belowThreshold),
+    };
+
+    return { nodes, summary, pairs };
   } catch (error) {
     console.error('fetchGraph error:', error);
     throw error;
@@ -44,7 +71,7 @@ export const fetchGraph = async (
 
 /// 유사도 네트워크 토폴로지
 export const fetchTopology = async (
-  { assignmentId, weekTitle }: fetchGraphRequest,
+  { assignmentId, week }: fetchGraphRequest,
   token: string
 ): Promise<topologyApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
@@ -56,7 +83,7 @@ export const fetchTopology = async (
     const response = await axiosInstance.get<topologyApiResponse>(
       `/api/result/topology`,
       {
-        params: { assignmentId, weekTitle },
+        params: { assignmentId, week },
         headers: { Authorization: `Bearer ${token}` },
       }
     );

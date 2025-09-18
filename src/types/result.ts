@@ -1,15 +1,43 @@
 /// 유사도 분석 결과 그래프
 
-export interface graphNode {
-  id: string;
+export interface graphRawNode {
+  id: number;
   label: string;
 }
 
-export interface graphFilterSummary {
-  total: number; // 검사된 총 파일 갯수
-  aboveThreshold: number; // 유사도 임계선을 넘은 파일 갯수
-  belowThreshold: number; // 유사도 임계선에 못 미치는 파일 갯수
-  threshold: number; // 유사도 임계값
+export interface graphRawFilterSummary {
+  total: number;
+  aboveThreshold: number;
+  belowThreshold: number;
+  threshold: number;
+}
+
+export interface graphRawPairItem {
+  fromId: number;
+  toId: number;
+  similarity: number;
+}
+
+export interface graphRawFilterPairs {
+  aboveThreshold: graphRawPairItem[];
+  belowThreshold: graphRawPairItem[];
+}
+
+export interface graphRawMessage {
+  nodes: graphRawNode[];
+  filterSummary: graphRawFilterSummary;
+  filterPairs: graphRawFilterPairs;
+}
+
+export interface graphApiResponse {
+  status: number;
+  success: boolean;
+  message: graphRawMessage;
+}
+
+export interface graphNode {
+  id: string;
+  label: string;
 }
 
 export interface graphPairThreshold {
@@ -18,21 +46,20 @@ export interface graphPairThreshold {
   similarity: number;
 }
 
-export interface graphFilteredPair {
-  aboveThreshold: graphPairThreshold[];
-  belowThreshold: graphPairThreshold[];
+export interface graphFilterSummary {
+  total: number;
+  aboveThreshold: number;
+  belowThreshold: number;
+  threshold: number;
 }
 
-export interface graphResponseData {
+export interface graphMapped {
   nodes: graphNode[];
-  filterSummary: graphFilterSummary;
-  filteredPairs: graphFilteredPair;
-}
-
-export interface graphApiResponse {
-  status: number;
-  success: boolean;
-  message: graphResponseData;
+  summary: graphFilterSummary;
+  pairs: {
+    aboveThreshold: graphPairThreshold[];
+    belowThreshold: graphPairThreshold[];
+  };
 }
 
 /// 유사도 네트워크 토폴로지
