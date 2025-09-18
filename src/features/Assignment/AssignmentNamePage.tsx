@@ -6,52 +6,27 @@ import { useNavigate } from 'react-router-dom';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { FiArrowRight } from 'react-icons/fi';
 import { useSubjectStore } from '@stores/useSubjectStore';
-import { useAccessToken } from '@hooks/useAccessToken';
-import { useAddAssignment } from '@hooks/useAddAssignment';
 
 const MAX_LEN = 60;
 
 const AssignmentNamePage: React.FC = () => {
   const [inputName, setInputName] = useState('');
   const navigate = useNavigate();
-  const token = useAccessToken();
 
-  const { setName, setAssignmentId } = useAssignmentStore();
+  const { setName } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
-  const { mutate: addAssignment, isLoading } = useAddAssignment(token);
 
   const handleNext = useCallback(() => {
     const trimmedName = inputName.trim();
     if (!trimmedName || !selectedSubject) return;
 
-    addAssignment(
-      {
-        subjectName: selectedSubject.name,
-        assignmentName: trimmedName,
-      },
-      {
-        onSuccess: (res) => {
-          const id = res.result.assignmentId;
-          setName(trimmedName);
-          setAssignmentId(id);
-          navigate('/assignment/week');
-        },
-        onError: () => {
-          alert('과제 생성에 실패했습니다.');
-        },
-      }
-    );
-  }, [
-    addAssignment,
-    inputName,
-    navigate,
-    selectedSubject,
-    setAssignmentId,
-    setName,
-  ]);
+    setName(trimmedName);
+    // 과제ID는 다음 단계에서 API 응답으로 설정
+    navigate('/assignment/week');
+  }, [inputName, navigate, selectedSubject, setName]);
 
   const onEnter: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === 'Enter' && inputName.trim() && !isLoading) handleNext();
+    if (e.key === 'Enter' && inputName.trim()) handleNext();
   };
 
   const valid = !!inputName.trim();
@@ -130,7 +105,7 @@ const AssignmentNamePage: React.FC = () => {
             variant="primary"
             size="lg"
             onClick={handleNext}
-            disabled={!valid || !selectedSubject || isLoading}
+            disabled={!valid || !selectedSubject}
             iconPosition="right"
             icon={<FiArrowRight size={20} />}
             ariaLabel="다음 단계로 이동"

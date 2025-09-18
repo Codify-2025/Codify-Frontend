@@ -1,14 +1,12 @@
 import {
-  addAssignmentApiResponse,
   addSubjectApiResponse,
-  addWeekApiResponse,
   analyzeApiResponse,
+  CreateAssignmentWithWeekResponse,
+  SubjectItem,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
 import { addSubjectMock } from '@mocks/addSubjectMock';
 import { viewSubjectMock } from '@mocks/viewSubjectMock';
-import { addAssignmentMock } from '@mocks/addAssignmentMock';
-import { addWeekMock } from '@mocks/addWeekMock';
 import { analyzeMock } from '@mocks/analyzeMock';
 
 /// 새로운 과목 추가
@@ -34,79 +32,38 @@ export const addSubject = async ({
 
 /// 기존 과목 조회
 
-export const fetchSubject = async (): Promise<string[]> => {
+export const fetchSubject = async (): Promise<SubjectItem[]> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return viewSubjectMock;
+    return viewSubjectMock as unknown as SubjectItem[];
   }
 
-  const res = await axiosInstance.get<string[]>('/api/submit/subjects');
+  const res = await axiosInstance.get<SubjectItem[]>('/api/submit/subjects');
   return res.data;
 };
 
-/// 과제 생성
+/// 과제 + 주차 생성
 
-export interface addAssignmentRequest {
-  subjectName: string;
+export interface CreateAssignmentWithWeekRequest {
+  subjectId: number;
   assignmentName: string;
-}
-
-export const addAssignment = async (
-  { subjectName, assignmentName }: addAssignmentRequest,
-  token: string
-): Promise<addAssignmentApiResponse> => {
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    return addAssignmentMock;
-  }
-
-  const response = await axiosInstance.post<addAssignmentApiResponse>(
-    `api/submit/assignment`,
-    { subjectName, assignmentName },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  return response.data;
-};
-
-/// 주차 생성
-
-export interface addWeekRequest {
-  assignmentId: string;
   startDate: string;
   endDate: string;
-  weekTitle: number;
+  week: number;
 }
 
-export const addWeek = async (
-  { assignmentId, startDate, endDate, weekTitle }: addWeekRequest,
-  token: string
-): Promise<addWeekApiResponse> => {
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    return addWeekMock;
-  }
-
-  const response = await axiosInstance.post<addWeekApiResponse>(
-    `/api/submit/week`,
-    {
-      assignmentId,
-      startDate,
-      endDate,
-      weekTitle,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
+export const createAssignmentWithWeek = async ({
+  subjectId,
+  assignmentName,
+  startDate,
+  endDate,
+  week,
+}: CreateAssignmentWithWeekRequest): Promise<CreateAssignmentWithWeekResponse> => {
+  const res = await axiosInstance.post<CreateAssignmentWithWeekResponse>(
+    `/api/submit/subjects/${subjectId}/assignments`,
+    { assignmentName, startDate, endDate, week }
   );
-  return response.data;
+  return res.data;
 };
 
 /// 유사도 분석
