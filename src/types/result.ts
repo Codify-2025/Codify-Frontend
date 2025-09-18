@@ -120,12 +120,6 @@ export interface compareRawResponse {
   student2: compareRawStudent;
 }
 
-export interface compareApiResponse {
-  status: number;
-  success: boolean;
-  message: compareRawResponse;
-}
-
 // --- [compare: Mapped for UI] ---
 export interface compareCode {
   code: string[];

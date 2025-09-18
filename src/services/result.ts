@@ -114,9 +114,8 @@ export const fetchCompare = async ({
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     const mock = (await import('@mocks/compareMock'))
-      .compareMock as import('types/result').compareApiResponse;
-    const raw =
-      mock.message as unknown as import('types/result').compareRawResponse;
+      .compareMock as import('types/result').compareRawResponse;
+    const raw = mock as unknown as import('types/result').compareRawResponse;
     return {
       student1: toCompareStudent(raw.student1),
       student2: toCompareStudent(raw.student2),
@@ -130,7 +129,7 @@ export const fetchCompare = async ({
       : '/api/result/assignmets';
     const url = `${base}/${assignmentId}/compare`;
     const resp = await axiosInstance.get<
-      import('types/result').compareApiResponse
+      import('types/result').compareRawResponse
     >(url, {
       params: { studentFromId, studentToId, week },
     });
@@ -138,7 +137,7 @@ export const fetchCompare = async ({
   };
 
   try {
-    let response: AxiosResponse<import('types/result').compareApiResponse>;
+    let response: AxiosResponse<import('types/result').compareRawResponse>;
 
     try {
       response = await tryOnce(false);
@@ -151,8 +150,7 @@ export const fetchCompare = async ({
       }
     }
 
-    const raw = response.data
-      .message as import('types/result').compareRawResponse;
+    const raw = response.data as import('types/result').compareRawResponse;
 
     return {
       student1: toCompareStudent(raw.student1),
