@@ -15,6 +15,7 @@ import { FiChevronRight } from 'react-icons/fi';
 import type { FileNode, FileEdge } from 'types/similarity';
 import type { FileData as StoreFileData } from '@stores/useSelectedFileStore';
 import { useSimilarityGraph } from '@hooks/useSimilarityGraph';
+import { useSimilarityTopology } from '@hooks/useSimilarityTopology';
 
 const THRESHOLD = 80;
 
@@ -134,12 +135,6 @@ const ResultPage: React.FC = () => {
     week: week ?? 0,
   });
 
-  // nodes 맵핑 (id -> node)
-  const nodeById = useMemo(() => {
-    if (!graphData) return new Map<string, { id: string; label: string }>();
-    return new Map(graphData.nodes.map((n) => [n.id, n]));
-  }, [graphData]);
-
   // --- PieChart props: 서버 summary 사용 ---
   const passedCount = graphData?.summary.aboveThreshold ?? 0;
   const failedCount = graphData?.summary.belowThreshold ?? 0;
@@ -170,13 +165,53 @@ const ResultPage: React.FC = () => {
     setHoveredFiles(related);
   };
 
+  // 토폴로지 불러오기
+  const {
+    data: topoData,
+    isLoading: isTopoLoading,
+    isError: isTopoError,
+  } = useSimilarityTopology({
+    assignmentId: assignmentId ?? 0,
+    week: week ?? 0,
+  });
+
+  // --- API → UI 매핑: value(0~1) → similarity(%) ---
+  const apiNodes: FileNode[] = useMemo(() => {
+    if (!topoData?.message?.nodes) return [];
+    return topoData.message.nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label,
+      submittedAt: n.submittedAt ?? '-', // API ISO → 그대로 표시
+    }));
+  }, [topoData]);
+
+  const apiEdges: FileEdge[] = useMemo(() => {
+    if (!topoData?.message?.edges) return [];
+    return topoData.message.edges.map((e) => ({
+      from: String(e.from),
+      to: String(e.to),
+      similarity: Math.round((e.value ?? 0) * 100), // 0~1 → %
+    }));
+  }, [topoData]);
+
+  // 그래프에 실제로 넘길 데이터 (API 성공 시 교체)
+  const graphNodes = apiNodes.length > 0 ? apiNodes : nodes; // nodes: 기존 데모
+  const graphEdges = apiEdges.length > 0 ? apiEdges : edges; // edges: 기존 데모
+
   // KPI
   const kpi = useMemo(() => {
-    const totalFiles = nodes.length;
-    const pairCount = edges.length;
-    const flaggedPairs = edges.filter((e) => e.similarity >= THRESHOLD).length;
+    const totalFiles = graphNodes.length;
+    const pairCount = graphEdges.length;
+    const flaggedPairs = graphEdges.filter(
+      (e) => e.similarity >= THRESHOLD
+    ).length;
     return { totalFiles, pairCount, flaggedPairs };
-  }, [nodes, edges]);
+  }, [graphNodes, graphEdges]);
+
+  const nodeById = useMemo(() => {
+    if (!graphNodes) return new Map<string, { id: string; label: string }>();
+    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
+  }, [graphNodes]);
 
   const handleSave = () => {
     if (!isLoggedIn) {
@@ -344,18 +379,18 @@ const ResultPage: React.FC = () => {
             </div>
 
             <SimilarityGraph
-              nodes={nodes}
-              edges={edges}
+              nodes={graphNodes}
+              edges={graphEdges}
               interactionOptions={{
                 zoomView: false,
                 dragView: false,
                 dragNodes: false,
               }}
               onNodeHover={(node) => {
-                const connectedFiles = edges
+                const connectedFiles = graphEdges
                   .filter((e) => e.from === node.id || e.to === node.id)
                   .map((e) =>
-                    nodes.find(
+                    graphNodes.find(
                       (n) => n.id === (e.from === node.id ? e.to : e.from)
                     )
                   )
@@ -371,8 +406,8 @@ const ResultPage: React.FC = () => {
                 );
               }}
               onEdgeHover={(edge) => {
-                const from = nodes.find((n) => n.id === edge.from);
-                const to = nodes.find((n) => n.id === edge.to);
+                const from = graphNodes.find((n) => n.id === edge.from);
+                const to = graphNodes.find((n) => n.id === edge.to);
                 if (from && to) {
                   setHoverInfo(
                     `🔗 유사도: ${edge.similarity}%\n📁 ${from.label} - ${to.label}\n🕒 ${from.submittedAt} / ${to.submittedAt}`
@@ -380,7 +415,6 @@ const ResultPage: React.FC = () => {
                 }
               }}
               onEdgeClick={(edge) => {
-                // ✅ 그래프 이벤트 → 스토어 타입으로 변환해 전달
                 const fileA = fileMap.get(edge.from);
                 const fileB = fileMap.get(edge.to);
                 if (fileA && fileB) {
@@ -389,6 +423,20 @@ const ResultPage: React.FC = () => {
                 }
               }}
             />
+
+            {/* 그래프 카드 상단에 API 상태 표시 */}
+            <div className="mb-2 text-xs">
+              {isTopoLoading && (
+                <span className="text-blue-600">
+                  네트워크 토폴로지 불러오는 중…
+                </span>
+              )}
+              {isTopoError && (
+                <span className="text-red-600">
+                  토폴로지 로딩 실패. 데모 데이터를 표시합니다.
+                </span>
+              )}
+            </div>
 
             <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-blue-800">
               {hoverInfo ? (

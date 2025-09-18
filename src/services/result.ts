@@ -64,10 +64,10 @@ export const fetchGraph = async ({
 };
 
 /// 유사도 네트워크 토폴로지
-export const fetchTopology = async (
-  { assignmentId, week }: fetchGraphRequest,
-  token: string
-): Promise<topologyApiResponse> => {
+export const fetchTopology = async ({
+  assignmentId,
+  week,
+}: fetchGraphRequest): Promise<topologyApiResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return topologyMock;
@@ -78,7 +78,6 @@ export const fetchTopology = async (
       `/api/result/topology`,
       {
         params: { assignmentId, week },
-        headers: { Authorization: `Bearer ${token}` },
       }
     );
     return response.data;
