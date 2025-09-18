@@ -143,12 +143,20 @@ const PlagiarismDecisionPage: React.FC = () => {
   };
 
   const handleDecision = (isPlagiarism: boolean) => {
+    const s1 = toStudent('student1', fileA);
+    const s2 = toStudent('student2', fileB);
+    if (!s1.fileName || !s2.fileName) {
+      alert(
+        '파일명을 확인할 수 없어 저장할 수 없습니다. 비교 페이지에서 다시 시도하거나 파일명이 포함된 라벨로 이동해주세요.'
+      );
+      return;
+    }
     const payload = {
       assignmentId: assignmentId!, // ready 체크 이미 통과했음
       week: week!,
       plagiarize: isPlagiarism,
-      student1: toStudent('student1', fileA),
-      student2: toStudent('student2', fileB),
+      student1: s1,
+      student2: s2,
     };
 
     saveMutation.mutate(payload, {
