@@ -14,8 +14,8 @@ import { saveStudentPayload } from '@typings/result';
 type DecisionLocationState = {
   studentFromId?: string | number;
   studentToId?: string | number;
-  fileA?: { id: string; label: string; submittedAt: string };
-  fileB?: { id: string; label: string; submittedAt: string };
+  fileA?: { id: string; label: string; fileName?: string; submittedAt: string };
+  fileB?: { id: string; label: string; fileName?: string; submittedAt: string };
   similarity?: number;
 };
 
@@ -125,13 +125,19 @@ const PlagiarismDecisionPage: React.FC = () => {
   // judge, fileA, fileB 계산 이후에 아래 헬퍼로 payload 구성
   const toStudent = (
     who: 'student1' | 'student2',
-    fallback: { id: string; label: string; submittedAt: string }
+    fallback: {
+      id: string;
+      label: string;
+      submittedAt: string;
+      fileName?: string;
+    }
   ): saveStudentPayload => {
-    const j = judge[who]; // judge.student1 | judge.student2
+    const j = judge[who];
+    const parsedFromLabel = fallback.label.match(/\((.*?)\)\s*$/)?.[1] ?? '';
     return {
       id: j.id ?? fallback.id,
       name: j.name ?? fallback.label,
-      fileName: fallback.label || j.name || '', // 라벨을 파일명으로 사용
+      fileName: fallback.fileName ?? parsedFromLabel,
       submittedTime: j.submittedTime ?? fallback.submittedAt,
     };
   };
