@@ -1,3 +1,5 @@
+// import { MetaBase } from '@hooks/useUploader';
+
 export type PresignedPut = {
   method: 'PUT';
   url: string;
@@ -23,6 +25,7 @@ export interface UploadMetaReq {
   studentName: string;
   s3Key: string;
   etag?: string;
+  isLastFile: boolean;
 }
 
 export type UploadStage =
@@ -40,4 +43,5 @@ export interface UploadItemState {
   s3Key?: string;
   etag?: string;
   error?: string;
+  // meta?: MetaBase;
 }

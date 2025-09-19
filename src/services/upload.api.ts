@@ -16,6 +16,7 @@ export interface UploadMetaReq {
   studentId: number;
   studentName: string;
   s3Key: string;
+  isLastFile: boolean;
 }
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
@@ -57,7 +58,10 @@ export async function registerUpload(
     studentId: meta.studentId,
     studentName: meta.studentName,
     s3Key: meta.s3Key,
+    isLastFile: meta.isLastFile === true,
   };
+
+  console.log('[POST /api/upload]', payload.fileName, payload.isLastFile);
 
   try {
     const res = await axiosInstance.post('/api/upload', payload, {

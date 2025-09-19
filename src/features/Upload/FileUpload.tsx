@@ -25,14 +25,13 @@ type Stage =
   | 'registering'
   | 'done'
   | 'error';
-type MetaBase = {
-  assignmentId: number;
-  week: number;
-  submissionDate: Date;
-  studentId: number;
-  studentName: string;
-};
-type MetaDeriver = (file: File, index: number) => MetaBase;
+// type MetaBase = {
+//   assignmentId: number;
+//   week: number;
+//   submissionDate: Date;
+//   studentId: number;
+//   studentName: string;
+// };
 
 const SUPPORTED_EXTENSIONS = ['.cpp', '.zip'];
 const ENABLE_UPLOAD_DEV = import.meta.env.VITE_ENABLE_UPLOAD_DEV === 'true';
@@ -59,7 +58,6 @@ const FileUpload: React.FC = () => {
     useState<number>(DEV_ASSIGNMENT_ID);
   const [devWeek, setDevWeek] = useState<number>(DEV_WEEK);
 
-  // 유효한 assignment/week 얻기 (실서비스는 store, 미선택시 dev fallback)
   const effectiveAssignmentId =
     assignmentId ?? (ENABLE_UPLOAD_DEV ? devAssignmentId : undefined);
   const effectiveWeek = week ?? (ENABLE_UPLOAD_DEV ? devWeek : undefined);
@@ -68,10 +66,9 @@ const FileUpload: React.FC = () => {
   const [duplicateFile, setDuplicateFile] = useState<File | null>(null);
   const [existingFile, setExistingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const startRequestedRef = React.useRef<MetaDeriver | null>(null);
   const fileKey = (f: File) => `${f.name}::${f.size}::${f.lastModified}`;
 
-  // 업로드 상태/진행률 매핑
+  // 업로드 상태 매핑
   const uploaderMap = React.useMemo(() => {
     const m = new Map<string, { stage?: Stage; progress?: number }>();
     for (const it of items) {
@@ -96,8 +93,6 @@ const FileUpload: React.FC = () => {
   const getStage = (f: File): Stage | undefined =>
     uploaderMap.get(fileKey(f))?.stage;
   const getProgress = (f: File) => uploaderMap.get(fileKey(f))?.progress ?? 0;
-
-  // 0~1 또는 0~100 모두 대응
   const getProgressPct = (f: File) => {
     const raw = getProgress(f);
     const pct = raw <= 1 ? raw * 100 : raw;
@@ -111,19 +106,17 @@ const FileUpload: React.FC = () => {
 
   const isSupported = (file: File) => {
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-    const ok = SUPPORTED_EXTENSIONS.includes(ext);
-    return ok;
+    return SUPPORTED_EXTENSIONS.includes(ext);
   };
 
   const extractFileMeta = (file: File) => {
     const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
     const [studentId, studentName] = nameWithoutExt.split('_');
-    const meta = {
+    return {
       studentId: studentId || nameWithoutExt,
       studentName: studentName || nameWithoutExt,
       submittedAt: new Date(file.lastModified),
     };
-    return meta;
   };
 
   const extractFilesFromZip = async (zipFile: File): Promise<FileData[]> => {
@@ -203,13 +196,10 @@ const FileUpload: React.FC = () => {
     metaMap: Map<File, Meta>,
     results: { invalid: string[]; duplicate: string[]; added: string[] }
   ) => {
-    // 미지원 확장자
     if (!isSupported(file)) {
       results.invalid.push(file.name);
       return;
     }
-
-    // .cpp만 들어오도록
     if (!file.name.toLowerCase().endsWith('.cpp')) {
       results.invalid.push(file.name);
       return;
@@ -225,7 +215,6 @@ const FileUpload: React.FC = () => {
       submittedAt,
     };
 
-    // 중복 검사 (기존 목록 + 이번 배치)
     const isDup =
       files.some(
         (f) =>
@@ -272,7 +261,6 @@ const FileUpload: React.FC = () => {
     }
 
     const extracted = await extractFilesFromZip(zipFile);
-
     const nonDuplicate = extracted.filter(
       (e) =>
         !files.some(
@@ -308,13 +296,7 @@ const FileUpload: React.FC = () => {
   // 메인 핸들러
   const handleFileProcessing = async (newFiles: File[]) => {
     if (!validateAssignmentContext()) return;
-
-    if (effectiveAssignmentId == null || effectiveWeek == null) {
-      console.error(
-        'Assignment context validation failed but execution continued'
-      );
-      return;
-    }
+    if (effectiveAssignmentId == null || effectiveWeek == null) return;
 
     const aId: number = effectiveAssignmentId;
     const wk: number = effectiveWeek;
@@ -341,43 +323,29 @@ const FileUpload: React.FC = () => {
       return;
     }
 
-    setFiles((prev) => {
-      const next = [...prev, ...batchFileDatas];
-      return next;
-    });
+    // 화면 리스트 반영
+    setFiles((prev) => [...prev, ...batchFileDatas]);
 
+    // ✅ 이번 배치 전체를 "한 번에" 큐잉하고, "한 번만" start 한다
     const batchFiles = batchFileDatas.map((b) => b.file);
-
-    startRequestedRef.current = (fileObj: File) => {
-      const meta = metaMap.get(fileObj) ?? {
-        studentId: 0,
-        studentName: 'Unknown',
-        submittedAt: new Date(),
+    const entries = batchFiles.map((f) => {
+      const m = metaMap.get(f)!;
+      return {
+        file: f,
+        meta: {
+          assignmentId: aId,
+          week: wk,
+          submissionDate: m.submittedAt,
+          studentId: m.studentId,
+          studentName: m.studentName,
+        },
       };
-      const m = {
-        assignmentId: aId,
-        week: wk,
-        submissionDate: meta.submittedAt,
-        studentId: meta.studentId,
-        studentName: meta.studentName,
-      };
-      return m;
-    };
-
-    console.log(
-      '[FileUpload] Enqueueing files:',
-      batchFiles.map((f) => f.name)
-    );
-    enqueue(batchFiles);
-
-    // deriver를 먼저 캡처하여 race condition 방지
-    const currentDeriver = startRequestedRef.current;
-    requestAnimationFrame(() => {
-      if (currentDeriver && startRequestedRef.current === currentDeriver) {
-        startRequestedRef.current = null;
-        start(currentDeriver);
-      }
     });
+
+    enqueue(entries);
+    // state 반영 후 다음 틱에 start 실행 → 스냅샷 누락 방지
+    await new Promise(requestAnimationFrame);
+    await start();
 
     if (results.invalid.length || results.duplicate.length) {
       showBatchNotification(results.invalid, results.duplicate, results.added);
@@ -389,17 +357,23 @@ const FileUpload: React.FC = () => {
     const f1 = new File(
       [`// sample A\nint main(){return 0;}`],
       '20230001_홍길동.cpp',
-      { type: 'text/x-c++src' }
+      {
+        type: 'text/x-c++src',
+      }
     );
     const f2 = new File(
       [`// sample B\nint sum(){return 42;}`],
       '20230002_김철수.cpp',
-      { type: 'text/x-c++src' }
+      {
+        type: 'text/x-c++src',
+      }
     );
     const f3 = new File(
       [`// sample C\nint mul(){return 6*7;}`],
       '20230003_이영희.cpp',
-      { type: 'text/x-c++src' }
+      {
+        type: 'text/x-c++src',
+      }
     );
     void handleFileProcessing([f1, f2, f3]);
   };
@@ -418,7 +392,6 @@ const FileUpload: React.FC = () => {
     void handleFileProcessing(newFiles);
   };
 
-  // 중복 파일 모달
   const addFile = (file: File) => {
     const { studentId, studentName, submittedAt } = extractFileMeta(file);
     const newFile: FileData = {
@@ -445,17 +418,8 @@ const FileUpload: React.FC = () => {
     setExistingFile(null);
   };
 
-  React.useEffect(() => {
-    if (items.length > 0 && startRequestedRef.current) {
-      const deriver = startRequestedRef.current;
-      startRequestedRef.current = null;
-      start(deriver);
-    }
-  }, [items, start]);
-
   return (
     <div className="mx-auto flex w-full max-w-screen-lg flex-col gap-8">
-      {/* DEV 패널 */}
       {ENABLE_UPLOAD_DEV && (
         <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/60 p-3 text-sm text-blue-700">
           <div className="flex flex-wrap items-center gap-3">
@@ -491,17 +455,13 @@ const FileUpload: React.FC = () => {
               쿼리스트링 override 예: <code>?assignmentId=10&week=3</code>
             </span>
           </div>
-
           <div className="mt-2 flex items-center gap-2">
             <span>queued: {items.length}</span>
             <button
               type="button"
-              onClick={() => {
-                if (startRequestedRef.current) {
-                  const deriver = startRequestedRef.current;
-                  startRequestedRef.current = null;
-                  start(deriver);
-                }
+              onClick={async () => {
+                await new Promise(requestAnimationFrame);
+                await start();
               }}
               className="rounded bg-slate-700 px-2 py-1 text-white"
             >
@@ -520,7 +480,6 @@ const FileUpload: React.FC = () => {
         />
       )}
 
-      {/* 드래그&드롭 영역 */}
       <div className="flex w-full gap-8">
         <div
           className="flex h-[340px] flex-1 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-white p-6 ring-1 ring-gray-200 transition hover:border-blue-300 hover:ring-blue-200"
@@ -546,7 +505,6 @@ const FileUpload: React.FC = () => {
           />
         </div>
 
-        {/* 파일 리스트 영역 */}
         <div className="flex w-1/2 min-w-[320px] flex-col">
           {notification && (
             <Notification message={notification} type="warning" />
