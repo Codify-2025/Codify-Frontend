@@ -12,6 +12,18 @@ import { useAuthStore } from '@stores/useAuthStore';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useCompareCode } from '@hooks/useCompareCode';
 
+// 공통 날짜 포맷터 (표시 시점에서만 사용)
+const formatDate = (iso?: string) => {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+};
+
 // 유사도에 따른 줄 배경색
 const getLineStyleBySimilarity = (similar: string[]): string => {
   if (similar.length >= 2) return 'bg-red-50';
@@ -140,7 +152,7 @@ const ComparePage: React.FC = () => {
     const fileA = {
       id: a.id,
       label: `${a.name} (${a.fileName})`,
-      submittedAt: a.submissionTime,
+      submittedAt: a.submissionTime, // ISO 그대로 유지
       content: a.code.code,
       similarMap: makeSimilarMap(a.code.lines, b.name),
     };
@@ -148,7 +160,7 @@ const ComparePage: React.FC = () => {
     const fileB = {
       id: b.id,
       label: `${b.name} (${b.fileName})`,
-      submittedAt: b.submissionTime,
+      submittedAt: b.submissionTime, // ISO 그대로 유지
       content: b.code.code,
       similarMap: makeSimilarMap(b.code.lines, a.name),
     };
@@ -186,13 +198,13 @@ const ComparePage: React.FC = () => {
             id: selectedFileA!.id,
             label: selectedFileA!.label,
             fileName: fileNameA,
-            submittedAt: selectedFileA!.submittedAt,
+            submittedAt: selectedFileA!.submittedAt, // ISO 유지 (표시는 다음 페이지에서 포맷)
           },
           fileB: {
             id: selectedFileB!.id,
             label: selectedFileB!.label,
             fileName: fileNameB,
-            submittedAt: selectedFileB!.submittedAt,
+            submittedAt: selectedFileB!.submittedAt, // ISO 유지
           },
           studentFromId: selectedFileA!.id,
           studentToId: selectedFileB!.id,
@@ -292,7 +304,7 @@ const ComparePage: React.FC = () => {
                   }}
                 />
                 <p className="mt-1 text-sm text-gray-600">
-                  제출 시간: {file!.submittedAt}
+                  제출 시간: {formatDate(file!.submittedAt)}
                 </p>
               </div>
             );

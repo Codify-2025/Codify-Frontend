@@ -34,8 +34,7 @@ const edgeColor = (s: number) =>
         ? brand.edgeMid
         : brand.edgeLow;
 
-const edgeWidth = (s: number) =>
-  s >= 90 ? 10 : s >= 75 ? 7 : s >= 60 ? 5 : s >= 40 ? 3 : 2;
+const EDGE_BASE_WIDTH = 4;
 
 type VisId = string | number;
 
@@ -93,7 +92,7 @@ const SimilarityGraph: React.FC<Props> = ({
         from: e.from,
         to: e.to,
         label: `${e.similarity}%`,
-        width: edgeWidth(e.similarity),
+        width: EDGE_BASE_WIDTH,
         color: {
           color: edgeColor(e.similarity),
           hover: edgeColor(e.similarity),

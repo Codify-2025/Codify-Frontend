@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { initDemoFromQueryOnce } from '@utils/demo';
+
+initDemoFromQueryOnce();
 
 if (import.meta.env.VITE_USE_MOCK === 'true') {
   localStorage.setItem('accessToken', 'mock-token');

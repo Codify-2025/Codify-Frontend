@@ -70,6 +70,18 @@ function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
   });
 }
 
+// 날짜 포맷 유틸
+const formatDate = (iso?: string) => {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+};
+
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,81 +103,17 @@ const ResultPage: React.FC = () => {
     location.state as { recordId?: string | number } | undefined
   )?.recordId;
 
-  // 1) 스토어에 저장·비교에 쓰는 원본 데이터(스토어 타입으로 정규화)
-  const fileDataList: StoreFileData[] = useMemo(
-    () => normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>),
-    []
-  );
-
-  // 2) 그래프 전용 노드 파생
-  const nodes: FileNode[] = useMemo(
-    () =>
-      fileDataList.map(({ id, label, submittedAt }) => ({
-        id,
-        label,
-        submittedAt,
-      })),
-    [fileDataList]
-  );
-
-  // 3) id → StoreFileData 빠른 조회
-  const fileMap = useMemo(() => {
-    const m = new Map<string, StoreFileData>();
-    for (const f of fileDataList) m.set(f.id, f);
-    return m;
-  }, [fileDataList]);
-
-  // 데모용 엣지
-  const edges: FileEdge[] = useMemo(
-    () => [
-      { from: '1', to: '2', similarity: 92 },
-      { from: '1', to: '3', similarity: 87 },
-      { from: '2', to: '3', similarity: 75 },
-    ],
-    []
-  );
-
-  // 1차 필터링 결과 그래프 데이터 로드
+  // 1차 필터링 결과 그래프 데이터
   const {
     data: graphData,
     isLoading: isGraphLoading,
     isError: isGraphError,
   } = useSimilarityGraph({
-    assignmentId: assignmentId ?? 0, // enabled 조건이 걸려 있으니 0은 호출 안 됨
+    assignmentId: assignmentId ?? 0, // enabled 조건이 걸려 있으니 0이면 호출 안 됨
     week: week ?? 0,
   });
 
-  // --- PieChart props: 서버 summary 사용 ---
-  const passedCount = graphData?.summary.aboveThreshold ?? 0;
-  const failedCount = graphData?.summary.belowThreshold ?? 0;
-
-  // 파이 hover → 관련 파일 목록 구성 (서버 페어 데이터 사용)
-  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
-    if (!segment || !graphData) {
-      setHoveredFiles([]);
-      return;
-    }
-
-    const isAbove = segment === '기준 초과';
-    const bucket = isAbove
-      ? graphData.pairs.aboveThreshold
-      : graphData.pairs.belowThreshold;
-
-    const relatedIds = new Set<string>();
-    for (const e of bucket) {
-      relatedIds.add(e.from);
-      relatedIds.add(e.to);
-    }
-
-    const related = Array.from(relatedIds)
-      .map((id) => nodeById.get(id))
-      .filter((n): n is { id: string; label: string } => Boolean(n))
-      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
-
-    setHoveredFiles(related);
-  };
-
-  // 토폴로지 불러오기
+  // 토폴로지 데이터
   const {
     data: topoData,
     isLoading: isTopoLoading,
@@ -181,7 +129,7 @@ const ResultPage: React.FC = () => {
     return topoData.message.nodes.map((n) => ({
       id: String(n.id),
       label: n.label,
-      submittedAt: n.submittedAt ?? '-', // API ISO → 그대로 표시
+      submittedAt: formatDate(n.submittedAt), // ISO → 읽기 쉬운 포맷
     }));
   }, [topoData]);
 
@@ -194,9 +142,88 @@ const ResultPage: React.FC = () => {
     }));
   }, [topoData]);
 
-  // 그래프에 실제로 넘길 데이터 (API 성공 시 교체)
-  const graphNodes = apiNodes.length > 0 ? apiNodes : nodes; // nodes: 기존 데모
-  const graphEdges = apiEdges.length > 0 ? apiEdges : edges; // edges: 기존 데모
+  // 그래프에 실제로 넘길 데이터 (API 성공 시 교체 / 실패 시 로컬 데모)
+  const fallbackNodesFromDummy: FileNode[] = useMemo(() => {
+    const dummy = normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>);
+    return dummy.map(({ id, label, submittedAt }) => ({
+      id,
+      label,
+      submittedAt,
+    }));
+  }, []);
+  const fallbackEdges: FileEdge[] = useMemo(
+    () => [
+      { from: '1', to: '2', similarity: 92 },
+      { from: '1', to: '3', similarity: 87 },
+      { from: '2', to: '3', similarity: 75 },
+    ],
+    []
+  );
+
+  const graphNodes: FileNode[] =
+    apiNodes.length > 0 ? apiNodes : fallbackNodesFromDummy;
+  const graphEdges: FileEdge[] = apiEdges.length > 0 ? apiEdges : fallbackEdges;
+
+  // --- 스토어에 들어갈 파일 리스트도 topology 응답 기준으로 구성 (없으면 dummy fallback)
+  const fileDataList: StoreFileData[] = useMemo(() => {
+    if (apiNodes.length > 0) {
+      return apiNodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        submittedAt: n.submittedAt,
+        content: [], // ComparePage에서 compare API 응답으로 덮어씀
+        similarMap: {},
+      }));
+    }
+    // 서버/데모 데이터가 전혀 없을 때만 기존 더미 사용
+    return normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>);
+  }, [apiNodes]);
+
+  // id → StoreFileData 빠른 조회
+  const fileMap = useMemo(() => {
+    const m = new Map<string, StoreFileData>();
+    for (const f of fileDataList) m.set(f.id, f);
+    return m;
+  }, [fileDataList]);
+
+  // PieChart props
+  const passedCount = graphData?.summary.aboveThreshold ?? 0;
+  const failedCount = graphData?.summary.belowThreshold ?? 0;
+
+  // graph 응답 전용 id→label 맵 (파이 hover는 이것만 이용!)
+  const graphNodeById = useMemo(() => {
+    const m = new Map<string, { id: string; label: string }>();
+    if (graphData?.nodes) {
+      for (const n of graphData.nodes) {
+        m.set(String(n.id), { id: String(n.id), label: n.label });
+      }
+    }
+    return m;
+  }, [graphData]);
+
+  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
+    if (!segment || !graphData) {
+      setHoveredFiles([]);
+      return;
+    }
+    const isAbove = segment === '기준 초과';
+    const bucket = isAbove
+      ? graphData.pairs.aboveThreshold
+      : graphData.pairs.belowThreshold;
+
+    const relatedIds = new Set<string>();
+    for (const e of bucket) {
+      relatedIds.add(String(e.from));
+      relatedIds.add(String(e.to));
+    }
+
+    const related = Array.from(relatedIds)
+      .map((id) => graphNodeById.get(id)) // ★ 그래프 노드 맵 사용
+      .filter((n): n is { id: string; label: string } => Boolean(n))
+      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
+
+    setHoveredFiles(related);
+  };
 
   // KPI
   const kpi = useMemo(() => {
@@ -207,11 +234,6 @@ const ResultPage: React.FC = () => {
     ).length;
     return { totalFiles, pairCount, flaggedPairs };
   }, [graphNodes, graphEdges]);
-
-  const nodeById = useMemo(() => {
-    if (!graphNodes) return new Map<string, { id: string; label: string }>();
-    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
-  }, [graphNodes]);
 
   const handleSave = () => {
     if (!isLoggedIn) {
@@ -235,23 +257,23 @@ const ResultPage: React.FC = () => {
     }
   }, [fromSaved, recordId]);
 
-  // 기본 파일 세팅: 스토어는 StoreFileData[] 기대
+  // 기본 파일 세팅: 스토어는 StoreFileData[] 기대 (topology 기반 리스트를 주입)
   useEffect(() => {
     if (!fromSaved) setFiles(fileDataList);
   }, [fromSaved, setFiles, fileDataList]);
 
-  // 상위 유사쌍 (내림차순 Top 5)
+  // 상위 유사쌍 (실데이터 기준 — graphEdges/graphNodes)
   const topPairs = useMemo(() => {
-    return edges
+    return graphEdges
       .map((e) => {
-        const a = nodes.find((n) => n.id === e.from);
-        const b = nodes.find((n) => n.id === e.to);
+        const a = graphNodes.find((n) => n.id === e.from);
+        const b = graphNodes.find((n) => n.id === e.to);
         return a && b ? { ...e, a, b } : null;
       })
       .filter((x): x is FileEdge & { a: FileNode; b: FileNode } => x !== null)
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
-  }, [nodes, edges]);
+  }, [graphNodes, graphEdges]);
 
   return (
     <Layout>
@@ -329,15 +351,12 @@ const ResultPage: React.FC = () => {
             {hoveredFiles.length > 0 ? (
               <div className="space-y-2">
                 <Text variant="body" weight="medium">
-                  관련 파일
+                  해당 파일
                 </Text>
                 <ul className="list-disc pl-5">
                   {hoveredFiles.map((f) => (
                     <li key={f.id}>
                       <span className="font-medium">{f.label}</span>
-                      <span className="ml-2 text-sm opacity-80">
-                        ({f.submittedAt})
-                      </span>
                     </li>
                   ))}
                 </ul>
