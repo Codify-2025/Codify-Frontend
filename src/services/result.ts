@@ -1,4 +1,4 @@
-import { saveApiResponse, topologyApiResponse } from 'types/result';
+import { saveApiResponse, topologyResponseData } from 'types/result';
 import axiosInstance from './axiosInstance';
 import { topologyMock } from '@mocks/topologyMock';
 import { saveMock } from '@mocks/saveMock';
@@ -67,20 +67,21 @@ export const fetchGraph = async ({
 export const fetchTopology = async ({
   assignmentId,
   week,
-}: fetchGraphRequest): Promise<topologyApiResponse> => {
+}: fetchGraphRequest): Promise<topologyResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return topologyMock;
+    // 목이 래핑되어 있다면 여기서 message를 꺼내서 맞춰주세요.
+    // return topologyMock.message;
+    return (topologyMock as unknown as { message: topologyResponseData })
+      .message;
   }
 
   try {
-    const response = await axiosInstance.get<topologyApiResponse>(
+    const response = await axiosInstance.get<topologyResponseData>(
       `/api/result/topology`,
-      {
-        params: { assignmentId, week },
-      }
+      { params: { assignmentId, week } }
     );
-    return response.data;
+    return response.data; // ← 래핑 없음 그대로
   } catch (error) {
     console.error('fetchTopology error:', error);
     throw error;

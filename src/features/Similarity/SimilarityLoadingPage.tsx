@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@components/Layout';
 import Text from '@components/Text';
 import { useNavigate } from 'react-router-dom';
+import { useAnalyzePolling } from '@hooks/useAnalyzePolling';
 
 const SimilarityLoadingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, isError, error } = useAnalyzePolling();
 
-  // 진행률(0~100)
+  // 진행률(0~100) - 시각적 효과용
   const [progress, setProgress] = useState(0);
-
-  // rAF용 레퍼런스
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
 
@@ -26,7 +26,6 @@ const SimilarityLoadingPage: React.FC = () => {
   );
   const thresholds = useMemo(() => [0, 20, 45, 70, 85], []);
 
-  // progress → 현재 단계 인덱스(상태 대신 파생값)
   const phaseIdx = useMemo(() => {
     const idx = thresholds.findIndex(
       (t, i) => progress >= t && progress < (thresholds[i + 1] ?? 101)
@@ -34,24 +33,22 @@ const SimilarityLoadingPage: React.FC = () => {
     return idx === -1 ? 0 : idx;
   }, [progress, thresholds]);
 
+  // ✅ 진행률 애니메이션 (시각용). 완료는 "API 응답"에 따라 이동한다.
   useEffect(() => {
-    const duration = 3000; // 3s
-
-    // 살짝 더 부드럽게 보이도록 easeOutCubic 적용
+    const duration = 6000; // 6s 정도로 천천히
     const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 
     const tick = (now: number) => {
       if (startRef.current == null) startRef.current = now;
       const elapsed = now - startRef.current;
-      const ratio = Math.min(elapsed / duration, 1); // 0~1
+      const ratio = Math.min(elapsed / duration, 1);
       const eased = easeOutCubic(ratio);
       const next = Math.round(eased * 100);
       setProgress(next);
 
+      // 진행률은 100%가 되더라도, 실제 완료는 API status에 따름.
       if (ratio < 1) {
         rafRef.current = requestAnimationFrame(tick);
-      } else {
-        navigate('/analysis/complete', { replace: true });
       }
     };
 
@@ -59,7 +56,41 @@ const SimilarityLoadingPage: React.FC = () => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [navigate]);
+  }, []);
+
+  // ✅ API가 done이 되는 순간 완료 페이지로 이동
+  useEffect(() => {
+    if (data?.status === 'done') {
+      navigate('/analysis/complete', { replace: true });
+    }
+  }, [data?.status, navigate]);
+
+  // 에러 처리(필요 시 토스트/다이얼로그 연동)
+  if (isError) {
+    return (
+      <Layout>
+        <div className="flex h-[70vh] flex-col items-center justify-center px-4 text-center">
+          <Text variant="h3" weight="bold" className="text-red-600">
+            분석 요청 중 오류가 발생했어요
+          </Text>
+          <Text variant="body" className="mt-2 text-gray-600">
+            {error?.message ?? '잠시 후 다시 시도해 주세요.'}
+          </Text>
+          <button
+            className="mt-6 rounded-lg bg-blue-600 px-4 py-2 text-white"
+            onClick={() => window.history.back()}
+          >
+            돌아가기
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const statusLabel =
+    data?.status === 'done'
+      ? '결과 마무리 중'
+      : '서버에서 코드를 파싱/분석하는 중입니다';
 
   return (
     <Layout>
@@ -81,7 +112,7 @@ const SimilarityLoadingPage: React.FC = () => {
             유사도 분석 중입니다…
           </Text>
           <Text variant="body" className="text-gray-600">
-            제출한 코드들을 분석하여 결과를 준비하고 있어요.
+            {statusLabel}
           </Text>
         </div>
 

@@ -24,16 +24,12 @@ type DummyLike = {
   id: string;
   label: string;
   submittedAt: string;
-  content?: unknown; // string | string[] | unknown
-  similarMap?: unknown; // Record<unknown, unknown> | unknown
+  content?: unknown;
+  similarMap?: unknown;
 };
 
-/** content: string|string[] -> string[] 로 정규화
- *  similarMap: unknown -> Record<number, string[]> 로 정규화 (없으면 {})
- */
 function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
   return list.map<StoreFileData>((f) => {
-    // 1) content 정규화
     const rawContent = f.content;
     let content: string[] = [];
     if (Array.isArray(rawContent)) {
@@ -42,7 +38,6 @@ function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
       content = [rawContent];
     }
 
-    // 2) similarMap 정규화: 키를 number로, 값을 string[]로 강제
     const map: Record<number, string[]> = {};
     const sm = f.similarMap;
     if (sm && typeof sm === 'object' && !Array.isArray(sm)) {
@@ -59,7 +54,6 @@ function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
       }
     }
 
-    // 3) 스토어 타입으로 반환 (similarMap은 항상 객체)
     return {
       id: f.id,
       label: f.label,
@@ -78,7 +72,6 @@ const ResultPage: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
   const { isLoggedIn } = useAuthStore();
 
-  // 스토어 액션
   const { setFiles, setSelectedFiles } = useSelectedFileStore();
 
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
@@ -91,81 +84,17 @@ const ResultPage: React.FC = () => {
     location.state as { recordId?: string | number } | undefined
   )?.recordId;
 
-  // 1) 스토어에 저장·비교에 쓰는 원본 데이터(스토어 타입으로 정규화)
-  const fileDataList: StoreFileData[] = useMemo(
-    () => normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>),
-    []
-  );
-
-  // 2) 그래프 전용 노드 파생
-  const nodes: FileNode[] = useMemo(
-    () =>
-      fileDataList.map(({ id, label, submittedAt }) => ({
-        id,
-        label,
-        submittedAt,
-      })),
-    [fileDataList]
-  );
-
-  // 3) id → StoreFileData 빠른 조회
-  const fileMap = useMemo(() => {
-    const m = new Map<string, StoreFileData>();
-    for (const f of fileDataList) m.set(f.id, f);
-    return m;
-  }, [fileDataList]);
-
-  // 데모용 엣지
-  const edges: FileEdge[] = useMemo(
-    () => [
-      { from: '1', to: '2', similarity: 92 },
-      { from: '1', to: '3', similarity: 87 },
-      { from: '2', to: '3', similarity: 75 },
-    ],
-    []
-  );
-
-  // 1차 필터링 결과 그래프 데이터 로드
+  // --- 서버 데이터: 1차 필터 요약/쌍 ---
   const {
     data: graphData,
     isLoading: isGraphLoading,
     isError: isGraphError,
   } = useSimilarityGraph({
-    assignmentId: assignmentId ?? 0, // enabled 조건이 걸려 있으니 0은 호출 안 됨
+    assignmentId: assignmentId ?? 0,
     week: week ?? 0,
   });
 
-  // --- PieChart props: 서버 summary 사용 ---
-  const passedCount = graphData?.summary.aboveThreshold ?? 0;
-  const failedCount = graphData?.summary.belowThreshold ?? 0;
-
-  // 파이 hover → 관련 파일 목록 구성 (서버 페어 데이터 사용)
-  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
-    if (!segment || !graphData) {
-      setHoveredFiles([]);
-      return;
-    }
-
-    const isAbove = segment === '기준 초과';
-    const bucket = isAbove
-      ? graphData.pairs.aboveThreshold
-      : graphData.pairs.belowThreshold;
-
-    const relatedIds = new Set<string>();
-    for (const e of bucket) {
-      relatedIds.add(e.from);
-      relatedIds.add(e.to);
-    }
-
-    const related = Array.from(relatedIds)
-      .map((id) => nodeById.get(id))
-      .filter((n): n is { id: string; label: string } => Boolean(n))
-      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
-
-    setHoveredFiles(related);
-  };
-
-  // 토폴로지 불러오기
+  // --- 서버 데이터: 네트워크 토폴로지 (래핑 없음) ---
   const {
     data: topoData,
     isLoading: isTopoLoading,
@@ -175,28 +104,98 @@ const ResultPage: React.FC = () => {
     week: week ?? 0,
   });
 
-  // --- API → UI 매핑: value(0~1) → similarity(%) ---
-  const apiNodes: FileNode[] = useMemo(() => {
-    if (!topoData?.message?.nodes) return [];
-    return topoData.message.nodes.map((n) => ({
+  // --- PieChart props: 서버 summary 사용 ---
+  const passedCount = graphData?.summary.aboveThreshold ?? 0;
+  const failedCount = graphData?.summary.belowThreshold ?? 0;
+
+  // --- topology → 그래프 노드/엣지 변환 (value: 0~1 → similarity: %)
+  const graphNodes: FileNode[] = useMemo(() => {
+    const list = topoData?.nodes ?? [];
+    return list.map((n) => ({
       id: String(n.id),
       label: n.label,
-      submittedAt: n.submittedAt ?? '-', // API ISO → 그대로 표시
+      submittedAt: n.submittedAt ?? '-',
     }));
   }, [topoData]);
 
-  const apiEdges: FileEdge[] = useMemo(() => {
-    if (!topoData?.message?.edges) return [];
-    return topoData.message.edges.map((e) => ({
+  const graphEdges: FileEdge[] = useMemo(() => {
+    const list = topoData?.edges ?? [];
+    return list.map((e) => ({
       from: String(e.from),
       to: String(e.to),
-      similarity: Math.round((e.value ?? 0) * 100), // 0~1 → %
+      similarity: Math.round((e.value ?? 0) * 100),
     }));
   }, [topoData]);
 
-  // 그래프에 실제로 넘길 데이터 (API 성공 시 교체)
-  const graphNodes = apiNodes.length > 0 ? apiNodes : nodes; // nodes: 기존 데모
-  const graphEdges = apiEdges.length > 0 ? apiEdges : edges; // edges: 기존 데모
+  // --- StoreFileData: topology 노드 기반
+  const storeFilesFromTopo: StoreFileData[] = useMemo(() => {
+    if (!topoData?.nodes) return [];
+    return topoData.nodes.map((n) => ({
+      id: String(n.id),
+      label: n.label,
+      submittedAt: n.submittedAt ?? '-',
+      content: [],
+      similarMap: {},
+    }));
+  }, [topoData]);
+
+  // --- id → StoreFileData 맵
+  const fileMap = useMemo(() => {
+    const m = new Map<string, StoreFileData>();
+    for (const f of storeFilesFromTopo) m.set(String(f.id), f);
+    return m;
+  }, [storeFilesFromTopo]);
+
+  // 저장된 기록에서 불러오기
+  useEffect(() => {
+    if (fromSaved && recordId != null) {
+      useSavedRecordStore.getState().selectRecordById(String(recordId));
+      const selected = useSavedRecordStore.getState().selectedRecord;
+      if (selected && selected.type === 'network') {
+        useSelectedFileStore.getState().setFiles(selected.nodes ?? []);
+      }
+    }
+  }, [fromSaved, recordId]);
+
+  // 기본 파일 세팅: 서버 topology 우선, 없으면 dummy
+  useEffect(() => {
+    if (fromSaved) return;
+    if (storeFilesFromTopo.length > 0) {
+      setFiles(storeFilesFromTopo);
+    } else {
+      setFiles(normalizeToStoreData(dummyFiles as ReadonlyArray<DummyLike>));
+    }
+  }, [fromSaved, setFiles, storeFilesFromTopo]);
+
+  // node id → label 맵 (파이 hover에서 사용)
+  const nodeById = useMemo(() => {
+    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
+  }, [graphNodes]);
+
+  // 파이 hover → 관련 파일 목록
+  const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
+    if (!segment || !graphData) {
+      setHoveredFiles([]);
+      return;
+    }
+    const isAbove = segment === '기준 초과';
+    const bucket = isAbove
+      ? graphData.pairs.aboveThreshold
+      : graphData.pairs.belowThreshold;
+
+    const relatedIds = new Set<string>();
+    for (const e of bucket) {
+      relatedIds.add(String(e.from));
+      relatedIds.add(String(e.to));
+    }
+
+    const related = Array.from(relatedIds)
+      .map((id) => nodeById.get(id))
+      .filter((n): n is { id: string; label: string } => Boolean(n))
+      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
+
+    setHoveredFiles(related);
+  };
 
   // KPI
   const kpi = useMemo(() => {
@@ -208,50 +207,26 @@ const ResultPage: React.FC = () => {
     return { totalFiles, pairCount, flaggedPairs };
   }, [graphNodes, graphEdges]);
 
-  const nodeById = useMemo(() => {
-    if (!graphNodes) return new Map<string, { id: string; label: string }>();
-    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
-  }, [graphNodes]);
+  // 상위 유사쌍 (내림차순 Top 5)
+  const topPairs = useMemo(() => {
+    return graphEdges
+      .map((e) => {
+        const a = graphNodes.find((n) => n.id === e.from);
+        const b = graphNodes.find((n) => n.id === e.to);
+        return a && b ? { ...e, a, b } : null;
+      })
+      .filter((x): x is FileEdge & { a: FileNode; b: FileNode } => x !== null)
+      .sort((x, y) => y.similarity - x.similarity)
+      .slice(0, 5);
+  }, [graphNodes, graphEdges]);
 
   const handleSave = () => {
     if (!isLoggedIn) {
       navigate('/login', { state: { from: 'result' } });
       return;
     }
-    // TODO: 실제 저장 로직
     console.log('결과 저장 진행');
   };
-
-  // 저장된 기록에서 불러오기
-  useEffect(() => {
-    if (fromSaved && recordId != null) {
-      // ✅ string | number → string 변환
-      useSavedRecordStore.getState().selectRecordById(String(recordId));
-      const selected = useSavedRecordStore.getState().selectedRecord;
-      if (selected && selected.type === 'network') {
-        // selected.nodes가 StoreFileData[]라고 가정
-        useSelectedFileStore.getState().setFiles(selected.nodes ?? []);
-      }
-    }
-  }, [fromSaved, recordId]);
-
-  // 기본 파일 세팅: 스토어는 StoreFileData[] 기대
-  useEffect(() => {
-    if (!fromSaved) setFiles(fileDataList);
-  }, [fromSaved, setFiles, fileDataList]);
-
-  // 상위 유사쌍 (내림차순 Top 5)
-  const topPairs = useMemo(() => {
-    return edges
-      .map((e) => {
-        const a = nodes.find((n) => n.id === e.from);
-        const b = nodes.find((n) => n.id === e.to);
-        return a && b ? { ...e, a, b } : null;
-      })
-      .filter((x): x is FileEdge & { a: FileNode; b: FileNode } => x !== null)
-      .sort((x, y) => y.similarity - x.similarity)
-      .slice(0, 5);
-  }, [nodes, edges]);
 
   return (
     <Layout>
@@ -329,15 +304,12 @@ const ResultPage: React.FC = () => {
             {hoveredFiles.length > 0 ? (
               <div className="space-y-2">
                 <Text variant="body" weight="medium">
-                  관련 파일
+                  해당 학생
                 </Text>
                 <ul className="list-disc pl-5">
                   {hoveredFiles.map((f) => (
                     <li key={f.id}>
                       <span className="font-medium">{f.label}</span>
-                      <span className="ml-2 text-sm opacity-80">
-                        ({f.submittedAt})
-                      </span>
                     </li>
                   ))}
                 </ul>
@@ -415,8 +387,8 @@ const ResultPage: React.FC = () => {
                 }
               }}
               onEdgeClick={(edge) => {
-                const fileA = fileMap.get(edge.from);
-                const fileB = fileMap.get(edge.to);
+                const fileA = fileMap.get(String(edge.from));
+                const fileB = fileMap.get(String(edge.to));
                 if (fileA && fileB) {
                   setSelectedFiles(fileA, fileB);
                   navigate(`/compare/${String(fileA.id)}/${String(fileB.id)}`);
@@ -424,7 +396,6 @@ const ResultPage: React.FC = () => {
               }}
             />
 
-            {/* 그래프 카드 상단에 API 상태 표시 */}
             <div className="mb-2 text-xs">
               {isTopoLoading && (
                 <span className="text-blue-600">
@@ -464,7 +435,7 @@ const ResultPage: React.FC = () => {
             ) : (
               <ul className="space-y-2">
                 {topPairs.map((p) => {
-                  const key = `${p.from}-${p.to}`; // FileEdge에 id 없음 → 합성 key
+                  const key = `${p.from}-${p.to}`;
                   return (
                     <li
                       key={key}
@@ -490,7 +461,7 @@ const ResultPage: React.FC = () => {
                           const a = fileMap.get(p.from);
                           const b = fileMap.get(p.to);
                           if (a && b) {
-                            setSelectedFiles(a, b); // ✅ StoreFileData 전달
+                            setSelectedFiles(a, b);
                             navigate(
                               `/compare/${String(a.id)}/${String(b.id)}`
                             );

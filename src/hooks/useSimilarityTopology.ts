@@ -1,11 +1,12 @@
 import { fetchGraphRequest, fetchTopology } from '@services/result';
 import { useQuery } from 'react-query';
-import { topologyApiResponse } from 'types/result';
+import { topologyResponseData } from 'types/result';
 
 export const useSimilarityTopology = (params: fetchGraphRequest) => {
-  const enabled = !!params.assignmentId && !!params.week;
+  const enabled =
+    Number.isFinite(params.assignmentId) && Number.isFinite(params.week);
 
-  return useQuery<topologyApiResponse>({
+  return useQuery<topologyResponseData>({
     queryKey: ['similarityTopology', params.assignmentId, params.week],
     queryFn: () => fetchTopology(params),
     enabled,
