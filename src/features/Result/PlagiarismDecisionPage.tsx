@@ -11,6 +11,18 @@ import { usePlagiarismJudge } from '@hooks/usePlagiarismJudge';
 import { usePlagiarismSave } from '@hooks/usePlagiarismSave';
 import { saveStudentPayload } from '@typings/result';
 
+// 공통 날짜 포맷터
+const formatDate = (iso?: string) => {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+};
+
 type DecisionLocationState = {
   studentFromId?: string | number;
   studentToId?: string | number;
@@ -103,7 +115,7 @@ const PlagiarismDecisionPage: React.FC = () => {
     );
   }
 
-  // 파일 표시용
+  // 파일 표시용 (ISO는 유지, 표시에서 포맷)
   const fileA = state?.fileA ?? {
     id: String(judge.student1.id),
     label: judge.student1.name,
@@ -161,7 +173,6 @@ const PlagiarismDecisionPage: React.FC = () => {
 
     saveMutation.mutate(payload, {
       onSuccess: () => {
-        // 로컬 스토어는 유지하되, 성공 후 페이지 이동
         saveDecision({
           fileAId: String(payload.student1.id),
           fileBId: String(payload.student2.id),
@@ -221,7 +232,7 @@ const PlagiarismDecisionPage: React.FC = () => {
                 제출 시간
               </Text>
               <div className="mt-0.5 text-sm text-blue-700">
-                {fileA.submittedAt}
+                {formatDate(fileA.submittedAt)}
               </div>
             </div>
           </div>
@@ -255,7 +266,7 @@ const PlagiarismDecisionPage: React.FC = () => {
                 제출 시간
               </Text>
               <div className="mt-0.5 text-sm text-blue-700">
-                {fileB.submittedAt}
+                {formatDate(fileB.submittedAt)}
               </div>
             </div>
           </div>

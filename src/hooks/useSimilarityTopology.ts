@@ -7,7 +7,7 @@ export const useSimilarityTopology = (params: fetchGraphRequest) => {
     Number.isFinite(params.assignmentId) && Number.isFinite(params.week);
 
   return useQuery<topologyResponseData>({
-    queryKey: ['similarityTopology', params.assignmentId, params.week],
+    queryKey: ['similarityTopology', params.assignmentId, params.week]
     queryFn: () => fetchTopology(params),
     enabled,
     staleTime: 1000 * 60 * 5,

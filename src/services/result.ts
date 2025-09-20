@@ -3,6 +3,10 @@ import axiosInstance from './axiosInstance';
 import { topologyMock } from '@mocks/topologyMock';
 import { saveMock } from '@mocks/saveMock';
 import axios, { AxiosResponse } from 'axios';
+import { isDemo } from '@utils/demo';
+import { compareMock } from '@mocks/compareMock';
+import { judgeMock } from '@mocks/judgeMock';
+import { graphMock } from '@mocks/graphMock';
 
 /// 유사도 분석 결과 그래프
 export interface fetchGraphRequest {
@@ -16,6 +20,33 @@ export const fetchGraph = async ({
   assignmentId,
   week,
 }: fetchGraphRequest): Promise<import('types/result').graphMapped> => {
+  // 데모 스위치 우선
+  if (isDemo('graph')) {
+    await new Promise((r) => setTimeout(r, 200));
+    const raw = graphMock;
+    const nodes = raw.nodes.map((n) => ({ id: String(n.id), label: n.label }));
+    const summary = {
+      total: raw.filterSummary.total,
+      aboveThreshold: raw.filterSummary.aboveThreshold,
+      belowThreshold: raw.filterSummary.belowThreshold,
+      threshold: Math.round(raw.filterSummary.threshold * 100),
+    };
+    const mapPairs = (arr: import('types/result').graphRawPairItem[]) =>
+      arr.map((p) => ({
+        from: String(p.fromId),
+        to: String(p.toId),
+        similarity: Math.round(p.similarity * 100),
+      }));
+    return {
+      nodes,
+      summary,
+      pairs: {
+        aboveThreshold: mapPairs(raw.filterPairs.aboveThreshold),
+        belowThreshold: mapPairs(raw.filterPairs.belowThreshold),
+      },
+    };
+  }
+
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
   }
@@ -131,6 +162,16 @@ export const fetchCompare = async ({
   studentFromId,
   studentToId,
 }: compareRequest): Promise<import('types/result').compareResponseData> => {
+  if (isDemo('compare')) {
+    await new Promise((r) => setTimeout(r, 250));
+    const raw =
+      compareMock as unknown as import('types/result').compareRawResponse;
+    return {
+      student1: toCompareStudent(raw.student1),
+      student2: toCompareStudent(raw.student2),
+    };
+  }
+
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     const mock = (await import('@mocks/compareMock'))
@@ -186,6 +227,11 @@ export const fetchJudge = async ({
   studentFromId,
   studentToId,
 }: judgeRequest): Promise<import('types/result').judgeResponseData> => {
+  if (isDemo('judge')) {
+    await new Promise((r) => setTimeout(r, 200));
+    return judgeMock.message;
+  }
+
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     const mock = (await import('@mocks/judgeMock'))
@@ -235,6 +281,11 @@ export const savePlagiarismResult = async ({
 }: import('types/result').saveRequestPayload): Promise<
   import('types/result').saveApiResponse
 > => {
+  if (isDemo('save')) {
+    await new Promise((r) => setTimeout(r, 200));
+    return 'OK(DEMO)';
+  }
+
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
     return 'OK(MOCK)';

@@ -64,6 +64,18 @@ function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
   });
 }
 
+// 날짜 포맷 유틸
+const formatDate = (iso?: string) => {
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+};
+
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -183,6 +195,7 @@ const ResultPage: React.FC = () => {
   }, [graphNodes]);
 
   // 파이 hover → 관련 파일 목록
+
   const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
     if (!segment || !graphData) {
       setHoveredFiles([]);
