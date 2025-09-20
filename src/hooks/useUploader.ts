@@ -195,8 +195,8 @@ export function useUploader(concurrency = 3) {
 
     console.log('[registerUpload]', it.file.name, 'isLastFile=', isLastFile);
 
-    await registerUpload(
-      {
+    try {
+      await registerUpload({
         assignmentId: m.assignmentId,
         fileName: it.file.name,
         week: m.week,
@@ -205,15 +205,23 @@ export function useUploader(concurrency = 3) {
         studentName: m.studentName,
         s3Key: it.s3Key,
         isLastFile, // ✅ 여기서 최종 결정
-      }
-      // 등록 실패는 바깥에서 axios 에러로 throw
-    );
-
-    setItems((prev) =>
-      prev.map((x, idx) =>
-        idx === i ? { ...x, stage: 'done', progress: 100 } : x
-      )
-    );
+      });
+      setItems((prev) =>
+        prev.map((x, idx) =>
+          idx === i ? { ...x, stage: 'done', progress: 100 } : x
+        )
+      );
+    } catch (err) {
+      const msg =
+        (axios.isAxiosError(err) &&
+          (err.response?.data?.message ?? err.message)) ||
+        (err instanceof Error ? err.message : '등록 중 오류가 발생했습니다.');
+      setItems((prev) =>
+        prev.map((x, idx) =>
+          idx === i ? { ...x, stage: 'error', error: msg } : x
+        )
+      );
+    }
   }, []);
 
   /** start: 업로드(병렬) → 등록(완료 순서대로 직렬) */
