@@ -106,6 +106,25 @@ const toCompareStudent = (
   code: { code: s.code, lines: s.lines },
 });
 
+const normalizePair = (
+  a: string | number,
+  b: string | number
+): { from: string | number; to: string | number; swapped: boolean } => {
+  // 숫자 비교 우선, 실패 시 문자열 비교
+  const aNum = Number(a);
+  const bNum = Number(b);
+
+  if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+    if (aNum <= bNum) return { from: a, to: b, swapped: false };
+    return { from: b, to: a, swapped: true };
+  }
+
+  const aStr = String(a);
+  const bStr = String(b);
+  if (aStr <= bStr) return { from: a, to: b, swapped: false };
+  return { from: b, to: a, swapped: true };
+};
+
 export const fetchCompare = async ({
   assignmentId,
   week,
@@ -123,40 +142,27 @@ export const fetchCompare = async ({
     };
   }
 
-  // 1차: (오타 버전) assignmets
-  const tryOnce = async (fixedPath = false) => {
-    const base = fixedPath
-      ? '/api/result/assignments'
-      : '/api/result/assignmets';
-    const url = `${base}/${assignmentId}/compare`;
-    const resp = await axiosInstance.get<
-      import('types/result').compareRawResponse
-    >(url, {
-      params: { studentFromId, studentToId, week },
-    });
-    return resp;
-  };
+  // ✅ 여기서부터 정렬 보장: studentFromId < studentToId
+  const { from, to, swapped } = normalizePair(studentFromId, studentToId);
 
   try {
-    let response: AxiosResponse<import('types/result').compareRawResponse>;
+    const url = `/api/result/assignments/${assignmentId}/compare`;
+    const response = await axiosInstance.get<
+      import('types/result').compareRawResponse
+    >(url, {
+      params: { studentFromId: from, studentToId: to, week },
+    });
 
-    try {
-      response = await tryOnce(false);
-    } catch (err: unknown) {
-      // 404면 정식 스펠링으로 재시도
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
-        response = await tryOnce(true);
-      } else {
-        throw err; // unknown 그대로 전달
-      }
+    const raw = response.data;
+
+    let student1 = toCompareStudent(raw.student1);
+    let student2 = toCompareStudent(raw.student2);
+
+    if (swapped) {
+      [student1, student2] = [student2, student1];
     }
 
-    const raw = response.data as import('types/result').compareRawResponse;
-
-    return {
-      student1: toCompareStudent(raw.student1),
-      student2: toCompareStudent(raw.student2),
-    };
+    return { student1, student2 };
   } catch (error) {
     console.error('fetchCompare error:', error);
     throw error;

@@ -80,6 +80,16 @@ const ResultPage: React.FC = () => {
   const fromSaved: boolean | undefined = (
     location.state as { fromSaved?: boolean } | undefined
   )?.fromSaved;
+
+  React.useEffect(() => {
+    if (fromSaved) return; // 저장된 기록에서 진입한 경우 건드리지 않음
+
+    const st = useAssignmentStore.getState();
+    // null/undefined일 때만 기본값 세팅 (이미 값 있으면 유지)
+    if (st.assignmentId == null) st.setAssignmentId(1);
+    if (st.week == null) st.setWeek(1);
+  }, [fromSaved]);
+
   const recordId: string | number | undefined = (
     location.state as { recordId?: string | number } | undefined
   )?.recordId;
