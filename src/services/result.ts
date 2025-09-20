@@ -4,7 +4,7 @@ import { topologyMock } from '@mocks/topologyMock';
 import { saveMock } from '@mocks/saveMock';
 import axios, { AxiosResponse } from 'axios';
 import { isDemo } from '@utils/demo';
-import { compareMock } from '@mocks/compareMock';
+// import { compareMock } from '@mocks/compareMock';
 import { judgeMock } from '@mocks/judgeMock';
 import { graphMock } from '@mocks/graphMock';
 
@@ -162,28 +162,9 @@ export const fetchCompare = async ({
   studentFromId,
   studentToId,
 }: compareRequest): Promise<import('types/result').compareResponseData> => {
-  if (isDemo('compare')) {
-    await new Promise((r) => setTimeout(r, 250));
-    const raw =
-      compareMock as unknown as import('types/result').compareRawResponse;
-    return {
-      student1: toCompareStudent(raw.student1),
-      student2: toCompareStudent(raw.student2),
-    };
-  }
+  // 데모/목킹 가드 전부 제거
 
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    const mock = (await import('@mocks/compareMock'))
-      .compareMock as import('types/result').compareRawResponse;
-    const raw = mock as unknown as import('types/result').compareRawResponse;
-    return {
-      student1: toCompareStudent(raw.student1),
-      student2: toCompareStudent(raw.student2),
-    };
-  }
-
-  // ✅ 여기서부터 정렬 보장: studentFromId < studentToId
+  // 정렬 보장: studentFromId < studentToId
   const { from, to, swapped } = normalizePair(studentFromId, studentToId);
 
   try {
