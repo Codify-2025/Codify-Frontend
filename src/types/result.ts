@@ -1,5 +1,4 @@
-/// 유사도 분석 결과 그래프
-
+// --- graph ---
 export interface graphRawNode {
   id: number;
   label: string;
@@ -9,13 +8,13 @@ export interface graphRawFilterSummary {
   total: number;
   aboveThreshold: number;
   belowThreshold: number;
-  threshold: number;
+  threshold: number; // 서버는 0~1 실수, 코드에서 %로 변환
 }
 
 export interface graphRawPairItem {
   fromId: number;
   toId: number;
-  similarity: number;
+  similarity: number; // 서버는 0~1 실수, 코드에서 %로 변환
 }
 
 export interface graphRawFilterPairs {
@@ -37,14 +36,14 @@ export interface graphNode {
 export interface graphPairThreshold {
   from: string;
   to: string;
-  similarity: number;
+  similarity: number; // percent
 }
 
 export interface graphFilterSummary {
   total: number;
   aboveThreshold: number;
   belowThreshold: number;
-  threshold: number;
+  threshold: number; // percent
 }
 
 export interface graphMapped {
@@ -56,11 +55,10 @@ export interface graphMapped {
   };
 }
 
-/// 유사도 네트워크 토폴로지
-
+// --- topology (래핑 없음) ---
 export interface topologyRelatedFiles {
   fileName: string;
-  similarity: number;
+  similarity: number; // 0~1
 }
 
 export interface topologyNode {
@@ -80,8 +78,8 @@ export interface topologyEdge {
   id: string;
   from: string;
   to: string;
-  value: number;
-  width: number;
+  value: number; // 0~1
+  width?: number; // 서버에 없으므로 선택값으로
   comparedFiles: string;
   histories: topologyEdgeHistory[];
 }
@@ -91,15 +89,7 @@ export interface topologyResponseData {
   edges: topologyEdge[];
 }
 
-export interface topologyApiResponse {
-  status: number;
-  success: boolean;
-  message: topologyResponseData;
-}
-
-/// 유사도 코드 비교
-
-// --- [compare: Raw from server] ---
+// --- compare ---
 export interface compareRawStudent {
   id: string;
   name: string;
@@ -114,7 +104,6 @@ export interface compareRawResponse {
   student2: compareRawStudent;
 }
 
-// --- [compare: Mapped for UI] ---
 export interface compareCode {
   code: string[];
   lines: number[];
@@ -133,8 +122,7 @@ export interface compareResponseData {
   student2: compareStudent;
 }
 
-/// 표절 판단
-
+// --- judge ---
 export interface judgeStudent {
   id: string;
   name: string;
@@ -153,11 +141,9 @@ export interface judgeApiResponse {
   message: judgeResponseData;
 }
 
-/// 결과 저장
-
+// --- save ---
 export type saveApiResponse = string;
 
-// 요청에 넣을 학생 타입
 export interface saveStudentPayload {
   id: number | string;
   name: string;
@@ -165,7 +151,6 @@ export interface saveStudentPayload {
   submittedTime: string;
 }
 
-// 저장 요청 본문 + 쿼리 파라미터(week)와 path 파라미터(assignmentId)
 export interface saveRequestPayload {
   assignmentId: number;
   week: number;

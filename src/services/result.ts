@@ -1,4 +1,4 @@
-import { saveApiResponse, topologyApiResponse } from 'types/result';
+import { saveApiResponse, topologyResponseData } from 'types/result';
 import axiosInstance from './axiosInstance';
 import { topologyMock } from '@mocks/topologyMock';
 import { saveMock } from '@mocks/saveMock';
@@ -98,25 +98,21 @@ export const fetchGraph = async ({
 export const fetchTopology = async ({
   assignmentId,
   week,
-}: fetchGraphRequest): Promise<topologyApiResponse> => {
-  if (isDemo('topology')) {
-    await new Promise((r) => setTimeout(r, 250));
-    return topologyMock;
-  }
-
+}: fetchGraphRequest): Promise<topologyResponseData> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
     await new Promise((r) => setTimeout(r, 300));
-    return topologyMock;
+    // 목이 래핑되어 있다면 여기서 message를 꺼내서 맞춰주세요.
+    // return topologyMock.message;
+    return (topologyMock as unknown as { message: topologyResponseData })
+      .message;
   }
 
   try {
-    const response = await axiosInstance.get<topologyApiResponse>(
+    const response = await axiosInstance.get<topologyResponseData>(
       `/api/result/topology`,
-      {
-        params: { assignmentId, week },
-      }
+      { params: { assignmentId, week } }
     );
-    return response.data;
+    return response.data; // ← 래핑 없음 그대로
   } catch (error) {
     console.error('fetchTopology error:', error);
     throw error;
@@ -140,6 +136,25 @@ const toCompareStudent = (
   submissionTime: s.submissionTime,
   code: { code: s.code, lines: s.lines },
 });
+
+const normalizePair = (
+  a: string | number,
+  b: string | number
+): { from: string | number; to: string | number; swapped: boolean } => {
+  // 숫자 비교 우선, 실패 시 문자열 비교
+  const aNum = Number(a);
+  const bNum = Number(b);
+
+  if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+    if (aNum <= bNum) return { from: a, to: b, swapped: false };
+    return { from: b, to: a, swapped: true };
+  }
+
+  const aStr = String(a);
+  const bStr = String(b);
+  if (aStr <= bStr) return { from: a, to: b, swapped: false };
+  return { from: b, to: a, swapped: true };
+};
 
 export const fetchCompare = async ({
   assignmentId,
@@ -168,40 +183,27 @@ export const fetchCompare = async ({
     };
   }
 
-  // 1차: (오타 버전) assignmets
-  const tryOnce = async (fixedPath = false) => {
-    const base = fixedPath
-      ? '/api/result/assignments'
-      : '/api/result/assignmets';
-    const url = `${base}/${assignmentId}/compare`;
-    const resp = await axiosInstance.get<
-      import('types/result').compareRawResponse
-    >(url, {
-      params: { studentFromId, studentToId, week },
-    });
-    return resp;
-  };
+  // ✅ 여기서부터 정렬 보장: studentFromId < studentToId
+  const { from, to, swapped } = normalizePair(studentFromId, studentToId);
 
   try {
-    let response: AxiosResponse<import('types/result').compareRawResponse>;
+    const url = `/api/result/assignments/${assignmentId}/compare`;
+    const response = await axiosInstance.get<
+      import('types/result').compareRawResponse
+    >(url, {
+      params: { studentFromId: from, studentToId: to, week },
+    });
 
-    try {
-      response = await tryOnce(false);
-    } catch (err: unknown) {
-      // 404면 정식 스펠링으로 재시도
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
-        response = await tryOnce(true);
-      } else {
-        throw err; // unknown 그대로 전달
-      }
+    const raw = response.data;
+
+    let student1 = toCompareStudent(raw.student1);
+    let student2 = toCompareStudent(raw.student2);
+
+    if (swapped) {
+      [student1, student2] = [student2, student1];
     }
 
-    const raw = response.data as import('types/result').compareRawResponse;
-
-    return {
-      student1: toCompareStudent(raw.student1),
-      student2: toCompareStudent(raw.student2),
-    };
+    return { student1, student2 };
   } catch (error) {
     console.error('fetchCompare error:', error);
     throw error;

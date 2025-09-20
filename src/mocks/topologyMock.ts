@@ -1,4 +1,4 @@
-import type { topologyApiResponse } from 'types/result';
+import { topologyResponseData } from '@typings/result';
 
 const iso = (s: string) => new Date(s).toISOString();
 
@@ -71,17 +71,13 @@ const edgesCross = [
   edge('20230008', '20230009', 0.15),
 ];
 
-export const topologyMock: topologyApiResponse = {
-  status: 200,
-  success: true,
-  message: {
-    nodes: students.map((s, i) => ({
-      id: s.id,
-      label: s.label,
-      fileName: s.fileName,
-      submittedAt: submittedAt[i],
-      relatedFiles: [], // 필요 시 채워도 됨
-    })),
-    edges: [...edgesA, ...edgesB, ...edgesCross],
-  },
+export const topologyMock: topologyResponseData = {
+  nodes: students.map((s, i) => ({
+    id: s.id,
+    label: s.label,
+    fileName: s.fileName,
+    submittedAt: submittedAt[i],
+    relatedFiles: [], // 필요 시 채워도 됨
+  })),
+  edges: [...edgesA, ...edgesB, ...edgesCross],
 };

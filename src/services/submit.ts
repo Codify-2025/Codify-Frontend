@@ -1,13 +1,11 @@
 import {
   AddSubjectApiResponse,
-  analyzeApiResponse,
   CreateAssignmentWithWeekResponse,
   SubjectItem,
 } from 'types/submit';
 import axiosInstance from './axiosInstance';
 import { addSubjectMock } from '@mocks/addSubjectMock';
 import { viewSubjectMock } from '@mocks/viewSubjectMock';
-import { analyzeMock } from '@mocks/analyzeMock';
 
 /// 새로운 과목 추가
 
@@ -71,19 +69,21 @@ export const createAssignmentWithWeek = async ({
 
 /// 유사도 분석
 
-export const fetchAnalyze = async (
-  token: string
-): Promise<analyzeApiResponse> => {
+export type AnalyzeStatus = 'ready' | 'done';
+export interface AnalyzeStatusResponse {
+  status: AnalyzeStatus; // "ready" | "done"
+}
+
+// GET /api/similarity/analyze
+export const getAnalyzeStatus = async (): Promise<AnalyzeStatusResponse> => {
   if (import.meta.env.VITE_USE_MOCK === 'true') {
-    await new Promise((r) => setTimeout(r, 300));
-    return analyzeMock;
+    // 간단한 목 로직 (원하면 제거)
+    await new Promise((r) => setTimeout(r, 600));
+    return { status: Math.random() < 0.75 ? 'ready' : 'done' };
   }
 
-  const response = await axiosInstance.get<analyzeApiResponse>(
-    `/api/submit/analyze`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+  const res = await axiosInstance.get<AnalyzeStatusResponse>(
+    '/api/similarity/analyze'
   );
-  return response.data;
+  return res.data;
 };
