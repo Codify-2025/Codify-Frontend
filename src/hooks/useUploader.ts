@@ -118,7 +118,7 @@ export function useUploader(concurrency = 3) {
 
       // 2) /api/upload/presigned-url
       const presignedRaw = (await getPresignedUrl(
-        { fileName: target.file.name, assignmentId: m.assignmentId || 1 },
+        { fileName: target.file.name, assignmentId: m.assignmentId },
         ac.signal
       )) as GetPresignedUrlResponse;
 
@@ -197,7 +197,7 @@ export function useUploader(concurrency = 3) {
 
     await registerUpload(
       {
-        assignmentId: m.assignmentId || 1,
+        assignmentId: m.assignmentId,
         fileName: it.file.name,
         week: m.week,
         submissionDate: toLocalISOStringWithOffset(m.submissionDate),
