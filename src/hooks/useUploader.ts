@@ -2,15 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { getPresignedUrl, registerUpload } from '@services/upload.api';
 import { toLocalISOStringWithOffset } from '@utils/date';
-
-// ===== Types =====
-type MetaBase = {
-  assignmentId: number;
-  week: number;
-  submissionDate: Date;
-  studentId: number;
-  studentName: string;
-};
+import { MetaBase, UploadItemState } from '@typings/upload';
 
 type GetPresignedUrlResponse =
   | { s3Key: string; url: string; headers?: Record<string, string> }
@@ -21,25 +13,6 @@ type PresignedPut = {
   s3Key: string;
   headers?: Record<string, string>;
 };
-
-export type UploadStage =
-  | 'idle'
-  | 'presigning'
-  | 'uploading'
-  | 'uploaded' // ✅ S3 업로드 완료, 아직 서버 등록 전
-  | 'registering'
-  | 'done'
-  | 'error';
-
-export interface UploadItemState {
-  file: File;
-  progress: number; // 0~100
-  stage: UploadStage;
-  s3Key?: string;
-  etag?: string;
-  error?: string;
-  meta?: MetaBase; // enqueue 시 고정 저장
-}
 
 // ===== S3 PUT helper =====
 async function uploadFileToS3(

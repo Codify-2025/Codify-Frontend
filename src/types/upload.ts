@@ -32,6 +32,7 @@ export type UploadStage =
   | 'idle'
   | 'presigning'
   | 'uploading'
+  | 'uploaded'
   | 'registering'
   | 'done'
   | 'error';
@@ -43,5 +44,13 @@ export interface UploadItemState {
   s3Key?: string;
   etag?: string;
   error?: string;
-  // meta?: MetaBase;
+  meta?: MetaBase;
 }
+
+export type MetaBase = {
+  assignmentId: number;
+  week: number;
+  submissionDate: Date;
+  studentId: number;
+  studentName: string;
+};
