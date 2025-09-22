@@ -11,20 +11,17 @@ export interface BaseAnalysisRecord {
 
 export interface GroupAnalysisRecord extends BaseAnalysisRecord {
   type: 'group';
+  preview?: {
+    nodes: { id: string; label: string; submittedAt: string }[];
+    edges: { from: string; to: string; similarity: number }[];
+    stats: { pairs: number; maxSim: number; avgSim: number };
+  };
 }
 
 export interface PairAnalysisRecord extends BaseAnalysisRecord {
   type: 'pair';
-  fileA: {
-    id: string;
-    label: string;
-    submittedAt: string;
-  };
-  fileB: {
-    id: string;
-    label: string;
-    submittedAt: string;
-  };
+  fileA: { id: string; label: string; submittedAt: string };
+  fileB: { id: string; label: string; submittedAt: string };
   similarity: number;
   width?: number;
 }

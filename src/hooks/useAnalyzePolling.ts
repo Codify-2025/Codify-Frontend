@@ -1,19 +1,36 @@
-import { useQuery } from 'react-query';
+// useAnalyzePolling.ts
+import { useQuery, useQueryClient } from 'react-query';
+import { useState } from 'react';
 import { getAnalyzeStatus, AnalyzeStatusResponse } from '@services/submit';
 
+// 모듈 스코프 전역 플래그
+let halted = false;
+export const resetAnalyzePolling = () => {
+  halted = false;
+};
+
 export const useAnalyzePolling = () => {
+  const qc = useQueryClient();
+  const [stopped, setStopped] = useState(halted);
+
   return useQuery<AnalyzeStatusResponse, Error>(
     ['similarity-analyze'],
     () => getAnalyzeStatus(),
     {
-      refetchInterval: (data) => {
-        // "done" 전까지 폴링, 완료되면 멈춤
-        if (!data) return 1500;
-        return data.status === 'done' ? false : 1500; // 1.5s 간격
-      },
+      enabled: !(halted || stopped),
+      refetchInterval: (data) =>
+        halted || stopped || data?.status === 'done' ? false : 1500,
+      retry: false,
       refetchOnWindowFocus: false,
       staleTime: 0,
-      cacheTime: 0,
+      cacheTime: 60_000,
+      onSuccess: (data) => {
+        if (data.status === 'done') {
+          halted = true;
+          setStopped(true);
+          qc.cancelQueries(['similarity-analyze']);
+        }
+      },
     }
   );
 };

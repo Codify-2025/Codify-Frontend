@@ -145,7 +145,7 @@ export interface judgeApiResponse {
 export type saveApiResponse = string;
 
 export interface saveStudentPayload {
-  id: number | string;
+  id: number;
   name: string;
   fileName: string;
   submittedTime: string;

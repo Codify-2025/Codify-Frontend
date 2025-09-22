@@ -35,7 +35,7 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
         1차 필터링 결과
       </Text>
       <Text variant="caption" color="muted" className="mb-4">
-        설정된 임계값(0.8)을 기준으로 사전 필터링된 비율입니다.
+        설정된 임계값을 기준으로 사전 필터링된 비율입니다.
       </Text>
 
       <div className="mx-auto w-full">

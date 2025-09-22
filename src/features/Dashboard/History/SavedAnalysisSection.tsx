@@ -7,7 +7,7 @@ import { useRecord } from '@hooks/useRecord';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 import { buildSavedRecords } from '@utils/savedRecord.utils';
 
-type SortOption = 'latest' | 'similarity';
+// type SortOption = 'latest' | 'similarity';
 
 // const clamp01 = (v: unknown) => {
 //   const n = Number(v);
@@ -16,8 +16,8 @@ type SortOption = 'latest' | 'similarity';
 // };
 
 const SavedAnalysisSection: React.FC = () => {
-  const [sortOption, setSortOption] = useState<SortOption>('latest');
-  const [search, setSearch] = useState('');
+  // const [sortOption, setSortOption] = useState<SortOption>('latest');
+  const [search] = useState('');
   const { selectedSubject } = useSubjectStore();
 
   const subjectIdNum = Number(selectedSubject?.subjectId);
@@ -30,27 +30,17 @@ const SavedAnalysisSection: React.FC = () => {
   // 응답 -> 화면 모델 어댑트
   const records: SavedAnalysisRecord[] = useMemo(() => {
     if (!hasSubject) return [];
-    // 유틸로 일관된 규칙으로 생성
     const built = buildSavedRecords(data, selectedSubject?.subjectName ?? '');
-
-    // 섹션에서 필요하면 subjectId를 주입
-    return built.map((r) => ({ ...r, subjectId: subjectIdNum }));
+    return built.map((r) => ({ ...r, subjectId: subjectIdNum })); // preview 포함됨
   }, [data, hasSubject, selectedSubject, subjectIdNum]);
 
   // 정렬
   const sorted = useMemo(() => {
     const list = [...records];
-    if (sortOption === 'similarity') {
-      return list.sort((a, b) => {
-        if (a.type !== 'pair') return 1;
-        if (b.type !== 'pair') return -1;
-        return (b.similarity ?? 0) - (a.similarity ?? 0);
-      });
-    }
     return list.sort(
       (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     );
-  }, [records, sortOption]);
+  }, [records]);
 
   // 검색
   const filtered = useMemo(() => {
@@ -85,7 +75,7 @@ const SavedAnalysisSection: React.FC = () => {
 
       {/* 컨트롤 바 */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex overflow-hidden rounded-lg border">
+        {/* <div className="inline-flex overflow-hidden rounded-lg border">
           <button
             className={[
               'px-4 py-2 text-sm transition',
@@ -108,9 +98,9 @@ const SavedAnalysisSection: React.FC = () => {
           >
             유사도 높은 순
           </button>
-        </div>
+        </div> */}
 
-        <div className="relative w-full sm:w-72">
+        {/* <div className="relative w-full sm:w-72">
           <input
             type="text"
             value={search}
@@ -121,7 +111,7 @@ const SavedAnalysisSection: React.FC = () => {
           <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* 목록 */}
