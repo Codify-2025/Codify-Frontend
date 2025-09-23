@@ -9,7 +9,6 @@ import { useSelectedFileStore } from '@stores/useSelectedFileStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { dummyFiles } from '@constants/dummyFiles';
 import { useSavedRecordStore } from '@stores/useSavedRecordStore';
-import { useAuthStore } from '@stores/useAuthStore';
 import { useSubjectStore } from '@stores/useSubjectStore';
 import { FiChevronRight } from 'react-icons/fi';
 import type { FileNode, FileEdge } from 'types/similarity';
@@ -70,7 +69,6 @@ const ResultPage: React.FC = () => {
 
   const { name, week, assignmentId } = useAssignmentStore();
   const { selectedSubject } = useSubjectStore();
-  const { isLoggedIn } = useAuthStore();
 
   const { setFiles, setSelectedFiles } = useSelectedFileStore();
 
@@ -230,14 +228,6 @@ const ResultPage: React.FC = () => {
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
   }, [graphNodes, graphEdges]);
-
-  const handleSave = () => {
-    if (!isLoggedIn) {
-      navigate('/login', { state: { from: 'result' } });
-      return;
-    }
-    console.log('결과 저장 진행');
-  };
 
   return (
     <Layout>
@@ -489,10 +479,10 @@ const ResultPage: React.FC = () => {
 
         <div className="flex justify-end">
           <Button
-            text="결과 저장하기"
-            variant="primary"
+            text="대시보드로 이동"
+            variant="secondary"
             size="lg"
-            onClick={handleSave}
+            onClick={() => navigate('/dashboard')}
           />
         </div>
       </div>

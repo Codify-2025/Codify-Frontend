@@ -23,6 +23,43 @@ const formatDate = (iso?: string) => {
   }
 };
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+const toUTCStamp = (d: Date) =>
+  `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())} ${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}`;
+
+/** 서버 전송용 UTC 포맷: YYYY-MM-DD HH:mm:ss */
+const formatServerTimestampUTC = (input?: string): string => {
+  if (!input) return '';
+
+  // 1) 'YYYY-MM-DD HH:mm' or 'YYYY-MM-DD HH:mm:ss' 또는 ' ' 대신 'T'
+  const m = input.match(
+    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/
+  );
+  if (m) {
+    const [, y, mo, d, h, mi, s] = m;
+    // ↳ "타임존 없는 문자열"은 브라우저/런타임의 로컬 시간으로 간주해 Date 생성
+    const local = new Date(
+      Number(y),
+      Number(mo) - 1,
+      Number(d),
+      Number(h),
+      Number(mi),
+      s ? Number(s) : 0
+    );
+    return toUTCStamp(local);
+  }
+
+  // 2) ISO 등 Date가 파싱 가능한 문자열: 오프셋/Z 포함 시 그 기준으로 UTC 변환
+  const parsed = new Date(input);
+  if (!Number.isNaN(+parsed)) {
+    return toUTCStamp(parsed);
+  }
+
+  // 3) 알 수 없는 형식은 그대로(서버가 받도록 위임)
+  return input;
+};
+
 type DecisionLocationState = {
   studentFromId?: string | number;
   studentToId?: string | number;
@@ -38,6 +75,12 @@ const toPercent = (v: number) => {
       : Math.round(v * 100)
     : 0;
   return Math.max(0, Math.min(100, n));
+};
+
+const parseIdToNumber = (v: string | number): number => {
+  const n = typeof v === 'number' ? v : Number(v);
+  if (Number.isFinite(n)) return n;
+  throw new Error(`Invalid student id: ${v}`);
 };
 
 const PlagiarismDecisionPage: React.FC = () => {
@@ -147,10 +190,12 @@ const PlagiarismDecisionPage: React.FC = () => {
     const j = judge[who];
     const parsedFromLabel = fallback.label.match(/\((.*?)\)\s*$/)?.[1] ?? '';
     return {
-      id: j.id ?? fallback.id,
+      id: parseIdToNumber((j.id as unknown as string | number) ?? fallback.id),
       name: j.name ?? fallback.label,
       fileName: fallback.fileName ?? parsedFromLabel,
-      submittedTime: j.submittedTime ?? fallback.submittedAt,
+      submittedTime: formatServerTimestampUTC(
+        j.submittedTime ?? fallback.submittedAt
+      ),
     };
   };
 

@@ -8,6 +8,7 @@ import { FiInfo } from 'react-icons/fi';
 import { useAssignmentStore } from '@stores/useAssignmentStore';
 import { useNavigate } from 'react-router-dom';
 import { useSubjectStore } from '@stores/useSubjectStore';
+import { resetAnalyzePolling } from '@hooks/useAnalyzePolling';
 
 const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,10 @@ const UploadPage: React.FC = () => {
   const guideId = useId();
   const guideHeadingId = useId();
 
-  const handleStartAnalysis = () => navigate('/analysis/loading');
+  const handleStartAnalysis = () => {
+    resetAnalyzePolling();
+    navigate('/analysis/loading');
+  };
 
   return (
     <Layout>
