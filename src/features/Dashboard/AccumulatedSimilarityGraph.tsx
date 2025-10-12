@@ -130,16 +130,31 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     return base.nodes.filter((n) => keep.has(n.id));
   }, [base.nodes, filteredEdges, focusNodeId]);
 
-  const tableRows = useMemo(
-    () =>
-      filteredEdges
-        .filter((e) => (e.count ?? 0) >= 2)
-        .sort(
-          (a, b) =>
-            (b.count ?? 0) - (a.count ?? 0) || b.similarity - a.similarity
-        ),
-    [filteredEdges]
-  );
+  const tableRows = useMemo(() => {
+    const agg = new Map<
+      string,
+      { from: string; to: string; similarity: number; count: number }
+    >();
+    for (const e of filteredEdges) {
+      const [a, b] = e.from <= e.to ? [e.from, e.to] : [e.to, e.from];
+      const k = `${a}-${b}`;
+      const prev = agg.get(k);
+      if (!prev) {
+        agg.set(k, {
+          from: a,
+          to: b,
+          similarity: e.similarity,
+          count: e.count ?? 0,
+        });
+      } else {
+        prev.count += e.count ?? 0; // 관측 수 합산
+        prev.similarity = Math.max(prev.similarity, e.similarity); // 대표 유사도는 최고값
+      }
+    }
+    return Array.from(agg.values())
+      .filter((r) => r.count >= 2)
+      .sort((x, y) => y.count - x.count || y.similarity - x.similarity);
+  }, [filteredEdges]);
 
   if (isLoading) return <LoadingSkeleton />;
   if (isError || !data) return <ErrorState />;
