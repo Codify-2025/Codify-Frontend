@@ -1,4 +1,3 @@
-// SavedAnalysisItem.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
@@ -16,6 +15,27 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
   const subjectId = selectedSubject
     ? String(selectedSubject.subjectId)
     : undefined;
+
+  const goGroup = () => {
+    if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+    // group: 상세 페이지는 week 기반으로 이동
+    navigate(`/subjects/${subjectId}/record/${String(record.week)}`);
+  };
+
+  const goPair = () => {
+    if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+
+    // any 제거, 타입에 있는 week 사용
+    const week = record.week; // number
+
+    if (Number.isFinite(week)) {
+      navigate(`/subjects/${subjectId}/record/${String(week)}`);
+    } else {
+      alert(
+        '해당 비교 기록의 주차 정보(week)가 없어 상세 페이지로 이동할 수 없습니다.'
+      );
+    }
+  };
 
   // --- GROUP (주차 전체 결과 요약 카드) ---
   if (record.type === 'group') {
@@ -53,14 +73,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         <button
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-          onClick={() => {
-            if (!subjectId) {
-              alert('과목을 먼저 선택해 주세요.');
-              return;
-            }
-            // record.id = week (주차)
-            navigate(`/subjects/${subjectId}/record/${record.id}`);
-          }}
+          onClick={goGroup}
         >
           {/* 미리보기 요약 카드 */}
           <div className="flex h-full w-full flex-col justify-between">
@@ -136,13 +149,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
       <button
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
-        onClick={() => {
-          if (!subjectId) {
-            alert('과목을 먼저 선택해 주세요.');
-            return;
-          }
-          navigate(`/subjects/${subjectId}/record/${record.id}`);
-        }}
+        onClick={goPair}
       >
         <div className="text-center">
           <Text variant="body" weight="bold" className="text-xl text-red-600">
