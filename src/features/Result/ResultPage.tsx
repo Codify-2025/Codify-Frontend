@@ -240,14 +240,28 @@ const ResultPage: React.FC = () => {
 
   // 엣지에 맞춰 노드 축소
   const filteredNodes = useMemo(() => {
+    // 밴드 체크박스 중 하나라도 꺼져 있으면 밴드 필터가 활성화된 상태
     const hasBandFilter = Object.values(showBands).some((v) => !v);
+    // 기준초과 토글 또는 특정 노드 포커스 중 하나라도 켜져 있으면 기타 필터 활성
     const hasOtherFilter = showOnlyAboveThreshold || Boolean(focusNodeId);
     const filtersActive = hasBandFilter || hasOtherFilter;
 
+    // 필터가 하나도 켜져 있지 않으면 원본 노드를 그대로 보여줌 (고립 노드 유지)
     if (!filtersActive) return graphNodes;
 
-    if (!filteredEdges.length)
+    // 필터가 켜진 경우에만 엣지 기반 축소
+    if (!filteredEdges.length) {
       return focusNodeId ? graphNodes.filter((n) => n.id === focusNodeId) : [];
+    }
+
+    const keep = new Set<string>();
+    for (const e of filteredEdges) {
+      keep.add(e.from);
+      keep.add(e.to);
+    }
+    if (focusNodeId) keep.add(focusNodeId);
+
+    return graphNodes.filter((n) => keep.has(n.id));
   }, [
     graphNodes,
     filteredEdges,
