@@ -49,7 +49,10 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
               innerRadius={60}
               outerRadius={100}
               dataKey="value"
-              onClick={(_, idx) => onSegmentClick?.(data[idx].name)}
+              onClick={(_, idx) => {
+                const seg = typeof idx === 'number' ? data[idx] : undefined;
+                if (seg) onSegmentClick?.(seg.name);
+              }}
               onMouseEnter={handleEnter}
               labelLine={false}
               label={(props: { name: PieDatum['name']; percent: number }) =>

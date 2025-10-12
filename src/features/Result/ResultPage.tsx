@@ -240,16 +240,21 @@ const ResultPage: React.FC = () => {
 
   // 엣지에 맞춰 노드 축소
   const filteredNodes = useMemo(() => {
+    const hasBandFilter = Object.values(showBands).some((v) => !v);
+    const hasOtherFilter = showOnlyAboveThreshold || Boolean(focusNodeId);
+    const filtersActive = hasBandFilter || hasOtherFilter;
+
+    if (!filtersActive) return graphNodes;
+
     if (!filteredEdges.length)
       return focusNodeId ? graphNodes.filter((n) => n.id === focusNodeId) : [];
-    const keep = new Set<string>();
-    for (const e of filteredEdges) {
-      keep.add(e.from);
-      keep.add(e.to);
-    }
-    if (focusNodeId) keep.add(focusNodeId);
-    return graphNodes.filter((n) => keep.has(n.id));
-  }, [graphNodes, filteredEdges, focusNodeId]);
+  }, [
+    graphNodes,
+    filteredEdges,
+    focusNodeId,
+    showBands,
+    showOnlyAboveThreshold,
+  ]);
 
   // StoreFileData
   const storeFilesFromTopo: StoreFileData[] = useMemo(() => {
