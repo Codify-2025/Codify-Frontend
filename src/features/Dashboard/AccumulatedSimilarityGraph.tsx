@@ -5,16 +5,13 @@ import { useSubjectStore } from '@stores/useSubjectStore';
 import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 import { useAccumulatedTopology } from '@hooks/useAccumulatedTopology';
 
-// ----- 타입 정의 (any 제거)
 type AccNode = { id: string; label: string; submittedAt: string };
 type AccEdge = { from: string; to: string; similarity: number; count?: number };
 
-type BandMode = 'absolute' | 'quantile';
 type BandName = 'very' | 'high' | 'mid' | 'low';
 const ABS_BANDS = { very: 90, high: 75, mid: 60 } as const;
 const GRAPH_HEIGHT = 520;
 
-// 공통 정규화
 const normalize = (s: string) =>
   s
     .toLowerCase()
@@ -37,8 +34,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
   const { selectedSubject } = useSubjectStore();
   const subjectId = selectedSubject?.subjectId;
 
-  // 구간 필터 & 검색 상태 (기본: 매우 높음만 켬)
-  const [bandMode, setBandMode] = useState<BandMode>('absolute');
   const [showBands, setShowBands] = useState<Record<BandName, boolean>>({
     very: true,
     high: false,
@@ -48,13 +43,10 @@ const AccumulatedSimilarityGraph: React.FC = () => {
   const [focusQuery, setFocusQuery] = useState('');
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
-  // 서버 데이터 훅
   const { data, isLoading, isError } = useAccumulatedTopology(subjectId);
 
-  // ---- 원본 그래프 변환 (안전하게 비어있는 배열 반환)
   const base = useMemo((): { nodes: AccNode[]; edges: AccEdge[] } => {
     if (!data || !subjectId) return { nodes: [], edges: [] };
-
     const seen = new Set<string>();
     const nodes: AccNode[] = data.nodes.reduce<AccNode[]>((acc, n) => {
       const id = `${subjectId}:${String(n.id)}`;
@@ -64,18 +56,15 @@ const AccumulatedSimilarityGraph: React.FC = () => {
       }
       return acc;
     }, []);
-
     const edges: AccEdge[] = data.edges.map((e) => ({
       from: `${subjectId}:${String(e.from)}`,
       to: `${subjectId}:${String(e.to)}`,
       similarity: Math.round((e.value ?? 0) * 100),
       count: e.count ?? 1,
     }));
-
     return { nodes, edges };
   }, [data, subjectId]);
 
-  // 정규화 노드 캐시
   const normNodes = useMemo(
     () =>
       base.nodes.map((n) => ({
@@ -86,7 +75,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     [base.nodes]
   );
 
-  // 분위수 컷
   const quantileCuts = useMemo(() => {
     const sims = base.edges.map((e) => e.similarity).sort((a, b) => a - b);
     return {
@@ -96,15 +84,19 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     };
   }, [base.edges]);
 
-  const edgeToBand = (sim: number): BandName => {
-    const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
-    if (sim >= cuts.very) return 'very';
-    if (sim >= cuts.high) return 'high';
-    if (sim >= cuts.mid) return 'mid';
+  // ✅ 하이브리드 분류
+  const edgeToBandHybrid = (sim: number): BandName => {
+    const q = quantileCuts;
+    if (sim >= ABS_BANDS.very || sim >= q.very) return 'very';
+    const isAbsHigh = sim >= ABS_BANDS.high && sim < ABS_BANDS.very;
+    const isQHigh = sim >= q.high && sim < q.very;
+    if (isAbsHigh || isQHigh) return 'high';
+    const isAbsMid = sim >= ABS_BANDS.mid && sim < ABS_BANDS.high;
+    const isQMid = sim >= q.mid && sim < q.high;
+    if (isAbsMid || isQMid) return 'mid';
     return 'low';
   };
 
-  // 검색 → focusNodeId (useEffect로! 훅 순서 안정)
   useEffect(() => {
     const raw = focusQuery.trim();
     if (!raw) {
@@ -117,13 +109,14 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     setFocusNodeId(found ? found.id : null);
   }, [focusQuery, normNodes]);
 
-  // 필터링
   const filteredEdges = useMemo(() => {
-    let es = base.edges.filter((e) => showBands[edgeToBand(e.similarity)]);
+    let es = base.edges.filter(
+      (e) => showBands[edgeToBandHybrid(e.similarity)]
+    );
     if (focusNodeId)
       es = es.filter((e) => e.from === focusNodeId || e.to === focusNodeId);
     return es;
-  }, [base.edges, showBands, bandMode, quantileCuts, focusNodeId]);
+  }, [base.edges, showBands, focusNodeId, quantileCuts]);
 
   const filteredNodes = useMemo(() => {
     if (!filteredEdges.length)
@@ -137,7 +130,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     return base.nodes.filter((n) => keep.has(n.id));
   }, [base.nodes, filteredEdges, focusNodeId]);
 
-  // 2회 이상 관측 목록 (필터 반영) — 훅은 early return보다 위!
   const tableRows = useMemo(
     () =>
       filteredEdges
@@ -149,28 +141,16 @@ const AccumulatedSimilarityGraph: React.FC = () => {
     [filteredEdges]
   );
 
-  // ----- 상태 처리 (모든 훅 정의 이후에 early return 배치) -----
   if (isLoading) return <LoadingSkeleton />;
   if (isError || !data) return <ErrorState />;
-
-  const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
 
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-10">
       {/* 그래프 카드 */}
       <div className="col-span-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 lg:col-span-6">
-        {/* 컨트롤 바 */}
+        {/* 컨트롤 바 (드롭다운 없이 하이브리드 라벨) */}
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <select
-            value={bandMode}
-            onChange={(e) => setBandMode(e.target.value as BandMode)}
-            className="rounded border px-2 py-1 text-sm"
-          >
-            <option value="absolute">절대 구간</option>
-            <option value="quantile">분위수 구간</option>
-          </select>
-
-          {(['very', 'high', 'mid', 'low'] as BandName[]).map((k) => (
+          {(['very', 'high', 'mid', 'low'] as const).map((k) => (
             <label key={k} className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
@@ -192,13 +172,12 @@ const AccumulatedSimilarityGraph: React.FC = () => {
                   }`}
                 />
                 {k === 'very'
-                  ? '매우 높음'
+                  ? '매우 높음 (≥90% 또는 상위 10%)'
                   : k === 'high'
-                    ? '높음'
+                    ? '높음 (75~90% 또는 상위 10~30%)'
                     : k === 'mid'
-                      ? '중간'
-                      : '낮음'}{' '}
-                {k === 'low' ? `< ${cuts.mid}%` : `≥ ${cuts[k]}%`}
+                      ? '중간 (60~75% 또는 상위 30~60%)'
+                      : '낮음 (그 외)'}
               </span>
             </label>
           ))}
@@ -264,7 +243,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
             const to = (filteredNodes.length ? filteredNodes : base.nodes).find(
               (n) => n.id === edge.to
             );
-            // ✅ 현재 엣지의 count는 배열에서 검색해서 가져오기 (any 제거)
             const c =
               (filteredEdges.length ? filteredEdges : base.edges).find(
                 (e) => e.from === edge.from && e.to === edge.to
@@ -275,7 +253,6 @@ const AccumulatedSimilarityGraph: React.FC = () => {
           }}
         />
 
-        {/* Hover 정보 */}
         {hoverInfo && (
           <div className="mt-4 whitespace-pre-line rounded-lg border border-blue-100 bg-blue-50 p-3 text-blue-800">
             {hoverInfo}
@@ -283,12 +260,11 @@ const AccumulatedSimilarityGraph: React.FC = () => {
         )}
       </div>
 
-      {/* 요약 패널: 스크롤 영역 (그래프와 동일 높이) */}
+      {/* 요약 표 (기존 그대로) */}
       <div className="col-span-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 lg:col-span-4">
         <Text variant="body" weight="bold" className="mb-3 border-b pb-2">
           2회 이상 높은 유사도 관측 학생 쌍
         </Text>
-
         <div
           className="relative overflow-y-auto rounded-lg border"
           style={{ maxHeight: GRAPH_HEIGHT }}

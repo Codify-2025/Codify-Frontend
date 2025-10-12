@@ -18,8 +18,6 @@ import { useSimilarityTopology } from '@hooks/useSimilarityTopology';
 
 const THRESHOLD = 80;
 
-// 구간 필터 모드
-type BandMode = 'absolute' | 'quantile';
 // 구간 이름
 type BandName = 'very' | 'high' | 'mid' | 'low';
 
@@ -113,7 +111,6 @@ const ResultPage: React.FC = () => {
   };
 
   // 구간 필터 상태
-  const [bandMode, setBandMode] = useState<BandMode>('absolute');
   const [showBands, setShowBands] = useState<Record<BandName, boolean>>({
     very: true,
     high: true,
@@ -143,14 +140,14 @@ const ResultPage: React.FC = () => {
     location.state as { recordId?: string | number } | undefined
   )?.recordId;
 
-  // 문자열 정규화: 공백/구분자 제거 + 소문자 + NFKC
+  // 문자열 정규화
   const normalize = (s: string) =>
     s
       .toLowerCase()
       .normalize('NFKC')
-      .replace(/[\s_\-./\\]+/g, ''); // 공백·_, -, ., /, \ 제거
+      .replace(/[\s_\-./\\]+/g, '');
 
-  // --- 서버 데이터: 1차 필터 요약/쌍 ---
+  // --- 서버 데이터
   const {
     data: graphData,
     isLoading: isGraphLoading,
@@ -160,7 +157,6 @@ const ResultPage: React.FC = () => {
     week: week ?? 0,
   });
 
-  // --- 서버 데이터: 네트워크 토폴로지 (래핑 없음) ---
   const {
     data: topoData,
     isLoading: isTopoLoading,
@@ -193,7 +189,7 @@ const ResultPage: React.FC = () => {
     }));
   }, [topoData]);
 
-  // 분위수 컷 계산(quantile 모드일 때만 사용)
+  // 분위수 컷 (q90, q70, q40)
   const quantileCuts = useMemo(() => {
     const sims = graphEdges.map((e) => e.similarity).sort((a, b) => a - b);
     return {
@@ -203,28 +199,32 @@ const ResultPage: React.FC = () => {
     };
   }, [graphEdges]);
 
-  // 엣지 → 밴드 분류 함수
-  const edgeToBand = (sim: number): BandName => {
-    const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
-    if (sim >= cuts.very) return 'very';
-    if (sim >= cuts.high) return 'high';
-    if (sim >= cuts.mid) return 'mid';
+  // ✅ 하이브리드 분류: (절대 %) OR (분위수)
+  const edgeToBandHybrid = (sim: number): BandName => {
+    const q = quantileCuts;
+    if (sim >= ABS_BANDS.very || sim >= q.very) return 'very';
+    const isAbsHigh = sim >= ABS_BANDS.high && sim < ABS_BANDS.very;
+    const isQHigh = sim >= q.high && sim < q.very;
+    if (isAbsHigh || isQHigh) return 'high';
+    const isAbsMid = sim >= ABS_BANDS.mid && sim < ABS_BANDS.high;
+    const isQMid = sim >= q.mid && sim < q.high;
+    if (isAbsMid || isQMid) return 'mid';
     return 'low';
   };
 
-  // 구간 필터 + 검색(ego network) + 파이 클릭(기준 초과)
+  // 구간 필터 + 검색 + 파이 클릭
   const filteredEdges = useMemo(() => {
     let es = graphEdges;
 
-    // 1) 구간 체크박스 적용
-    es = es.filter((e) => showBands[edgeToBand(e.similarity)]);
+    // 1) 구간 체크박스 적용 (하이브리드)
+    es = es.filter((e) => showBands[edgeToBandHybrid(e.similarity)]);
 
-    // 2) 파이 클릭: 기준 초과만 보기 (선택 기능)
+    // 2) 파이 클릭: 기준 초과만 보기
     if (showOnlyAboveThreshold) {
       es = es.filter((e) => e.similarity >= THRESHOLD);
     }
 
-    // 3) 검색 포커스(ego-network)
+    // 3) 검색 포커스
     if (focusNodeId) {
       es = es.filter((e) => e.from === focusNodeId || e.to === focusNodeId);
     }
@@ -235,7 +235,6 @@ const ResultPage: React.FC = () => {
     showBands,
     focusNodeId,
     showOnlyAboveThreshold,
-    bandMode,
     quantileCuts,
   ]);
 
@@ -291,7 +290,7 @@ const ResultPage: React.FC = () => {
     }
   }, [fromSaved, setFiles, storeFilesFromTopo]);
 
-  // 그래프 노드 정규화 캐시 (성능↑)
+  // 그래프 노드 정규화 캐시
   const normNodes = useMemo(
     () =>
       graphNodes.map((n) => ({
@@ -311,14 +310,8 @@ const ResultPage: React.FC = () => {
     }
     const q = normalize(raw);
 
-    // 1) 학번 완전일치 우선
-    let found = normNodes.find((n) => n.normId === q);
-
-    // 2) 이름 부분일치
-    if (!found) {
-      found = normNodes.find((n) => n.normLabel.includes(q));
-    }
-
+    let found = normNodes.find((n) => n.normId === q); // 학번 완전일치
+    if (!found) found = normNodes.find((n) => n.normLabel.includes(q)); // 이름 부분일치
     setFocusNodeId(found ? found.id : null);
   }, [focusQuery, normNodes]);
 
@@ -330,7 +323,7 @@ const ResultPage: React.FC = () => {
 
   const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
     if (!segment || !graphData) {
-      // null이면 그대로 유지(= 이전 상태 유지)
+      // null이면 기존 상태 유지
       return;
     }
     setActiveSegment(segment);
@@ -339,7 +332,6 @@ const ResultPage: React.FC = () => {
       ? graphData.pairs.aboveThreshold
       : graphData.pairs.belowThreshold;
 
-    // 유사쌍 목록 생성(라벨 매핑 + 유사도 % 정렬)
     const pairs: HoverPair[] = (bucket as BucketPair[])
       .map((e) => {
         const from = String(e.from);
@@ -394,9 +386,6 @@ const ResultPage: React.FC = () => {
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
   }, [graphNodes, graphEdges]);
-
-  // 현재 구간 컷 표시용 텍스트
-  const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
 
   return (
     <Layout>
@@ -541,19 +530,8 @@ const ResultPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 컨트롤 바 */}
+        {/* 컨트롤 바 (드롭다운 제거, 하이브리드 설명 라벨) */}
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <select
-            value={bandMode}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setBandMode(e.target.value as BandMode)
-            }
-            className="rounded border px-2 py-1 text-sm"
-          >
-            <option value="absolute">절대 구간</option>
-            <option value="quantile">분위수 구간</option>
-          </select>
-
           <label className="flex items-center gap-1 text-sm">
             <input
               type="checkbox"
@@ -563,8 +541,8 @@ const ResultPage: React.FC = () => {
               }
             />
             <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />{' '}
-              매우 높음 (≥ {cuts.very}%)
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+              매우 높음 (≥90% 또는 상위 10%)
             </span>
           </label>
 
@@ -577,8 +555,8 @@ const ResultPage: React.FC = () => {
               }
             />
             <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />{' '}
-              높음 (≥ {cuts.high}%)
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+              높음 (75~90% 또는 상위 10~30%)
             </span>
           </label>
 
@@ -591,8 +569,8 @@ const ResultPage: React.FC = () => {
               }
             />
             <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />{' '}
-              중간 (≥ {cuts.mid}%)
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+              중간 (60~75% 또는 상위 30~60%)
             </span>
           </label>
 
@@ -605,8 +583,8 @@ const ResultPage: React.FC = () => {
               }
             />
             <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-slate-400" />{' '}
-              낮음 (&lt; {cuts.mid}%)
+              <span className="inline-block h-2 w-2 rounded-full bg-slate-400" />
+              낮음 (그 외)
             </span>
           </label>
 

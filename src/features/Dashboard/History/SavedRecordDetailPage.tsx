@@ -10,9 +10,20 @@ import { ErrorState, LoadingSkeleton } from '@components/LoadingState';
 import { useSubjectStore } from '@stores/useSubjectStore';
 
 const THRESHOLD = 80;
-type BandMode = 'absolute' | 'quantile';
 type BandName = 'very' | 'high' | 'mid' | 'low';
+
 const ABS_BANDS = { very: 90, high: 75, mid: 60 } as const;
+
+function quantile(sorted: number[], q: number): number {
+  if (sorted.length === 0) return 0;
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  if (sorted[base + 1] !== undefined)
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  return sorted[base];
+}
+
 const GRAPH_HEIGHT = 520;
 
 const normalize = (s: string) =>
@@ -41,16 +52,6 @@ function formatKST(iso?: string) {
   const get = (t: Intl.DateTimeFormatPartTypes) =>
     parts.find((p) => p.type === t)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}`;
-}
-
-function quantile(sorted: number[], q: number): number {
-  if (sorted.length === 0) return 0;
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (sorted[base + 1] !== undefined)
-    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-  return sorted[base];
 }
 
 const SavedRecordDetailPage: React.FC = () => {
@@ -144,7 +145,6 @@ const SavedRecordDetailPage: React.FC = () => {
   }, [nodes, edges]);
 
   // ===== 구간 필터 & 검색
-  const [bandMode, setBandMode] = useState<BandMode>('absolute');
   const [showBands, setShowBands] = useState<Record<BandName, boolean>>({
     very: true,
     high: false,
@@ -173,11 +173,16 @@ const SavedRecordDetailPage: React.FC = () => {
     };
   }, [edges]);
 
-  const edgeToBand = (sim: number): BandName => {
-    const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
-    if (sim >= cuts.very) return 'very';
-    if (sim >= cuts.high) return 'high';
-    if (sim >= cuts.mid) return 'mid';
+  // 하이브리드 분류
+  const edgeToBandHybrid = (sim: number) => {
+    const q = quantileCuts;
+    if (sim >= ABS_BANDS.very || sim >= q.very) return 'very';
+    const isAbsHigh = sim >= ABS_BANDS.high && sim < ABS_BANDS.very;
+    const isQHigh = sim >= q.high && sim < q.very;
+    if (isAbsHigh || isQHigh) return 'high';
+    const isAbsMid = sim >= ABS_BANDS.mid && sim < ABS_BANDS.high;
+    const isQMid = sim >= q.mid && sim < q.high;
+    if (isAbsMid || isQMid) return 'mid';
     return 'low';
   };
 
@@ -196,11 +201,11 @@ const SavedRecordDetailPage: React.FC = () => {
 
   // 필터링
   const filteredEdges = useMemo(() => {
-    let es = edges.filter((e) => showBands[edgeToBand(e.similarity)]);
+    let es = edges.filter((e) => showBands[edgeToBandHybrid(e.similarity)]);
     if (focusNodeId)
       es = es.filter((e) => e.from === focusNodeId || e.to === focusNodeId);
     return es;
-  }, [edges, showBands, bandMode, quantileCuts, focusNodeId]);
+  }, [edges, showBands, focusNodeId, quantileCuts]);
 
   const filteredNodes = useMemo(() => {
     if (!filteredEdges.length)
@@ -266,8 +271,6 @@ const SavedRecordDetailPage: React.FC = () => {
     );
   }
 
-  const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
-
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -324,16 +327,7 @@ const SavedRecordDetailPage: React.FC = () => {
 
         {/* 컨트롤 바 */}
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <select
-            value={bandMode}
-            onChange={(e) => setBandMode(e.target.value as BandMode)}
-            className="rounded border px-2 py-1 text-sm"
-          >
-            <option value="absolute">절대 구간</option>
-            <option value="quantile">분위수 구간</option>
-          </select>
-
-          {(['very', 'high', 'mid', 'low'] as BandName[]).map((k) => (
+          {(['very', 'high', 'mid', 'low'] as const).map((k) => (
             <label key={k} className="flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
@@ -344,16 +338,23 @@ const SavedRecordDetailPage: React.FC = () => {
               />
               <span className="inline-flex items-center gap-1">
                 <span
-                  className={`inline-block h-2 w-2 rounded-full ${k === 'very' ? 'bg-red-500' : k === 'high' ? 'bg-amber-500' : k === 'mid' ? 'bg-blue-500' : 'bg-slate-400'}`}
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    k === 'very'
+                      ? 'bg-red-500'
+                      : k === 'high'
+                        ? 'bg-amber-500'
+                        : k === 'mid'
+                          ? 'bg-blue-500'
+                          : 'bg-slate-400'
+                  }`}
                 />
                 {k === 'very'
-                  ? '매우 높음'
+                  ? '매우 높음 (≥90% 또는 상위 10%)'
                   : k === 'high'
-                    ? '높음'
+                    ? '높음 (75~90% 또는 상위 10~30%)'
                     : k === 'mid'
-                      ? '중간'
-                      : '낮음'}{' '}
-                {k === 'low' ? `< ${cuts.mid}%` : `≥ ${cuts[k]}%`}
+                      ? '중간 (60~75% 또는 상위 30~60%)'
+                      : '낮음 (그 외)'}
               </span>
             </label>
           ))}
