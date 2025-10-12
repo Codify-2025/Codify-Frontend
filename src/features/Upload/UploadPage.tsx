@@ -18,7 +18,14 @@ const UploadPage: React.FC = () => {
   const guideId = useId();
   const guideHeadingId = useId();
 
+  const [canStart, setCanStart] = useState(false);
+  const [uploadSummary, setUploadSummary] = useState<{
+    total: number;
+    completed: number;
+  } | null>(null);
+
   const handleStartAnalysis = () => {
+    if (!canStart) return; // 가드
     resetAnalyzePolling();
     navigate('/analysis/loading');
   };
@@ -117,7 +124,13 @@ const UploadPage: React.FC = () => {
         )}
 
         {/* 업로드 UI */}
-        <FileUpload />
+        <FileUpload
+          onStatusChange={(s) => {
+            setUploadSummary({ total: s.total, completed: s.completed });
+            // 전체 파일 수 > 0 && 모두 done 상태일 때만 가능
+            setCanStart(s.total > 0 && s.allDone);
+          }}
+        />
 
         {/* 분석 시작 버튼 */}
         <div className="flex justify-end">
@@ -127,8 +140,17 @@ const UploadPage: React.FC = () => {
             size="lg"
             className="mt-2"
             onClick={handleStartAnalysis}
+            disabled={!canStart}
+            aria-disabled={!canStart}
           />
         </div>
+
+        {/* 안내 문구 */}
+        {!!uploadSummary && (
+          <p className="mt-2 text-right text-xs text-gray-500">
+            업로드 완료 {uploadSummary.completed} / {uploadSummary.total}
+          </p>
+        )}
       </div>
     </Layout>
   );

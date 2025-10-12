@@ -2,13 +2,14 @@ import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import Text from '@components/Text';
 
+type PieDatum = { name: '기준 이하' | '기준 초과'; value: number };
+
 interface SimilarityPieChartProps {
   passedCount: number; // 임계값 초과
   failedCount: number; // 임계값 이하
   onHover?: (segmentName: PieDatum['name'] | null) => void;
+  onSegmentClick?: (segmentName: PieDatum['name']) => void;
 }
-
-type PieDatum = { name: '기준 이하' | '기준 초과'; value: number };
 
 const COLORS = ['#60A5FA', '#EF4444']; // 이하: 파랑, 초과: 빨강
 
@@ -16,6 +17,7 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
   passedCount,
   failedCount,
   onHover,
+  onSegmentClick,
 }) => {
   const data: PieDatum[] = [
     { name: '기준 이하', value: failedCount },
@@ -23,7 +25,6 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
   ];
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
-  // ↑ any 대신 명시 타입 사용: 첫 번째 파라미터는 사용 안 하므로 unknown으로 안전 처리
   const handleEnter = (_entry: unknown, index: number) => {
     const seg = data[index];
     if (seg) onHover?.(seg.name);
@@ -38,18 +39,22 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
         설정된 임계값을 기준으로 사전 필터링된 비율입니다.
       </Text>
 
-      <div className="mx-auto w-full">
+      <div className="relative mx-auto w-full">
         <ResponsiveContainer width="100%" height={300}>
           <PieChart margin={{ top: 12, right: 12, bottom: 12, left: 12 }}>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              outerRadius={100} // 110 → 100로 살짝 축소
+              innerRadius={60}
+              outerRadius={100}
               dataKey="value"
+              onClick={(_, idx) => {
+                const seg = typeof idx === 'number' ? data[idx] : undefined;
+                if (seg) onSegmentClick?.(seg.name);
+              }}
               onMouseEnter={handleEnter}
-              onMouseLeave={() => onHover?.(null)}
-              labelLine={false} // 라벨 라인 제거로 겹침/잘림 감소
+              labelLine={false}
               label={(props: { name: PieDatum['name']; percent: number }) =>
                 total
                   ? `${props.name} ${(props.percent * 100).toFixed(0)}%`
@@ -68,23 +73,15 @@ const SimilarityPieChart: React.FC<SimilarityPieChartProps> = ({
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
-      </div>
 
-      <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-600">
-        <span className="inline-flex items-center gap-1">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: COLORS[0] }}
-          />
-          기준 이하
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: COLORS[1] }}
-          />
-          기준 초과
-        </span>
+        {/* 중앙 KPI */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-sm text-gray-500">기준 초과</div>
+            <div className="text-xl font-bold text-red-600">{passedCount}</div>
+            <div className="text-xs text-gray-400">/ 총 {total}</div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -49,7 +49,16 @@ const DEV_ASSIGNMENT_ID =
 const DEV_WEEK =
   getNumberFromQS('week') ?? Number(import.meta.env.VITE_DEV_WEEK ?? 1);
 
-const FileUpload: React.FC = () => {
+interface FileUploadProps {
+  onStatusChange?: (s: {
+    total: number;
+    completed: number;
+    allDone: boolean;
+    anyUploading: boolean;
+  }) => void;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({ onStatusChange }) => {
   const [files, setFiles] = useState<FileData[]>([]);
   const { items, enqueue, start } = useUploader(3);
   const { assignmentId, week } = useAssignmentStore();
@@ -98,6 +107,34 @@ const FileUpload: React.FC = () => {
     const pct = raw <= 1 ? raw * 100 : raw;
     return Math.max(0, Math.min(100, Math.round(pct)));
   };
+
+  // ==== 업로드 집계 상태 → 부모에게 전달
+  React.useEffect(() => {
+    const total = files.length;
+    if (!onStatusChange) return;
+    if (total === 0) {
+      onStatusChange({
+        total: 0,
+        completed: 0,
+        allDone: false,
+        anyUploading: false,
+      });
+      return;
+    }
+    let completed = 0;
+    let anyUploading = false;
+    for (const fd of files) {
+      const st = getStage(fd.file);
+      if (st === 'done') completed += 1;
+      if (st !== 'done') anyUploading = true;
+    }
+    onStatusChange({
+      total,
+      completed,
+      allDone: completed === total,
+      anyUploading,
+    });
+  }, [files, items, onStatusChange]);
 
   const showTimedNotification = (msg: string) => {
     setNotification(msg);
