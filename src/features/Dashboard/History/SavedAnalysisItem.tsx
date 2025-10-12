@@ -1,3 +1,4 @@
+// SavedAnalysisItem.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SavedAnalysisRecord } from './SavedAnalysisType';
@@ -16,14 +17,23 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
     ? String(selectedSubject.subjectId)
     : undefined;
 
+  // --- GROUP (주차 전체 결과 요약 카드) ---
   if (record.type === 'group') {
     const nodes = record.preview?.nodes ?? [];
     const edges = record.preview?.edges ?? [];
-    const pairs = edges.length;
-    const maxSim = pairs ? Math.max(...edges.map((e) => e.similarity)) : 0;
-    const avgSim = pairs
-      ? Math.round(edges.reduce((s, e) => s + e.similarity, 0) / pairs)
-      : 0;
+
+    // 1) stats 우선 사용, 2) 없으면 edges로 계산
+    const pairs = record.preview?.stats?.pairs ?? edges.length;
+
+    const maxSim =
+      record.preview?.stats?.maxSim ??
+      (edges.length ? Math.max(...edges.map((e) => e.similarity)) : 0);
+
+    const avgSim =
+      record.preview?.stats?.avgSim ??
+      (edges.length
+        ? Math.round(edges.reduce((s, e) => s + e.similarity, 0) / edges.length)
+        : 0);
 
     const labelOf = (id: string) =>
       nodes.find((n) => String(n.id) === String(id))?.label ?? String(id);
@@ -44,12 +54,15 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
           type="button"
           className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
           onClick={() => {
-            if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+            if (!subjectId) {
+              alert('과목을 먼저 선택해 주세요.');
+              return;
+            }
             // record.id = week (주차)
             navigate(`/subjects/${subjectId}/record/${record.id}`);
           }}
         >
-          {/* 그래프 대신 요약 카드 */}
+          {/* 미리보기 요약 카드 */}
           <div className="flex h-full w-full flex-col justify-between">
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-center">
@@ -112,7 +125,7 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
     );
   }
 
-  // === pair (이전 로직 유지) ===
+  // --- PAIR (개별 비교 카드) ---
   const similarityText = formatPercent01(record.similarity ?? 0);
   const aTime = formatDateTimeKST(record.fileA.submittedAt);
   const bTime = formatDateTimeKST(record.fileB?.submittedAt || '');
@@ -124,7 +137,10 @@ const SavedAnalysisItem: React.FC<Props> = ({ record }) => {
         type="button"
         className="h-60 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow"
         onClick={() => {
-          if (!subjectId) return alert('과목을 먼저 선택해 주세요.');
+          if (!subjectId) {
+            alert('과목을 먼저 선택해 주세요.');
+            return;
+          }
           navigate(`/subjects/${subjectId}/record/${record.id}`);
         }}
       >

@@ -18,7 +18,14 @@ import { useSimilarityTopology } from '@hooks/useSimilarityTopology';
 
 const THRESHOLD = 80;
 
-/** dummyFiles 형태(느슨) */
+// 구간 필터 모드
+type BandMode = 'absolute' | 'quantile';
+// 구간 이름
+type BandName = 'very' | 'high' | 'mid' | 'low';
+
+// 절대 구간 컷(%) — [very, high, mid]
+const ABS_BANDS = { very: 90, high: 75, mid: 60 } as const;
+
 type DummyLike = {
   id: string;
   label: string;
@@ -63,6 +70,18 @@ function normalizeToStoreData(list: readonly DummyLike[]): StoreFileData[] {
   });
 }
 
+// 분위수 계산
+function quantile(sorted: number[], q: number): number {
+  if (sorted.length === 0) return 0;
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  if (sorted[base + 1] !== undefined) {
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  }
+  return sorted[base];
+}
+
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,17 +92,49 @@ const ResultPage: React.FC = () => {
   const { setFiles, setSelectedFiles } = useSelectedFileStore();
 
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
-  const [hoveredFiles, setHoveredFiles] = useState<FileNode[]>([]);
+  type HoverPair = {
+    from: string;
+    to: string;
+    similarity: number;
+    aLabel: string;
+    bLabel: string;
+  };
+  const [hoveredPairs, setHoveredPairs] = useState<HoverPair[]>([]);
+  const [activeSegment, setActiveSegment] = useState<
+    '기준 이하' | '기준 초과' | null
+  >(null);
+
+  // 파이차트 버킷 아이템 형태(백엔드가 similarity 또는 value(0~1)를 줄 수 있음)
+  type BucketPair = {
+    from: string | number;
+    to: string | number;
+    similarity?: number; // 0~100 (%)
+    value?: number; // 0~1 (ratio)
+  };
+
+  // 구간 필터 상태
+  const [bandMode, setBandMode] = useState<BandMode>('absolute');
+  const [showBands, setShowBands] = useState<Record<BandName, boolean>>({
+    very: true,
+    high: true,
+    mid: true,
+    low: true,
+  });
+
+  // 검색 상태
+  const [focusQuery, setFocusQuery] = useState('');
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
+
+  // 파이 클릭 연동(선택): 기준 초과만 보기 토글
+  const [showOnlyAboveThreshold, setShowOnlyAboveThreshold] = useState(false);
 
   const fromSaved: boolean | undefined = (
     location.state as { fromSaved?: boolean } | undefined
   )?.fromSaved;
 
-  React.useEffect(() => {
-    if (fromSaved) return; // 저장된 기록에서 진입한 경우 건드리지 않음
-
+  useEffect(() => {
+    if (fromSaved) return;
     const st = useAssignmentStore.getState();
-    // null/undefined일 때만 기본값 세팅 (이미 값 있으면 유지)
     if (st.assignmentId == null) st.setAssignmentId(1);
     if (st.week == null) st.setWeek(1);
   }, [fromSaved]);
@@ -91,6 +142,13 @@ const ResultPage: React.FC = () => {
   const recordId: string | number | undefined = (
     location.state as { recordId?: string | number } | undefined
   )?.recordId;
+
+  // 문자열 정규화: 공백/구분자 제거 + 소문자 + NFKC
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFKC')
+      .replace(/[\s_\-./\\]+/g, ''); // 공백·_, -, ., /, \ 제거
 
   // --- 서버 데이터: 1차 필터 요약/쌍 ---
   const {
@@ -112,11 +170,11 @@ const ResultPage: React.FC = () => {
     week: week ?? 0,
   });
 
-  // --- PieChart props: 서버 summary 사용 ---
+  // PieChart props
   const passedCount = graphData?.summary.aboveThreshold ?? 0;
   const failedCount = graphData?.summary.belowThreshold ?? 0;
 
-  // --- topology → 그래프 노드/엣지 변환 (value: 0~1 → similarity: %)
+  // topology → 그래프 노드/엣지
   const graphNodes: FileNode[] = useMemo(() => {
     const list = topoData?.nodes ?? [];
     return list.map((n) => ({
@@ -135,7 +193,66 @@ const ResultPage: React.FC = () => {
     }));
   }, [topoData]);
 
-  // --- StoreFileData: topology 노드 기반
+  // 분위수 컷 계산(quantile 모드일 때만 사용)
+  const quantileCuts = useMemo(() => {
+    const sims = graphEdges.map((e) => e.similarity).sort((a, b) => a - b);
+    return {
+      very: Math.round(quantile(sims, 0.9)), // 상위 10%
+      high: Math.round(quantile(sims, 0.7)), // 10~30%
+      mid: Math.round(quantile(sims, 0.4)), // 30~60%
+    };
+  }, [graphEdges]);
+
+  // 엣지 → 밴드 분류 함수
+  const edgeToBand = (sim: number): BandName => {
+    const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
+    if (sim >= cuts.very) return 'very';
+    if (sim >= cuts.high) return 'high';
+    if (sim >= cuts.mid) return 'mid';
+    return 'low';
+  };
+
+  // 구간 필터 + 검색(ego network) + 파이 클릭(기준 초과)
+  const filteredEdges = useMemo(() => {
+    let es = graphEdges;
+
+    // 1) 구간 체크박스 적용
+    es = es.filter((e) => showBands[edgeToBand(e.similarity)]);
+
+    // 2) 파이 클릭: 기준 초과만 보기 (선택 기능)
+    if (showOnlyAboveThreshold) {
+      es = es.filter((e) => e.similarity >= THRESHOLD);
+    }
+
+    // 3) 검색 포커스(ego-network)
+    if (focusNodeId) {
+      es = es.filter((e) => e.from === focusNodeId || e.to === focusNodeId);
+    }
+
+    return es;
+  }, [
+    graphEdges,
+    showBands,
+    focusNodeId,
+    showOnlyAboveThreshold,
+    bandMode,
+    quantileCuts,
+  ]);
+
+  // 엣지에 맞춰 노드 축소
+  const filteredNodes = useMemo(() => {
+    if (!filteredEdges.length)
+      return focusNodeId ? graphNodes.filter((n) => n.id === focusNodeId) : [];
+    const keep = new Set<string>();
+    for (const e of filteredEdges) {
+      keep.add(e.from);
+      keep.add(e.to);
+    }
+    if (focusNodeId) keep.add(focusNodeId);
+    return graphNodes.filter((n) => keep.has(n.id));
+  }, [graphNodes, filteredEdges, focusNodeId]);
+
+  // StoreFileData
   const storeFilesFromTopo: StoreFileData[] = useMemo(() => {
     if (!topoData?.nodes) return [];
     return topoData.nodes.map((n) => ({
@@ -147,7 +264,6 @@ const ResultPage: React.FC = () => {
     }));
   }, [topoData]);
 
-  // --- id → StoreFileData 맵
   const fileMap = useMemo(() => {
     const m = new Map<string, StoreFileData>();
     for (const f of storeFilesFromTopo) m.set(String(f.id), f);
@@ -165,7 +281,7 @@ const ResultPage: React.FC = () => {
     }
   }, [fromSaved, recordId]);
 
-  // 기본 파일 세팅: 서버 topology 우선, 없으면 dummy
+  // 기본 파일 세팅
   useEffect(() => {
     if (fromSaved) return;
     if (storeFilesFromTopo.length > 0) {
@@ -175,35 +291,85 @@ const ResultPage: React.FC = () => {
     }
   }, [fromSaved, setFiles, storeFilesFromTopo]);
 
-  // node id → label 맵 (파이 hover에서 사용)
-  const nodeById = useMemo(() => {
-    return new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }]));
-  }, [graphNodes]);
+  // 그래프 노드 정규화 캐시 (성능↑)
+  const normNodes = useMemo(
+    () =>
+      graphNodes.map((n) => ({
+        id: n.id,
+        normId: normalize(n.id),
+        normLabel: normalize(n.label ?? ''),
+      })),
+    [graphNodes]
+  );
 
-  // 파이 hover → 관련 파일 목록
+  // 검색
+  useEffect(() => {
+    const raw = focusQuery.trim();
+    if (!raw) {
+      setFocusNodeId(null);
+      return;
+    }
+    const q = normalize(raw);
+
+    // 1) 학번 완전일치 우선
+    let found = normNodes.find((n) => n.normId === q);
+
+    // 2) 이름 부분일치
+    if (!found) {
+      found = normNodes.find((n) => n.normLabel.includes(q));
+    }
+
+    setFocusNodeId(found ? found.id : null);
+  }, [focusQuery, normNodes]);
+
+  // node id → label 맵 (파이 hover에서 사용)
+  const nodeById = useMemo(
+    () => new Map(graphNodes.map((n) => [n.id, { id: n.id, label: n.label }])),
+    [graphNodes]
+  );
 
   const handlePieHover = (segment: '기준 이하' | '기준 초과' | null) => {
     if (!segment || !graphData) {
-      setHoveredFiles([]);
+      // null이면 그대로 유지(= 이전 상태 유지)
       return;
     }
+    setActiveSegment(segment);
     const isAbove = segment === '기준 초과';
     const bucket = isAbove
       ? graphData.pairs.aboveThreshold
       : graphData.pairs.belowThreshold;
 
-    const relatedIds = new Set<string>();
-    for (const e of bucket) {
-      relatedIds.add(String(e.from));
-      relatedIds.add(String(e.to));
-    }
+    // 유사쌍 목록 생성(라벨 매핑 + 유사도 % 정렬)
+    const pairs: HoverPair[] = (bucket as BucketPair[])
+      .map((e) => {
+        const from = String(e.from);
+        const to = String(e.to);
+        const a = nodeById.get(from);
+        const b = nodeById.get(to);
+        if (!a || !b) return null;
+        const sim =
+          typeof e.similarity === 'number'
+            ? Math.round(e.similarity)
+            : Math.round((Number(e.value) || 0) * 100);
+        return {
+          from,
+          to,
+          similarity: sim,
+          aLabel: a.label,
+          bLabel: b.label,
+        };
+      })
+      .filter((x): x is HoverPair => !!x)
+      .sort((a, b) => b.similarity - a.similarity);
 
-    const related = Array.from(relatedIds)
-      .map((id) => nodeById.get(id))
-      .filter((n): n is { id: string; label: string } => Boolean(n))
-      .map((n) => ({ id: n.id, label: n.label, submittedAt: '-' }));
+    setHoveredPairs(pairs);
+  };
 
-    setHoveredFiles(related);
+  // 파이 클릭 → 기준 초과 토글
+  const handlePieClick = (name: '기준 이하' | '기준 초과') => {
+    setShowOnlyAboveThreshold(name === '기준 초과');
+    setActiveSegment(name);
+    handlePieHover(name); // 즉시 목록 고정 갱신
   };
 
   // KPI
@@ -216,7 +382,7 @@ const ResultPage: React.FC = () => {
     return { totalFiles, pairCount, flaggedPairs };
   }, [graphNodes, graphEdges]);
 
-  // 상위 유사쌍 (내림차순 Top 5)
+  // 상위 유사쌍
   const topPairs = useMemo(() => {
     return graphEdges
       .map((e) => {
@@ -228,6 +394,9 @@ const ResultPage: React.FC = () => {
       .sort((x, y) => y.similarity - x.similarity)
       .slice(0, 5);
   }, [graphNodes, graphEdges]);
+
+  // 현재 구간 컷 표시용 텍스트
+  const cuts = bandMode === 'absolute' ? ABS_BANDS : quantileCuts;
 
   return (
     <Layout>
@@ -247,9 +416,6 @@ const ResultPage: React.FC = () => {
               {name} ({week}주차)
             </span>{' '}
             유사도 분석 결과
-          </Text>
-          <Text variant="caption" color="muted" className="mt-1">
-            기준 유사도 {THRESHOLD}% 이상은 강조 표시됩니다.
           </Text>
         </div>
 
@@ -290,35 +456,174 @@ const ResultPage: React.FC = () => {
               </Text>
             ) : isGraphError ? (
               <Text variant="caption" color="muted">
-                요약 불러오기에 실패했어요. 잠시 후 다시 시도해 주세요.
+                요약 불러오기 실패. 잠시 후 다시 시도해 주세요.
               </Text>
             ) : (
               <SimilarityPieChart
                 passedCount={passedCount}
                 failedCount={failedCount}
                 onHover={handlePieHover}
+                onSegmentClick={handlePieClick}
               />
             )}
           </div>
 
-          <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 text-blue-800 shadow-sm">
-            {hoveredFiles.length > 0 ? (
-              <div className="space-y-2">
-                <Text variant="body" weight="medium">
-                  해당 학생
-                </Text>
-                <ul className="list-disc pl-5">
-                  {hoveredFiles.map((f) => (
-                    <li key={f.id}>
-                      <span className="font-medium">{f.label}</span>
-                    </li>
-                  ))}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            {hoveredPairs.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Text variant="h3" weight="bold" className="text-gray-900">
+                      {activeSegment ?? '유사쌍'}
+                    </Text>
+                    {activeSegment && (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        {activeSegment}
+                      </span>
+                    )}
+                  </div>
+                  <Text variant="caption" color="muted">
+                    총 {hoveredPairs.length}쌍
+                  </Text>
+                </div>
+                <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                  {hoveredPairs.map((p) => {
+                    const key = `${p.from}-${p.to}`;
+                    return (
+                      <li
+                        key={key}
+                        className="py-2 flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-gray-900">
+                            {p.aLabel}{' '}
+                            <span className="mx-1 text-gray-400">·</span>{' '}
+                            {p.bLabel}
+                          </p>
+                          <Text variant="caption" color="muted">
+                            유사도 {p.similarity}%
+                          </Text>
+                        </div>
+                        <Button
+                          text="비교"
+                          variant="ghost"
+                          size="sm"
+                          icon={<FiChevronRight />}
+                          iconPosition="right"
+                          onClick={() => {
+                            const a = fileMap.get(p.from);
+                            const b = fileMap.get(p.to);
+                            if (a && b) {
+                              setSelectedFiles(a, b);
+                              navigate(
+                                `/compare/${String(a.id)}/${String(b.id)}`
+                              );
+                            }
+                          }}
+                        />
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : (
-              <Text variant="body" color="muted">
-                파이차트의 항목에 마우스를 올리면 관련 파일 목록이 표시됩니다.
-              </Text>
+              <div className="text-gray-500">
+                <Text variant="body" color="muted">
+                  파이차트 영역을 호버하거나 클릭하면 해당 구간의 유사쌍 목록이
+                  표시됩니다.
+                </Text>
+                <Text variant="caption" color="muted" className="block mt-1">
+                  * 클릭 시 목록이 고정되며, 다른 영역을 호버/클릭하면
+                  갱신됩니다.
+                </Text>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 컨트롤 바 */}
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <select
+            value={bandMode}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setBandMode(e.target.value as BandMode)
+            }
+            className="rounded border px-2 py-1 text-sm"
+          >
+            <option value="absolute">절대 구간</option>
+            <option value="quantile">분위수 구간</option>
+          </select>
+
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              checked={showBands.very}
+              onChange={(e) =>
+                setShowBands((s) => ({ ...s, very: e.target.checked }))
+              }
+            />
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-500" />{' '}
+              매우 높음 (≥ {cuts.very}%)
+            </span>
+          </label>
+
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              checked={showBands.high}
+              onChange={(e) =>
+                setShowBands((s) => ({ ...s, high: e.target.checked }))
+              }
+            />
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />{' '}
+              높음 (≥ {cuts.high}%)
+            </span>
+          </label>
+
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              checked={showBands.mid}
+              onChange={(e) =>
+                setShowBands((s) => ({ ...s, mid: e.target.checked }))
+              }
+            />
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />{' '}
+              중간 (≥ {cuts.mid}%)
+            </span>
+          </label>
+
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              checked={showBands.low}
+              onChange={(e) =>
+                setShowBands((s) => ({ ...s, low: e.target.checked }))
+              }
+            />
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-slate-400" />{' '}
+              낮음 (&lt; {cuts.mid}%)
+            </span>
+          </label>
+
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              placeholder="학생명/학번 검색"
+              value={focusQuery}
+              onChange={(e) => setFocusQuery(e.target.value)}
+              className="rounded border px-2 py-1 text-sm"
+            />
+            {focusNodeId && (
+              <button
+                className="text-xs text-blue-600 underline"
+                onClick={() => setFocusNodeId(null)}
+              >
+                전체 보기
+              </button>
             )}
           </div>
         </div>
@@ -352,8 +657,8 @@ const ResultPage: React.FC = () => {
             </div>
 
             <SimilarityGraph
-              nodes={graphNodes}
-              edges={graphEdges}
+              nodes={filteredNodes.length ? filteredNodes : graphNodes}
+              edges={filteredEdges.length ? filteredEdges : graphEdges}
               interactionOptions={{
                 zoomView: false,
                 dragView: false,
@@ -417,7 +722,7 @@ const ResultPage: React.FC = () => {
                   .map((line, idx) => <p key={idx}>{line}</p>)
               ) : (
                 <Text variant="caption" color="muted">
-                  그래프에서 노드 또는 엣지를 호버/클릭하면 상세 정보가 여기에
+                  그래프에서 노드/엣지를 호버/클릭하면 상세 정보가 여기에
                   표시됩니다.
                 </Text>
               )}

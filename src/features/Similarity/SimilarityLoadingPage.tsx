@@ -10,6 +10,7 @@ const SimilarityLoadingPage: React.FC = () => {
 
   // 진행률(0~100) - 시각적 효과용
   const [progress, setProgress] = useState(0);
+  const DISPLAY_CAP = 95; // 표시용 상한
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
 
@@ -32,6 +33,8 @@ const SimilarityLoadingPage: React.FC = () => {
     );
     return idx === -1 ? 0 : idx;
   }, [progress, thresholds]);
+  const displayProgress =
+    data?.status === 'done' ? 100 : Math.min(progress, DISPLAY_CAP);
 
   // ✅ 진행률 애니메이션 (시각용). 완료는 "API 응답"에 따라 이동한다.
   useEffect(() => {
@@ -100,8 +103,8 @@ const SimilarityLoadingPage: React.FC = () => {
           <div className="absolute inset-0 rounded-full border-4 border-black/10" />
           <div className="absolute inset-0 rounded-full border-t-4 border-blue-500 animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-medium text-gray-700">
-              {progress}%
+            <span className="text-xs font-medium text-gray-700">
+              {phases[phaseIdx]}
             </span>
           </div>
         </div>
@@ -121,7 +124,7 @@ const SimilarityLoadingPage: React.FC = () => {
           <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
             <div
               className="h-full bg-blue-600 transition-[width] duration-100"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
           <div className="mt-3 flex items-center justify-between text-left">
@@ -129,7 +132,9 @@ const SimilarityLoadingPage: React.FC = () => {
               현재 단계: {phases[phaseIdx]}
             </Text>
             <Text variant="caption" color="muted">
-              진행률 {progress}%
+              {data?.status === 'done'
+                ? '최종 정리 중'
+                : `진행 중 (~${DISPLAY_CAP}%)`}
             </Text>
           </div>
         </div>

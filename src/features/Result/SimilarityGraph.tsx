@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Network, DataSet } from 'vis-network/standalone/esm/vis-network';
+import {
+  Network,
+  DataSet,
+  type Node,
+  type Edge,
+  type IdType,
+} from 'vis-network/standalone/esm/vis-network';
 import { FileNode, FileEdge } from 'types/similarity';
 
 interface Props {
@@ -8,9 +14,7 @@ interface Props {
   onNodeHover?: (node: FileNode) => void;
   onEdgeHover?: (edge: FileEdge) => void;
   onEdgeClick?: (edge: FileEdge) => void;
-  /** 'preview' = 카드 미리보기 (작고 간결), 'full' = 상세 화면 */
   variant?: 'preview' | 'full';
-  /** 그래프 높이(px). 미지정 시 variant에 따라 200 / 560 */
   height?: number;
   interactionOptions?: {
     dragNodes?: boolean;
@@ -20,13 +24,13 @@ interface Props {
 }
 
 const brand = {
-  nodeBg: '#2563eb', // blue-600
-  nodeBorder: '#1d4ed8', // blue-700
-  edgeLow: '#94a3b8', // slate-400
-  edgeMid: '#3b82f6', // blue-500
-  edgeHigh: '#f59e0b', // amber-500
-  edgeVery: '#ef4444', // red-500
-  label: '#334155', // slate-700
+  nodeBg: '#2563eb',
+  nodeBorder: '#1d4ed8',
+  edgeLow: '#94a3b8',
+  edgeMid: '#3b82f6',
+  edgeHigh: '#f59e0b',
+  edgeVery: '#ef4444',
+  label: '#334155',
 };
 
 const edgeColor = (s: number) =>
@@ -38,9 +42,42 @@ const edgeColor = (s: number) =>
         ? brand.edgeMid
         : brand.edgeLow;
 
-const EDGE_BASE_WIDTH = 4;
+const EDGE_BASE_WIDTH = 3;
+type VisId = IdType;
 
-type VisId = string | number;
+const rgba = (hex: string, a: number) => {
+  const v = hex.replace('#', '');
+  const r = parseInt(v.slice(0, 2), 16);
+  const g = parseInt(v.slice(2, 4), 16);
+  const b = parseInt(v.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+};
+
+function sizePreset(n: number, preview: boolean) {
+  if (preview) return { node: 10, label: 11, edgeLabel: 10 };
+  if (n >= 70) return { node: 8, label: 10, edgeLabel: 10 };
+  if (n >= 50) return { node: 10, label: 11, edgeLabel: 11 };
+  if (n >= 30) return { node: 12, label: 12, edgeLabel: 12 };
+  return { node: 14, label: 14, edgeLabel: 12 };
+}
+
+function initialPhysics(n: number) {
+  const springLength = Math.min(260, 140 + n * 2);
+  const grav = Math.max(-200, -50 - n);
+  return {
+    enabled: true,
+    solver: 'forceAtlas2Based' as const,
+    stabilization: { iterations: 250, updateInterval: 50 },
+    forceAtlas2Based: {
+      gravitationalConstant: grav,
+      centralGravity: 0.02,
+      springLength,
+      springConstant: 0.04,
+      damping: 0.45,
+      avoidOverlap: 1,
+    },
+  };
+}
 
 const SimilarityGraph: React.FC<Props> = ({
   nodes,
@@ -59,7 +96,7 @@ const SimilarityGraph: React.FC<Props> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    // ====== A. 데이터 정규화 ======
+    // ===== A. 데이터 정규화
     const uniqNodes: FileNode[] = Array.from(
       nodes
         .reduce<Map<string, FileNode>>((m, n) => {
@@ -76,8 +113,7 @@ const SimilarityGraph: React.FC<Props> = ({
       to: String(e.to),
     }));
 
-    // 같은 페어 중복 제거(가장 높은 유사도로)
-    const dedupEdges = (() => {
+    const dedupEdges: FileEdge[] = (() => {
       const m = new Map<string, FileEdge>();
       for (const e of normalizedEdges) {
         const [x, y] = e.from <= e.to ? [e.from, e.to] : [e.to, e.from];
@@ -89,29 +125,22 @@ const SimilarityGraph: React.FC<Props> = ({
       return Array.from(m.values());
     })();
 
-    // ====== B. vis datasets ======
-    const visNodes = new DataSet(
-      uniqNodes.map((n) => ({ id: n.id, label: n.label, title: undefined }))
+    // ===== B. datasets
+    const isPreview = variant === 'preview';
+    const sizes = sizePreset(uniqNodes.length, isPreview);
+    const showEdgeLabel = (sim: number) => `${sim}%`;
+
+    const visNodes = new DataSet<Node>(
+      uniqNodes.map((n) => ({ id: n.id as IdType, label: n.label }))
     );
 
-    const isPreview = variant === 'preview';
-    const showEdgeLabel = (sim: number) =>
-      isPreview ? (sim >= 80 ? `${sim}%` : undefined) : `${sim}%`;
-    const nodeSize = isPreview ? 12 : 20;
-    const nodeFontSize = isPreview ? 12 : 16;
-    const edgeFontSize = isPreview ? 11 : 14;
-
-    const visEdges = new DataSet(
+    const visEdges = new DataSet<Edge>(
       dedupEdges.map((e) => ({
         id: `${e.from}-${e.to}`,
         from: e.from,
         to: e.to,
         label: showEdgeLabel(e.similarity),
-        width: Math.max(
-          2,
-          Math.round((EDGE_BASE_WIDTH * e.similarity) / 100) +
-            (isPreview ? 0 : 1)
-        ),
+        width: Math.max(1, Math.round((EDGE_BASE_WIDTH * e.similarity) / 100)),
         color: {
           color: edgeColor(e.similarity),
           hover: edgeColor(e.similarity),
@@ -120,37 +149,31 @@ const SimilarityGraph: React.FC<Props> = ({
         font: {
           align: 'middle',
           color: brand.label,
-          size: edgeFontSize,
+          size: sizes.edgeLabel,
           face: 'Inter, ui-sans-serif',
           strokeWidth: 2,
           strokeColor: '#ffffff',
         },
-        smooth: { enabled: true, type: 'dynamic', roundness: 0.5 },
+        smooth: false,
       }))
     );
 
-    // ====== C. 네트워크 생성 ======
+    const edgeSimMap = new Map<string, number>();
+    dedupEdges.forEach((e) =>
+      edgeSimMap.set(`${e.from}-${e.to}`, e.similarity)
+    );
+
+    // ===== C. 네트워크(초기만 physics → 위치 고정)
     const network = new Network(
       container,
       { nodes: visNodes, edges: visEdges },
       {
-        physics: {
-          enabled: true,
-          solver: 'forceAtlas2Based',
-          stabilization: { iterations: isPreview ? 200 : 300 },
-          forceAtlas2Based: {
-            gravitationalConstant: -50,
-            centralGravity: 0.02,
-            springLength: isPreview ? 140 : 200,
-            springConstant: 0.04,
-            damping: 0.4,
-            avoidOverlap: 1,
-          },
-        },
+        autoResize: false,
+        physics: initialPhysics(uniqNodes.length),
         layout: { improvedLayout: true, randomSeed: 42 },
         nodes: {
           shape: 'dot',
-          size: nodeSize,
+          size: sizes.node,
           color: {
             background: brand.nodeBg,
             border: brand.nodeBorder,
@@ -159,7 +182,7 @@ const SimilarityGraph: React.FC<Props> = ({
           },
           font: {
             color: '#ffffff',
-            size: nodeFontSize,
+            size: sizes.label,
             face: 'Inter, ui-sans-serif',
             strokeWidth: 3,
             strokeColor: '#1e293b',
@@ -170,49 +193,51 @@ const SimilarityGraph: React.FC<Props> = ({
           selectionWidth: 2,
           hoverWidth: 0,
           arrows: { to: { enabled: false } },
-          smooth: { enabled: true, type: 'dynamic', roundness: 0.5 },
+          smooth: false,
         },
         interaction: {
           hover: true,
           tooltipDelay: 120,
-          zoomView: interactionOptions?.zoomView ?? variant === 'full',
-          dragView: interactionOptions?.dragView ?? variant === 'full',
-          dragNodes: interactionOptions?.dragNodes ?? false,
+          zoomView: false,
+          dragView: false,
+          dragNodes: false,
           selectable: true,
+          multiselect: false,
+          keyboard: { enabled: false },
         },
       }
     );
 
-    const easing = { duration: 300, easingFunction: 'easeInOutQuad' as const };
-    const marginFactor = isPreview ? 0.9 : 0.94; // 0.90 = 10% 여백, 0.94 = 6% 여백
-
-    // ✅ fit 후 약간 줌아웃해서 여백 확보
-    const fitWithMargin = (animate: boolean | typeof easing) => {
-      network.fit({ animation: animate });
-      const currentScale = network.getScale();
-      network.moveTo({
-        scale: currentScale * marginFactor,
-        animation: animate,
-      });
-    };
-
-    // 안정화 후 물리 끄고 화면에 맞춰 fit
+    // 초기 레이아웃 → 고정
     network.once('stabilized', () => {
+      const pos = network.getPositions(uniqNodes.map((n) => n.id as IdType));
+      visNodes.update(
+        uniqNodes.map((n) => ({
+          id: n.id as IdType,
+          x: pos[n.id]?.x,
+          y: pos[n.id]?.y,
+          fixed: { x: true, y: true },
+        }))
+      );
       network.setOptions({ physics: { enabled: false } });
-      fitWithMargin(easing); // ⬅️ easingFunction 사용, padding 제거
+      network.fit({ animation: false });
+      const current = network.getScale();
+      network.moveTo({
+        scale: current * (isPreview ? 0.92 : 0.96),
+        animation: false,
+      });
     });
 
     networkRef.current = network;
 
-    // ====== D. 이벤트 ======
+    // ===== D. 이벤트
+    // 1) Hover: 정보만 전달 (✔ 깜빡임 유발하던 select 제거)
     network.on('hoverNode', (params: { node: VisId }) => {
-      network.selectNodes([params.node]);
       const node = uniqNodes.find((n) => n.id === String(params.node));
       if (node) onNodeHover?.(node);
     });
 
     network.on('hoverEdge', (params: { edge: VisId }) => {
-      network.selectEdges([params.edge]);
       const [fromId, toId] = String(params.edge).split('-');
       const edge = dedupEdges.find(
         (e) =>
@@ -222,27 +247,88 @@ const SimilarityGraph: React.FC<Props> = ({
       if (edge) onEdgeHover?.(edge);
     });
 
-    network.on('click', (params: { edges: VisId[] }) => {
-      if (params.edges.length === 0) return;
-      const [fromId, toId] = String(params.edges[0]).split('-');
-      const edge = dedupEdges.find(
-        (e) =>
-          (e.from === fromId && e.to === toId) ||
-          (e.from === toId && e.to === fromId)
-      );
-      if (edge) onEdgeClick?.(edge);
-    });
+    // 2) Click: 노드 클릭 시에만 하이라이트(포커스), 빈 공간 클릭 시 해제
+    const applyFocus = (nid: string) => {
+      const connected = new Set<string>([nid]);
+      visEdges.forEach((e) => {
+        if (e.from === nid || e.to === nid) {
+          connected.add(String(e.from));
+          connected.add(String(e.to));
+        }
+      });
+      visNodes.forEach((n) => {
+        const dim = !connected.has(String(n.id));
+        visNodes.update({
+          id: n.id!,
+          color: {
+            background: dim ? rgba(brand.nodeBg, 0.18) : brand.nodeBg,
+            border: dim ? rgba(brand.nodeBorder, 0.25) : brand.nodeBorder,
+            highlight: dim ? rgba(brand.nodeBg, 0.18) : brand.nodeBg,
+            hover: dim ? rgba(brand.nodeBg, 0.18) : brand.nodeBg,
+          },
+          font: { color: dim ? rgba('#ffffff', 0.7) : '#ffffff' },
+        } as Partial<Node>);
+      });
+      visEdges.forEach((e) => {
+        const isConn = e.from === nid || e.to === nid;
+        const sim = edgeSimMap.get(String(e.id)) ?? 0;
+        const strong = edgeColor(sim);
+        visEdges.update({
+          id: e.id!,
+          color: {
+            color: isConn ? strong : rgba('#94a3b8', 0.2),
+            hover: isConn ? strong : rgba('#94a3b8', 0.2),
+            highlight: isConn ? strong : rgba('#94a3b8', 0.2),
+          },
+          width: isConn ? (e.width ?? 2) : 1,
+        } as Partial<Edge>);
+      });
+    };
 
-    // 컨테이너 리사이즈에 맞춰 리드로/리핏
-    const ro = new ResizeObserver(() => {
-      if (!networkRef.current) return;
-      // 리사이즈 시에도 동일하게 fit -> margin
-      fitWithMargin(false); // ⬅️ animation: false, padding 제거
+    const clearFocus = () => {
+      visNodes.forEach((n) => {
+        visNodes.update({
+          id: n.id!,
+          color: {
+            background: brand.nodeBg,
+            border: brand.nodeBorder,
+            highlight: brand.nodeBg,
+            hover: brand.nodeBg,
+          },
+          font: { color: '#ffffff' },
+        } as Partial<Node>);
+      });
+      visEdges.forEach((e) => {
+        const sim = edgeSimMap.get(String(e.id)) ?? 0;
+        const c = edgeColor(sim);
+        visEdges.update({
+          id: e.id!,
+          color: { color: c, hover: c, highlight: c },
+          width: e.width ?? 2,
+        } as Partial<Edge>);
+      });
+    };
+
+    network.on('click', (params: { nodes: VisId[]; edges: VisId[] }) => {
+      if (params.nodes.length > 0) {
+        applyFocus(String(params.nodes[0]));
+        return;
+      }
+      if (params.edges.length > 0) {
+        const [fromId, toId] = String(params.edges[0]).split('-');
+        const edge = dedupEdges.find(
+          (e) =>
+            (e.from === fromId && e.to === toId) ||
+            (e.from === toId && e.to === fromId)
+        );
+        if (edge) onEdgeClick?.(edge);
+        return;
+      }
+      // 빈 공간 클릭 → 해제
+      clearFocus();
     });
-    ro.observe(container);
 
     return () => {
-      ro.disconnect();
       if (networkRef.current) {
         networkRef.current.destroy();
         networkRef.current = null;
@@ -258,9 +344,7 @@ const SimilarityGraph: React.FC<Props> = ({
     variant,
   ]);
 
-  // 높이/폭은 style로 제어 (클래스 고정 높이 제거)
   const finalHeight = height ?? (variant === 'preview' ? 200 : 560);
-
   return (
     <div ref={containerRef} style={{ height: finalHeight, width: '100%' }} />
   );
