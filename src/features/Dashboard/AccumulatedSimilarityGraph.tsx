@@ -258,10 +258,17 @@ const AccumulatedSimilarityGraph: React.FC = () => {
             const to = (filteredNodes.length ? filteredNodes : base.nodes).find(
               (n) => n.id === edge.to
             );
-            const c =
-              (filteredEdges.length ? filteredEdges : base.edges).find(
-                (e) => e.from === edge.from && e.to === edge.to
-              )?.count ?? 1;
+            const pool = filteredEdges.length ? filteredEdges : base.edges;
+            const counts = pool
+              .filter(
+                (e) =>
+                  (e.from === edge.from && e.to === edge.to) ||
+                  (e.from === edge.to && e.to === edge.from)
+              )
+              .map((e) => e.count ?? 1);
+            const c = counts.length
+              ? counts.reduce((a, b) => a + b, 0) // 정책에 따라 Math.max(...)로 변경 가능
+              : 1;
             setHoverInfo(
               `👥 ${from?.label} ↔ ${to?.label}\n유사도: ${edge.similarity}%\n관측: ${c}회`
             );
