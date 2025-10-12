@@ -132,9 +132,7 @@ const SimilarityLoadingPage: React.FC = () => {
               현재 단계: {phases[phaseIdx]}
             </Text>
             <Text variant="caption" color="muted">
-              {data?.status === 'done'
-                ? '최종 정리 중'
-                : `진행 중 (~${DISPLAY_CAP}%)`}
+              {data?.status === 'done' ? '최종 정리 중' : `진행 중`}
             </Text>
           </div>
         </div>
